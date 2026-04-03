@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession, signIn, signOut } from "@/lib/auth-client";
+import Link from "next/link";
 
 export function LoginButton() {
   const { data: session, isPending } = useSession();
@@ -12,14 +13,19 @@ export function LoginButton() {
   if (session) {
     return (
       <div className="flex items-center gap-3">
-        {session.user.image && (
-          <img
-            src={session.user.image}
-            alt=""
-            className="h-8 w-8 rounded-full"
-          />
-        )}
-        <span className="text-sm text-zinc-300">{session.user.name}</span>
+        <Link
+          href="/profile"
+          className="inline-flex gap-2 text-sm text-zinc-400 hover:text-white transition"
+        >
+          {session.user.image && (
+            <img
+              src={session.user.image}
+              alt=""
+              className="h-8 w-8 rounded-full"
+            />
+          )}
+          <span className="text-sm text-zinc-300">{session.user.name}</span>
+        </Link>
         <button
           onClick={() => signOut()}
           className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20 transition"
@@ -35,7 +41,7 @@ export function LoginButton() {
       onClick={() =>
         signIn.social({
           provider: "spotify",
-          callbackURL: "/dashboard",
+          callbackURL: "/",
         })
       }
       className="flex items-center gap-2 rounded-lg bg-[#1DB954] px-5 py-2.5 text-sm font-semibold text-black hover:bg-[#1ed760] transition"

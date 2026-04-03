@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Leaderboard } from "@/components/leaderboard";
 import { Navbar } from "@/components/navbar";
@@ -78,12 +79,12 @@ export default async function LeaderboardPage({
           title={sample ? "Iron Man Rankings" : "Leaderboard"}
         />
         <div className="mt-6 text-center">
-          <a
-            href="/dashboard"
+          <Link
+            href="/"
             className="text-sm text-zinc-500 hover:text-zinc-300 transition"
           >
-            Back to dashboard
-          </a>
+            Back to home
+          </Link>
         </div>
       </main>
     </div>

@@ -1,21 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { Navbar } from "@/components/navbar";
 import { ProfileView, type ProfileData } from "@/components/profile-view";
 
-export default function ProfilePage() {
+export default function PublicProfilePage({
+  params,
+}: {
+  params: Promise<{ userId: string }>;
+}) {
+  const { userId } = use(params);
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    fetch("/api/profile")
-      .then((r) => r.json())
-      .then(setData)
+    fetch(`/api/profile/${userId}`)
+      .then((r) => {
+        if (r.status === 404) {
+          setNotFound(true);
+          return null;
+        }
+        return r.json();
+      })
+      .then((d) => { if (d) setData(d); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [userId]);
 
   if (loading) {
     return (
@@ -28,12 +40,12 @@ export default function ProfilePage() {
     );
   }
 
-  if (!data) {
+  if (notFound || !data) {
     return (
       <div className="min-h-screen bg-zinc-950">
         <Navbar />
         <div className="py-32 text-center text-zinc-400">
-          Sign in to see your profile.
+          User not found.
         </div>
       </div>
     );
@@ -49,7 +61,7 @@ export default function ProfilePage() {
             href="/"
             className="text-sm text-zinc-500 hover:text-zinc-300 transition"
           >
-            Back to dashboard
+            Back to home
           </Link>
         </div>
       </main>

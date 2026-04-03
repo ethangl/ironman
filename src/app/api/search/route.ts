@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionOrUnauth, getSpotifyToken } from "@/lib/auth-helpers";
 import { searchTracks } from "@/lib/spotify";
 import { prisma } from "@/lib/prisma";
+import { computeSongDifficulty } from "@/lib/difficulty";
 
 export async function GET(req: NextRequest) {
   const { session, error } = await getSessionOrUnauth();
@@ -27,18 +28,55 @@ export async function GET(req: NextRequest) {
     include: { user: { select: { name: true } } },
   });
 
-  // Build a map of trackId -> top streak
+  // Build maps: top streak + aggregate stats per track
   const topByTrack = new Map<string, { count: number; userName: string | null }>();
+  const statsByTrack = new Map<string, { totalPlays: number; totalAttempts: number; totalWeaknesses: number }>();
+
   for (const s of topStreaks) {
     if (!topByTrack.has(s.trackId) && s.count > 0) {
       topByTrack.set(s.trackId, { count: s.count, userName: s.user.name });
     }
+    const prev = statsByTrack.get(s.trackId) ?? { totalPlays: 0, totalAttempts: 0, totalWeaknesses: 0 };
+    prev.totalPlays += s.count;
+    prev.totalAttempts += 1;
+    statsByTrack.set(s.trackId, prev);
   }
 
-  const results = tracks.map((t) => ({
-    ...t,
-    topStreak: topByTrack.get(t.id) ?? null,
-  }));
+  // Batch fetch weakness counts for tracks that have streaks
+  const streakIds = topStreaks.map((s) => s.id);
+  if (streakIds.length > 0) {
+    const weaknessCounts = await prisma.weakness.groupBy({
+      by: ["streakId"],
+      where: { streakId: { in: streakIds } },
+      _count: true,
+    });
+    for (const w of weaknessCounts) {
+      const streak = topStreaks.find((s) => s.id === w.streakId);
+      if (streak) {
+        const prev = statsByTrack.get(streak.trackId);
+        if (prev) prev.totalWeaknesses += w._count;
+      }
+    }
+  }
+
+  const results = tracks.map((t) => {
+    const stats = statsByTrack.get(t.id);
+    const difficulty = computeSongDifficulty(
+      t.durationMs,
+      stats && stats.totalAttempts >= 3
+        ? {
+            weaknessRate: stats.totalWeaknesses / Math.max(stats.totalPlays, 1),
+            avgCount: stats.totalPlays / stats.totalAttempts,
+            totalAttempts: stats.totalAttempts,
+          }
+        : undefined,
+    );
+    return {
+      ...t,
+      topStreak: topByTrack.get(t.id) ?? null,
+      difficulty,
+    };
+  });
 
   return NextResponse.json(results);
 }

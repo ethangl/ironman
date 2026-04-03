@@ -1,9 +1,12 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/navbar";
 import { Leaderboard } from "@/components/leaderboard";
+import { LockInButton } from "@/components/lock-in-button";
 import { getCurrentMilestone } from "@/lib/milestones";
+import { computeSongDifficulty, difficultyLabel } from "@/lib/difficulty";
 import type { Metadata } from "next";
 
 async function getSongStats(trackId: string) {
@@ -45,16 +48,29 @@ async function getSongStats(trackId: string) {
       endedAt: s.endedAt!.toISOString(),
     }));
 
+  const difficulty = computeSongDifficulty(
+    sample.trackDuration,
+    totalAttempts >= 3
+      ? {
+          weaknessRate: weaknessCount / Math.max(totalPlays, 1),
+          avgCount: totalPlays / totalAttempts,
+          totalAttempts,
+        }
+      : undefined,
+  );
+
   return {
     trackName: sample.trackName,
     trackArtist: sample.trackArtist,
     trackImage: sample.trackImage,
+    trackDuration: sample.trackDuration,
     totalPlays,
     totalAttempts,
     uniqueUsers,
     activeCount,
     avgStreak,
     weaknessCount,
+    difficulty,
     ironMan: best.count > 0
       ? { name: best.user.name, count: best.count }
       : null,
@@ -157,10 +173,10 @@ export default async function SongPage({
         {/* Stats grid */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-8">
           {[
-            { label: "Total Plays", value: stats.totalPlays },
-            { label: "Attempts", value: stats.totalAttempts },
-            { label: "Users", value: stats.uniqueUsers },
-            { label: "Avg Streak", value: stats.avgStreak },
+            { label: "Total Plays", value: String(stats.totalPlays) },
+            { label: "Attempts", value: String(stats.totalAttempts) },
+            { label: "Users", value: String(stats.uniqueUsers) },
+            { label: "Avg Streak", value: String(stats.avgStreak) },
           ].map((stat) => (
             <div
               key={stat.label}
@@ -172,6 +188,16 @@ export default async function SongPage({
               <div className="text-xs text-zinc-500 mt-1">{stat.label}</div>
             </div>
           ))}
+        </div>
+
+        {/* Difficulty */}
+        <div className="mb-8 text-center">
+          <span className={`text-sm font-bold uppercase tracking-wider ${difficultyLabel(stats.difficulty).color}`}>
+            {difficultyLabel(stats.difficulty).label}
+          </span>
+          <span className="text-sm text-zinc-500 ml-2">
+            Difficulty ({stats.difficulty.toFixed(1)})
+          </span>
         </div>
 
         {stats.weaknessCount > 0 && (
@@ -223,23 +249,30 @@ export default async function SongPage({
           </div>
         )}
 
-        {/* CTA */}
-        <div className="mt-8 text-center">
-          <a
+        {/* CTAs */}
+        <div className="mt-8 flex flex-col items-center gap-3">
+          <LockInButton
+            trackId={trackId}
+            trackName={stats.trackName}
+            trackArtist={stats.trackArtist}
+            trackImage={stats.trackImage}
+            trackDuration={stats.trackDuration}
+          />
+          <Link
             href={`/challenge/${trackId}`}
-            className="inline-block rounded-xl bg-red-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-red-500 transition"
+            className="text-sm text-zinc-500 hover:text-zinc-300 transition"
           >
             Challenge someone to this song
-          </a>
+          </Link>
         </div>
 
         <div className="mt-6 text-center">
-          <a
-            href="/dashboard"
+          <Link
+            href="/"
             className="text-sm text-zinc-500 hover:text-zinc-300 transition"
           >
             Back to dashboard
-          </a>
+          </Link>
         </div>
       </main>
     </div>

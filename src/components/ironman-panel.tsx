@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef, type RefObject } from "react";
+import Link from "next/link";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { StreakData } from "@/types";
-import { EnforcementEngine, WeaknessEvent } from "./enforcement-engine";
+import { type WeaknessEvent } from "./enforcement-engine";
 import { StreakCounter } from "./streak-counter";
 import { SurrenderButton } from "./surrender-button";
 import { Leaderboard } from "./leaderboard";
@@ -11,32 +12,18 @@ import { ShareButton } from "./share-button";
 import { FellowIronmen } from "./fellow-ironmen";
 import { MilestoneToast } from "./milestone-toast";
 import { justHitMilestone, type Milestone } from "@/lib/milestones";
-import { PlayProgress } from "./play-progress";
-import { PlaybackControls } from "./playback-controls";
-import { type SdkPlaybackState } from "./web-player";
 
 export function IronmanPanel({
   streak: initialStreak,
-  accessToken,
   onSurrender,
-  onTokenExpired,
-  sdkState,
-  playerRef,
 }: {
   streak: StreakData;
-  accessToken: string;
   onSurrender: () => void;
-  onTokenExpired?: () => void;
-  sdkState?: SdkPlaybackState | null;
-  playerRef?: RefObject<any>;
 }) {
   const [count, setCount] = useState(initialStreak.count);
   const [weaknesses, setWeaknesses] = useState<WeaknessEvent[]>([]);
   const [activeMilestone, setActiveMilestone] = useState<Milestone | null>(null);
-  const [progressMs, setProgressMs] = useState(0);
-  const [durationMs, setDurationMs] = useState(initialStreak.trackDuration);
   const prevCountRef = useRef(initialStreak.count);
-  const sdkActive = !!(sdkState && sdkState.trackId === initialStreak.trackId);
 
   // Load existing weaknesses on mount
   useEffect(() => {
@@ -48,20 +35,26 @@ export function IronmanPanel({
       .catch(() => {});
   }, []);
 
-  const handleCountUpdate = useCallback((newCount: number) => {
-    const hit = justHitMilestone(prevCountRef.current, newCount);
-    if (hit) setActiveMilestone(hit);
-    prevCountRef.current = newCount;
-    setCount(newCount);
-  }, []);
-
-  const handleProgress = useCallback((p: number, d: number) => {
-    setProgressMs(p);
-    setDurationMs(d);
-  }, []);
-
-  const handleWeakness = useCallback((event: WeaknessEvent) => {
-    setWeaknesses((prev) => [event, ...prev]);
+  // Poll count from status to stay in sync with NowPlayingBar's enforcement
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch("/api/ironman/status")
+        .then(async (r) => {
+          const text = await r.text();
+          if (!text || text === "null") return null;
+          try { return JSON.parse(text); } catch { return null; }
+        })
+        .then((data) => {
+          if (data && data.count !== prevCountRef.current) {
+            const hit = justHitMilestone(prevCountRef.current, data.count);
+            if (hit) setActiveMilestone(hit);
+            prevCountRef.current = data.count;
+            setCount(data.count);
+          }
+        })
+        .catch(() => {});
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -72,17 +65,6 @@ export function IronmanPanel({
           onDismiss={() => setActiveMilestone(null)}
         />
       )}
-
-      <EnforcementEngine
-        streak={initialStreak}
-        accessToken={accessToken}
-        onCountUpdate={handleCountUpdate}
-        onProgress={handleProgress}
-        onWeakness={handleWeakness}
-        onBroken={onSurrender}
-        onTokenExpired={onTokenExpired}
-        sdkState={sdkState}
-      />
 
       <div className="flex items-center gap-2">
         <span className="relative flex h-3 w-3">
@@ -110,24 +92,12 @@ export function IronmanPanel({
         </div>
       )}
 
-      <a href={`/song/${initialStreak.trackId}`} className="text-center hover:opacity-80 transition">
+      <Link href={`/song/${initialStreak.trackId}`} className="text-center hover:opacity-80 transition">
         <h2 className="text-2xl font-bold">{initialStreak.trackName}</h2>
         <p className="text-zinc-400">{initialStreak.trackArtist}</p>
-      </a>
+      </Link>
 
       <StreakCounter count={count} />
-
-      <PlayProgress
-        progressMs={sdkActive ? sdkState!.position : progressMs}
-        durationMs={sdkActive ? sdkState!.duration : durationMs}
-      />
-
-      <PlaybackControls
-        accessToken={accessToken}
-        player={playerRef ?? null}
-        isSdkActive={sdkActive}
-        paused={sdkActive ? sdkState!.paused : undefined}
-      />
 
       <FellowIronmen trackId={initialStreak.trackId} />
 

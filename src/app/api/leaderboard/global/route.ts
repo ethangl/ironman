@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const streaks = await prisma.streak.findMany({
+    where: { count: { gte: 3 } },
     orderBy: { count: "desc" },
     take: 20,
     include: {
@@ -13,6 +14,7 @@ export async function GET() {
   const leaderboard = streaks.map((s, i) => ({
     rank: i + 1,
     id: s.id,
+    userId: s.userId,
     count: s.count,
     active: s.active,
     trackId: s.trackId,

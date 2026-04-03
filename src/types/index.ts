@@ -6,6 +6,7 @@ export interface SpotifyTrack {
   albumImage: string | null;
   durationMs: number;
   topStreak?: { count: number; userName: string | null } | null;
+  difficulty?: number;
 }
 
 export interface PlaybackState {

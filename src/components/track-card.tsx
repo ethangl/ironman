@@ -1,6 +1,7 @@
 "use client";
 
 import { SpotifyTrack } from "@/types";
+import { difficultyLabel } from "@/lib/difficulty";
 
 function formatDuration(ms: number) {
   const minutes = Math.floor(ms / 60000);
@@ -35,9 +36,16 @@ export function TrackCard({
           </p>
         )}
       </div>
-      <span className="text-xs text-zinc-500 tabular-nums">
-        {formatDuration(track.durationMs)}
-      </span>
+      <div className="flex flex-col items-end gap-0.5">
+        <span className="text-xs text-zinc-500 tabular-nums">
+          {formatDuration(track.durationMs)}
+        </span>
+        {track.difficulty != null && (
+          <span className={`text-[10px] font-bold uppercase tracking-wider ${difficultyLabel(track.difficulty).color}`}>
+            {difficultyLabel(track.difficulty).label}
+          </span>
+        )}
+      </div>
       {action}
     </div>
   );

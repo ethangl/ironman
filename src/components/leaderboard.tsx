@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getCurrentMilestone } from "@/lib/milestones";
 
@@ -29,7 +30,8 @@ function EntryRow({
   showTrack: boolean;
   liveCount?: number;
 }) {
-  const count = entry.isMe && liveCount !== undefined ? liveCount : entry.count;
+  const count = entry.isMe && liveCount !== undefined ? Math.max(liveCount, entry.count) : entry.count;
+  const isNewRecord = entry.isMe && liveCount !== undefined && liveCount > entry.count;
 
   return (
     <div
@@ -63,9 +65,15 @@ function EntryRow({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="truncate font-medium text-sm">
-            {entry.isMe ? "You" : (entry.userName ?? "Anonymous")}
-          </span>
+          {entry.userId && !entry.isMe ? (
+            <Link href={`/profile/${entry.userId}`} className="truncate font-medium text-sm hover:text-red-400 transition">
+              {entry.userName ?? "Anonymous"}
+            </Link>
+          ) : (
+            <span className="truncate font-medium text-sm">
+              {entry.isMe ? "You" : (entry.userName ?? "Anonymous")}
+            </span>
+          )}
           {entry.rank === 1 && (
             <span className="shrink-0 rounded-full bg-yellow-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-yellow-400">
               Iron Man
@@ -84,9 +92,9 @@ function EntryRow({
           </span>
         )}
         {showTrack && entry.trackId && (
-          <a href={`/song/${entry.trackId}`} className="truncate text-xs text-zinc-500 hover:text-zinc-300 transition">
+          <Link href={`/song/${entry.trackId}`} className="truncate text-xs text-zinc-500 hover:text-zinc-300 transition">
             {entry.trackName} - {entry.trackArtist}
-          </a>
+          </Link>
         )}
         {showTrack && !entry.trackId && (
           <p className="truncate text-xs text-zinc-500">
@@ -104,6 +112,11 @@ function EntryRow({
         })()}
         <span className="text-xl font-bold tabular-nums">{count}</span>
         <span className="ml-1 text-xs text-zinc-500">plays</span>
+        {isNewRecord && (
+          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 animate-pulse">
+            New PB
+          </p>
+        )}
       </div>
     </div>
   );

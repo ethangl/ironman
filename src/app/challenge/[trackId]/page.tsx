@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/navbar";
 import { Leaderboard } from "@/components/leaderboard";
@@ -88,12 +89,12 @@ export default async function ChallengePage({
             </p>
           )}
 
-          <a
-            href={`/dashboard?lockIn=${trackId}`}
+          <Link
+            href={`/?lockIn=${trackId}`}
             className="mt-8 inline-block rounded-xl bg-red-600 px-8 py-3 text-lg font-bold text-white hover:bg-red-500 transition"
           >
             Accept Challenge
-          </a>
+          </Link>
         </div>
 
         <Leaderboard trackId={trackId} title="Current Rankings" />

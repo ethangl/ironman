@@ -18,10 +18,16 @@ export interface SdkPlaybackState {
 
 // Preload the SDK script globally (only once)
 let sdkLoaded = false;
+let pendingInit: (() => void) | null = null;
 
 if (typeof window !== "undefined" && !window.onSpotifyWebPlaybackSDKReady) {
   window.onSpotifyWebPlaybackSDKReady = () => {
     console.log("[web-player] SDK ready");
+    // If init() was called before SDK loaded, run it now
+    if (pendingInit) {
+      pendingInit();
+      pendingInit = null;
+    }
   };
 }
 
@@ -44,17 +50,20 @@ export function useWebPlayer(accessToken: string | null) {
   const accessTokenRef = useRef(accessToken);
   accessTokenRef.current = accessToken;
 
-  // Preload SDK script when we have a token
+  // Preload SDK script eagerly — don't wait for token
   useEffect(() => {
-    if (accessToken) loadSdkScript();
-  }, [accessToken]);
+    loadSdkScript();
+  }, []);
 
   // init() MUST be synchronous — called in click handler for activateElement()
   const init = useCallback(() => {
     if (!accessTokenRef.current || playerRef.current) return;
 
     if (!window.Spotify) {
-      console.warn("[web-player] SDK not loaded yet");
+      console.warn("[web-player] SDK not loaded yet, queuing init");
+      pendingInit = () => {
+        if (!playerRef.current && accessTokenRef.current) init();
+      };
       return;
     }
 
@@ -128,6 +137,7 @@ export function useWebPlayer(accessToken: string | null) {
   }, []);
 
   const disconnect = useCallback(() => {
+    pendingInit = null;
     playerRef.current?.disconnect();
     playerRef.current = null;
     deviceIdRef.current = null;

@@ -55,8 +55,9 @@ export async function getCurrentlyPlaying(
   }
 }
 
-export async function playTrack(trackId: string, token: string) {
-  await spotifyFetch("/me/player/play", token, {
+export async function playTrack(trackId: string, token: string, deviceId?: string) {
+  const query = deviceId ? `?device_id=${deviceId}` : "";
+  await spotifyFetch(`/me/player/play${query}`, token, {
     method: "PUT",
     body: JSON.stringify({ uris: [`spotify:track:${trackId}`] }),
   });
@@ -64,9 +65,11 @@ export async function playTrack(trackId: string, token: string) {
 
 export async function setRepeatMode(
   state: "track" | "context" | "off",
-  token: string
+  token: string,
+  deviceId?: string,
 ) {
-  await spotifyFetch(`/me/player/repeat?state=${state}`, token, {
+  const query = deviceId ? `&device_id=${deviceId}` : "";
+  await spotifyFetch(`/me/player/repeat?state=${state}${query}`, token, {
     method: "PUT",
   });
 }

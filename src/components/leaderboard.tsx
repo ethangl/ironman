@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getCurrentMilestone } from "@/lib/milestones";
 
 interface LeaderboardEntry {
   rank: number;
@@ -16,6 +17,7 @@ interface LeaderboardEntry {
   userImage: string | null;
   startedAt: string;
   isMe?: boolean;
+  weaknessCount?: number;
 }
 
 function EntryRow({
@@ -76,7 +78,17 @@ function EntryRow({
             </span>
           )}
         </div>
-        {showTrack && (
+        {entry.weaknessCount != null && entry.weaknessCount > 0 && (
+          <span className="text-[10px] text-zinc-600">
+            {entry.weaknessCount} {entry.weaknessCount === 1 ? "weakness" : "weaknesses"}
+          </span>
+        )}
+        {showTrack && entry.trackId && (
+          <a href={`/song/${entry.trackId}`} className="truncate text-xs text-zinc-500 hover:text-zinc-300 transition">
+            {entry.trackName} - {entry.trackArtist}
+          </a>
+        )}
+        {showTrack && !entry.trackId && (
           <p className="truncate text-xs text-zinc-500">
             {entry.trackName} - {entry.trackArtist}
           </p>
@@ -84,6 +96,12 @@ function EntryRow({
       </div>
 
       <div className="text-right shrink-0">
+        {(() => {
+          const milestone = getCurrentMilestone(count);
+          return milestone ? (
+            <span className="text-sm mr-1" title={milestone.label}>{milestone.badge}</span>
+          ) : null;
+        })()}
         <span className="text-xl font-bold tabular-nums">{count}</span>
         <span className="ml-1 text-xs text-zinc-500">plays</span>
       </div>

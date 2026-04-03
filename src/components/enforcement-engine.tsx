@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { StreakData } from "@/types";
+import { type SdkPlaybackState } from "./web-player";
 
 const POLL_INTERVAL = 4000;
 
@@ -12,31 +13,89 @@ export interface WeaknessEvent {
   createdAt: string;
 }
 
-function reportWeakness(type: string, detail?: string) {
-  fetch("/api/ironman/weakness", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type, detail }),
-  }).catch(() => {});
+async function reportWeakness(
+  type: string,
+  detail?: string
+): Promise<{ broken: boolean } | null> {
+  try {
+    const res = await fetch("/api/ironman/weakness", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, detail }),
+    });
+    if (res.ok) return res.json();
+  } catch {}
+  return null;
 }
 
 export function EnforcementEngine({
   streak,
   accessToken,
   onCountUpdate,
+  onProgress,
   onWeakness,
+  onBroken,
+  onTokenExpired,
+  sdkState,
 }: {
   streak: StreakData;
   accessToken: string;
   onCountUpdate: (count: number) => void;
+  onProgress?: (progressMs: number, durationMs: number) => void;
   onWeakness?: (event: WeaknessEvent) => void;
+  onBroken?: () => void;
+  onTokenExpired?: () => void;
+  sdkState?: SdkPlaybackState | null;
 }) {
   const countRef = useRef(streak.count);
-  // Track previous state to avoid duplicate reports
   const prevState = useRef<"playing" | "paused" | "quit">("playing");
+  const brokenRef = useRef(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleWeakness = useCallback(
+    async (type: "paused" | "quit" | "wrong_song", detail?: string) => {
+      onWeakness?.({
+        id: Date.now().toString(),
+        type,
+        detail: detail ?? null,
+        createdAt: new Date().toISOString(),
+      });
+
+      const result = await reportWeakness(type, detail);
+      if (result?.broken) {
+        brokenRef.current = true;
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        onBroken?.();
+      }
+    },
+    [onWeakness, onBroken]
+  );
+
+  // Debounced pause/quit detection — avoids false weakness on brief transitions
+  const debouncedPauseWeakness = useCallback(
+    (type: "paused" | "quit") => {
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+      pauseTimerRef.current = setTimeout(() => {
+        // Only report if still in that state
+        if (prevState.current === type) {
+          handleWeakness(type);
+        }
+        pauseTimerRef.current = null;
+      }, 800);
+    },
+    [handleWeakness]
+  );
+
+  const cancelPauseTimer = useCallback(() => {
+    if (pauseTimerRef.current) {
+      clearTimeout(pauseTimerRef.current);
+      pauseTimerRef.current = null;
+    }
+  }, []);
 
   const enforce = useCallback(async () => {
-    if (!accessToken) return;
+    if (!accessToken || brokenRef.current) return;
 
     try {
       const res = await fetch(
@@ -44,17 +103,17 @@ export function EnforcementEngine({
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
 
+      // Token expired — ask parent to refresh
+      if (res.status === 401) {
+        onTokenExpired?.();
+        return;
+      }
+
       // No player / no content — Spotify is closed or inactive
       if (res.status === 204 || res.status === 202) {
         if (prevState.current !== "quit") {
           prevState.current = "quit";
-          reportWeakness("quit");
-          onWeakness?.({
-            id: Date.now().toString(),
-            type: "quit",
-            detail: null,
-            createdAt: new Date().toISOString(),
-          });
+          debouncedPauseWeakness("quit");
         }
         return;
       }
@@ -66,13 +125,7 @@ export function EnforcementEngine({
       if (!playback?.is_playing) {
         if (prevState.current !== "paused") {
           prevState.current = "paused";
-          reportWeakness("paused");
-          onWeakness?.({
-            id: Date.now().toString(),
-            type: "paused",
-            detail: null,
-            createdAt: new Date().toISOString(),
-          });
+          debouncedPauseWeakness("paused");
         }
         return;
       }
@@ -84,13 +137,7 @@ export function EnforcementEngine({
           : null;
 
         prevState.current = "playing";
-        reportWeakness("wrong_song", wrongSong ?? undefined);
-        onWeakness?.({
-          id: Date.now().toString(),
-          type: "wrong_song",
-          detail: wrongSong,
-          createdAt: new Date().toISOString(),
-        });
+        await handleWeakness("wrong_song", wrongSong ?? undefined);
 
         // Force it back
         await fetch("https://api.spotify.com/v1/me/player/play", {
@@ -116,6 +163,8 @@ export function EnforcementEngine({
 
       // Correct song playing — back to normal
       prevState.current = "playing";
+      cancelPauseTimer();
+      onProgress?.(playback.progress_ms, playback.item.duration_ms);
 
       const pollRes = await fetch("/api/ironman/poll", {
         method: "POST",
@@ -137,11 +186,45 @@ export function EnforcementEngine({
     } catch (e) {
       // Next poll will retry
     }
-  }, [accessToken, streak.trackId, onCountUpdate, onWeakness]);
+  }, [accessToken, streak.trackId, onCountUpdate, onProgress, handleWeakness, debouncedPauseWeakness, cancelPauseTimer]);
+
+  // Fast weakness detection via SDK events (instant, before next poll)
+  useEffect(() => {
+    if (!sdkState || brokenRef.current) return;
+
+    if (sdkState.paused && prevState.current !== "paused") {
+      prevState.current = "paused";
+      debouncedPauseWeakness("paused");
+      return;
+    }
+
+    if (sdkState.trackId && sdkState.trackId !== streak.trackId) {
+      prevState.current = "playing";
+      cancelPauseTimer();
+      handleWeakness("wrong_song");
+      // Force it back
+      fetch("https://api.spotify.com/v1/me/player/play", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          uris: [`spotify:track:${streak.trackId}`],
+        }),
+      });
+      return;
+    }
+
+    if (!sdkState.paused) {
+      prevState.current = "playing";
+      cancelPauseTimer();
+    }
+  }, [sdkState, streak.trackId, accessToken, handleWeakness, debouncedPauseWeakness, cancelPauseTimer]);
 
   useEffect(() => {
     enforce();
-    const interval = setInterval(enforce, POLL_INTERVAL);
+    intervalRef.current = setInterval(enforce, POLL_INTERVAL);
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible") enforce();
@@ -149,7 +232,8 @@ export function EnforcementEngine({
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
-      clearInterval(interval);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [enforce]);

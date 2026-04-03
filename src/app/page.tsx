@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/navbar";
 import { Leaderboard } from "@/components/leaderboard";
+import { LiveFeed } from "@/components/live-feed";
 
 export default function Home() {
   return (
@@ -63,6 +64,11 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Live feed */}
+        <div className="border-t border-white/5 py-16">
+          <LiveFeed />
         </div>
 
         {/* Global leaderboard */}

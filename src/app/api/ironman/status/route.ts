@@ -21,6 +21,7 @@ export async function GET() {
     trackDuration: streak.trackDuration,
     count: streak.count,
     active: streak.active,
+    hardcore: streak.hardcore,
     startedAt: streak.startedAt.toISOString(),
   });
 }

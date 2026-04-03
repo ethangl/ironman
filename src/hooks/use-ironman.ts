@@ -25,7 +25,11 @@ export function useIronman() {
       .finally(() => setLoading(false));
   }, []);
 
-  const startStreak = useCallback(async (track: SpotifyTrack) => {
+  const startStreak = useCallback(async (
+    track: SpotifyTrack,
+    hardcore = false,
+    opts?: { deviceId?: string; playbackStarted?: boolean },
+  ) => {
     setStarting(true);
     try {
       const res = await fetch("/api/ironman/start", {
@@ -37,19 +41,22 @@ export function useIronman() {
           trackArtist: track.artist,
           trackImage: track.albumImage,
           trackDuration: track.durationMs,
+          hardcore,
+          deviceId: opts?.deviceId,
+          playbackStarted: opts?.playbackStarted,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
         setStreak(data);
-        return { success: true };
+        return { success: true as const };
       } else {
         const err = await res.json();
-        return { success: false, error: err.error };
+        return { success: false as const, error: err.error, status: res.status };
       }
     } catch {
-      return { success: false, error: "Network error" };
+      return { success: false as const, error: "Network error", status: 0 };
     } finally {
       setStarting(false);
     }

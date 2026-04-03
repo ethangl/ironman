@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionOrUnauth } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { logFeedEvent } from "@/lib/feed";
 
 export async function POST(req: NextRequest) {
   const { session, error } = await getSessionOrUnauth();
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No active streak" }, { status: 404 });
   }
 
-  const weakness = await prisma.weakness.create({
+  await prisma.weakness.create({
     data: {
       streakId: streak.id,
       type,
@@ -24,7 +25,26 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json({ id: weakness.id, type: weakness.type });
+  // Hardcore mode: any weakness breaks the streak
+  if (streak.hardcore) {
+    await prisma.streak.update({
+      where: { id: streak.id },
+      data: { active: false, endedAt: new Date() },
+    });
+
+    await logFeedEvent(
+      streak.id,
+      session!.user.id,
+      "surrender",
+      streak.trackName,
+      streak.trackArtist,
+      `Hardcore streak broken by ${type} after ${streak.count} plays`
+    );
+
+    return NextResponse.json({ broken: true, reason: type, count: streak.count });
+  }
+
+  return NextResponse.json({ broken: false });
 }
 
 export async function GET() {

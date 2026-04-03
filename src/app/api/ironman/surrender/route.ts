@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionOrUnauth } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { logFeedEvent } from "@/lib/feed";
 
 export async function POST() {
   const { session, error } = await getSessionOrUnauth();
@@ -18,6 +19,15 @@ export async function POST() {
     where: { id: streak.id },
     data: { active: false, endedAt: new Date() },
   });
+
+  await logFeedEvent(
+    streak.id,
+    session!.user.id,
+    "surrender",
+    streak.trackName,
+    streak.trackArtist,
+    `${streak.count} plays`
+  );
 
   return NextResponse.json(updated);
 }

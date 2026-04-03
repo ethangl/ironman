@@ -21,6 +21,7 @@ export async function GET(
     orderBy: { count: "desc" },
     include: {
       user: { select: { id: true, name: true, image: true } },
+      _count: { select: { weaknesses: true } },
     },
   });
 
@@ -47,6 +48,7 @@ export async function GET(
     userName: s.user.name,
     userImage: s.user.image,
     isMe: s.userId === currentUserId,
+    weaknessCount: s._count.weaknesses,
   }));
 
   // If current user isn't in top 10, find their best streak
@@ -68,6 +70,7 @@ export async function GET(
         userName: s.user.name,
         userImage: s.user.image,
         isMe: true,
+        weaknessCount: s._count.weaknesses,
       };
     }
   }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionOrUnauth, getSpotifyToken } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { playTrack, setRepeatMode } from "@/lib/spotify";
+import { logFeedEvent } from "@/lib/feed";
 
 export async function POST(req: NextRequest) {
   const { session, error } = await getSessionOrUnauth();
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No Spotify token" }, { status: 401 });
   }
 
-  const { trackId, trackName, trackArtist, trackImage, trackDuration } =
+  const { trackId, trackName, trackArtist, trackImage, trackDuration, hardcore, deviceId, playbackStarted } =
     await req.json();
 
   if (!trackId || !trackName || !trackArtist || !trackDuration) {
@@ -31,15 +32,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  try {
-    await playTrack(trackId, token);
-    await setRepeatMode("track", token);
-  } catch (e: any) {
-    console.error("[ironman/start] playback error:", e.message);
-    return NextResponse.json(
-      { error: e.message || "Failed to start playback. Is Spotify open on a device?" },
-      { status: 502 }
-    );
+  // When playbackStarted is true, the client already started playback (SDK device)
+  if (!playbackStarted) {
+    try {
+      await playTrack(trackId, token, deviceId);
+      await setRepeatMode("track", token, deviceId);
+    } catch (e: any) {
+      console.error("[ironman/start] playback error:", e.message);
+      return NextResponse.json(
+        { error: e.message || "Failed to start playback. Is Spotify open on a device?" },
+        { status: 502 }
+      );
+    }
   }
 
   const streak = await prisma.streak.create({
@@ -50,8 +54,18 @@ export async function POST(req: NextRequest) {
       trackArtist,
       trackImage,
       trackDuration,
+      hardcore: !!hardcore,
     },
   });
+
+  await logFeedEvent(
+    streak.id,
+    session!.user.id,
+    "lock_in",
+    trackName,
+    trackArtist,
+    hardcore ? "Hardcore mode" : undefined
+  );
 
   return NextResponse.json({
     id: streak.id,
@@ -62,6 +76,7 @@ export async function POST(req: NextRequest) {
     trackDuration: streak.trackDuration,
     count: streak.count,
     active: streak.active,
+    hardcore: streak.hardcore,
     startedAt: streak.startedAt.toISOString(),
   });
 }

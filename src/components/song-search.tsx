@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { SpotifyTrack } from "@/types";
 import { TrackCard } from "./track-card";
+import { ChallengeButton } from "./challenge-button";
 
 export function SongSearch({
   onSelect,
 }: {
-  onSelect: (track: SpotifyTrack) => void;
+  onSelect: (track: SpotifyTrack, hardcore: boolean) => void;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SpotifyTrack[]>([]);
@@ -75,12 +76,26 @@ export function SongSearch({
               key={track.id}
               track={track}
               action={
-                <button
-                  onClick={() => onSelect(track)}
-                  className="shrink-0 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-red-500 transition"
-                >
-                  Lock In
-                </button>
+                <div className="flex items-center gap-2">
+                  <ChallengeButton
+                    trackId={track.id}
+                    trackName={track.name}
+                    trackArtist={track.artist}
+                  />
+                  <button
+                    onClick={() => onSelect(track, false)}
+                    className="shrink-0 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-red-500 transition"
+                  >
+                    Lock In
+                  </button>
+                  <button
+                    onClick={() => onSelect(track, true)}
+                    className="shrink-0 rounded-lg bg-white/5 border border-red-500/50 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/10 transition"
+                    title="Any weakness breaks your streak"
+                  >
+                    Hardcore
+                  </button>
+                </div>
               }
             />
           ))}

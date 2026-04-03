@@ -18,9 +18,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts Account[]
-  sessions Session[]
-  streaks  Streak[]
+  accounts   Account[]
+  sessions   Session[]
+  streaks    Streak[]
+  feedEvents FeedEvent[]
 
   @@map("user")
 }
@@ -87,8 +88,9 @@ model Streak {
   trackImage    String?
   trackDuration Int
 
-  count  Int     @default(0)
-  active Boolean @default(true)
+  count    Int     @default(0)
+  active   Boolean @default(true)
+  hardcore Boolean @default(false)
 
   startedAt      DateTime  @default(now())
   endedAt        DateTime?
@@ -96,6 +98,7 @@ model Streak {
   lastCheckedAt  DateTime  @default(now())
 
   weaknesses Weakness[]
+  feedEvents FeedEvent[]
 
   @@index([trackId, count])
   @@index([userId, active])
@@ -111,4 +114,20 @@ model Weakness {
   createdAt DateTime @default(now())
 
   @@index([streakId, createdAt])
+}
+
+model FeedEvent {
+  id        String   @id @default(cuid())
+  streakId  String
+  streak    Streak   @relation(fields: [streakId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      String // "lock_in", "surrender", "milestone"
+  detail    String? // e.g. milestone label
+  trackName String
+  trackArtist String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

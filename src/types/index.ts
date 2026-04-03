@@ -32,6 +32,7 @@ export interface StreakData {
   trackDuration: number;
   count: number;
   active: boolean;
+  hardcore?: boolean;
   startedAt: string;
   userName?: string;
   userImage?: string;

@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ── Better Auth Models ──
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  streaks  Streak[]
+
+  @@map("user")
+}
+
+model Account {
+  id                    String    @id
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ── Domain Models ──
+
+model Streak {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  trackId       String
+  trackName     String
+  trackArtist   String
+  trackImage    String?
+  trackDuration Int
+
+  count  Int     @default(0)
+  active Boolean @default(true)
+
+  startedAt      DateTime  @default(now())
+  endedAt        DateTime?
+  lastProgressMs Int       @default(0)
+  lastCheckedAt  DateTime  @default(now())
+
+  weaknesses Weakness[]
+
+  @@index([trackId, count])
+  @@index([userId, active])
+}
+
+model Weakness {
+  id       String   @id @default(cuid())
+  streakId String
+  streak   Streak   @relation(fields: [streakId], references: [id], onDelete: Cascade)
+
+  type      String // "paused", "quit", "wrong_song"
+  detail    String? // e.g. the song they tried to play
+  createdAt DateTime @default(now())
+
+  @@index([streakId, createdAt])
+}

@@ -1,9 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Navbar } from "@/components/navbar";
-import { ProfileView, type ProfileData } from "@/components/profile-view";
+
+import {
+  ProfileView,
+  type ProfileData,
+} from "@/app/profile/[userId]/profile-view";
 
 export default function ProfilePage() {
   const [data, setData] = useState<ProfileData | null>(null);
@@ -19,40 +21,19 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950">
-        <Navbar />
-        <div className="flex items-center justify-center py-32">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-500 border-t-white" />
-        </div>
+      <div className="flex items-center justify-center py-32">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-mist-500 border-t-white" />
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-zinc-950">
-        <Navbar />
-        <div className="py-32 text-center text-zinc-400">
-          Sign in to see your profile.
-        </div>
+      <div className="py-32 text-center text-muted-foreground">
+        Sign in to see your profile.
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-zinc-950">
-      <Navbar />
-      <main className="mx-auto max-w-xl px-4 py-8">
-        <ProfileView data={data} />
-        <div className="mt-6 text-center">
-          <Link
-            href="/"
-            className="text-sm text-zinc-500 hover:text-zinc-300 transition"
-          >
-            Back to dashboard
-          </Link>
-        </div>
-      </main>
-    </div>
-  );
+  return <ProfileView data={data} />;
 }

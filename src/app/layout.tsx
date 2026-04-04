@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { Providers } from "@/components/providers";
+import { Geist, Jacquard_12 } from "next/font/google";
+
+import { Navbar } from "@/components/navbar";
+import { WebPlayerProvider } from "@/components/player/web-player-context";
+import { Toaster } from "@/components/ui/sonner";
+import { cn } from "@/lib/utils";
 import "./globals.css";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jacquard = Jacquard_12({
+  variable: "--font-decorative",
+  weight: "400",
   subsets: ["latin"],
 });
 
@@ -26,10 +31,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={cn("antialiased dark", geistSans.variable, jacquard.variable)}
     >
-      <body className="min-h-full flex flex-col bg-zinc-950 text-white">
-        <Providers>{children}</Providers>
+      <body className="flex flex-col">
+        <WebPlayerProvider>
+          <Navbar />
+          {children}
+          <Toaster />
+        </WebPlayerProvider>
       </body>
     </html>
   );

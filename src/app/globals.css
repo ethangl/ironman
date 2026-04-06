@@ -42,6 +42,11 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
   --color-foreground: var(--foreground);
+  --color-palette-0: var(--palette-0);
+  --color-palette-1: var(--palette-1);
+  --color-palette-2: var(--palette-2);
+  --color-palette-3: var(--palette-3);
+  --color-palette-4: var(--palette-4);
   --color-background: var(--background);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -141,4 +146,11 @@
 }
 
 @layer utilities {
+}
+
+nextjs-portal,
+[data-nextjs-toast],
+[data-nextjs-dialog-overlay],
+nextjs-dev-toolbar {
+  display: none !important;
 }

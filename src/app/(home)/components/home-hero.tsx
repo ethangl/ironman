@@ -1,23 +1,4 @@
-"use client";
-
-import { useSession } from "@/lib/auth-client";
-import { DashboardContent } from "./dashboard-content";
-
 export function HomeHero() {
-  const { data: session, isPending } = useSession();
-
-  if (isPending) {
-    return (
-      <div className="flex items-center justify-center py-32">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-mist-500 border-t-white" />
-      </div>
-    );
-  }
-
-  if (session) {
-    return <DashboardContent />;
-  }
-
   return (
     <>
       <div className="py-24 text-center">

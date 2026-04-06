@@ -9,20 +9,25 @@ export function useIronman() {
   const [starting, setStarting] = useState(false);
 
   useEffect(() => {
-    fetch("/api/ironman/status")
-      .then(async (r) => {
-        const text = await r.text();
-        if (!text || text === "null") return null;
-        try {
-          return JSON.parse(text);
-        } catch {
-          console.error("[use-ironman] bad status response:", text.substring(0, 100));
-          return null;
-        }
-      })
-      .then((data) => setStreak(data))
-      .catch(() => setStreak(null))
-      .finally(() => setLoading(false));
+    const check = () => {
+      fetch("/api/ironman/status")
+        .then(async (r) => {
+          const text = await r.text();
+          if (!text || text === "null") return null;
+          try {
+            return JSON.parse(text);
+          } catch {
+            return null;
+          }
+        })
+        .then((data) => setStreak(data))
+        .catch(() => setStreak(null))
+        .finally(() => setLoading(false));
+    };
+
+    check();
+    const interval = setInterval(check, 3_000);
+    return () => clearInterval(interval);
   }, []);
 
   const startStreak = useCallback(async (

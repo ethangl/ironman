@@ -130,7 +130,13 @@ export default async function SongPage({
       <div className="flex items-center gap-4">
         {stats.trackImage && (
           <div className="relative">
-            <div className="absolute -inset-1 rounded-2xl bg-red-500/20 blur-lg" />
+            <div
+              className="absolute -inset-1 rounded-2xl blur-lg"
+              style={{
+                backgroundColor:
+                  "color-mix(in oklch, var(--palette-1) 30%, transparent)",
+              }}
+            />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={stats.trackImage}

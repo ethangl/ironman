@@ -2,8 +2,12 @@
 
 import { useCallback, useEffect, useRef } from "react";
 
+import {
+  type PlayResult,
+  type SdkPlaybackState,
+  type SpotifyPlayback,
+} from "@/hooks/use-spotify";
 import { StreakData } from "@/types";
-import { type SdkPlaybackState } from "./web-player";
 
 const POLL_INTERVAL = 4000;
 
@@ -31,21 +35,26 @@ async function reportWeakness(
 
 export function EnforcementEngine({
   streak,
-  accessToken,
+  getCurrentlyPlaying,
+  play,
+  setRepeat,
   onCountUpdate,
   onProgress,
   onWeakness,
   onBroken,
-  onTokenExpired,
   sdkState,
 }: {
   streak: StreakData;
-  accessToken: string;
+  getCurrentlyPlaying: () => Promise<{
+    status: number;
+    playback: SpotifyPlayback | null;
+  }>;
+  play: (uri: string, deviceId?: string) => Promise<PlayResult>;
+  setRepeat: (state: string, deviceId?: string) => Promise<void>;
   onCountUpdate: (count: number) => void;
   onProgress?: (progressMs: number, durationMs: number) => void;
   onWeakness?: (event: WeaknessEvent) => void;
   onBroken?: () => void;
-  onTokenExpired?: () => void;
   sdkState?: SdkPlaybackState | null;
 }) {
   const countRef = useRef(streak.count);
@@ -73,12 +82,10 @@ export function EnforcementEngine({
     [onWeakness, onBroken],
   );
 
-  // Debounced pause/quit detection — avoids false weakness on brief transitions
   const debouncedPauseWeakness = useCallback(
     (type: "paused" | "quit") => {
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
       pauseTimerRef.current = setTimeout(() => {
-        // Only report if still in that state
         if (prevState.current === type) {
           handleWeakness(type);
         }
@@ -95,101 +102,79 @@ export function EnforcementEngine({
     }
   }, []);
 
+  const forceCorrectTrack = useCallback(async () => {
+    await play(`spotify:track:${streak.trackId}`);
+    await setRepeat("track");
+  }, [play, setRepeat, streak.trackId]);
+
   const enforce = useCallback(async () => {
-    if (!accessToken || brokenRef.current) return;
+    if (brokenRef.current) return;
 
-    try {
-      const res = await fetch(
-        "https://api.spotify.com/v1/me/player/currently-playing",
-        { headers: { Authorization: `Bearer ${accessToken}` } },
-      );
+    const { status, playback } = await getCurrentlyPlaying();
 
-      // Token expired — ask parent to refresh
-      if (res.status === 401) {
-        onTokenExpired?.();
-        return;
+    // Token expired — retry with fresh token next poll
+    if (status === 401) return;
+
+    // No player / no content — Spotify is closed or inactive
+    if (status === 204 || status === 202) {
+      if (prevState.current !== "quit") {
+        prevState.current = "quit";
+        debouncedPauseWeakness("quit");
       }
+      return;
+    }
+    if (!playback) return;
 
-      // No player / no content — Spotify is closed or inactive
-      if (res.status === 204 || res.status === 202) {
-        if (prevState.current !== "quit") {
-          prevState.current = "quit";
-          debouncedPauseWeakness("quit");
-        }
-        return;
+    // Player exists but paused
+    if (!playback.is_playing) {
+      if (prevState.current !== "paused") {
+        prevState.current = "paused";
+        debouncedPauseWeakness("paused");
       }
-      if (!res.ok) return;
+      return;
+    }
 
-      const playback = await res.json();
+    // Playing the wrong song
+    if (playback.item?.id !== streak.trackId) {
+      const wrongSong = playback.item
+        ? `${playback.item.name} — ${playback.item.artists?.map((a: { name: string }) => a.name).join(", ")}`
+        : null;
 
-      // Player exists but paused
-      if (!playback?.is_playing) {
-        if (prevState.current !== "paused") {
-          prevState.current = "paused";
-          debouncedPauseWeakness("paused");
-        }
-        return;
-      }
-
-      // Playing the wrong song
-      if (playback.item?.id !== streak.trackId) {
-        const wrongSong = playback.item
-          ? `${playback.item.name} — ${playback.item.artists?.map((a: any) => a.name).join(", ")}`
-          : null;
-
-        prevState.current = "playing";
-        await handleWeakness("wrong_song", wrongSong ?? undefined);
-
-        // Force it back
-        await fetch("https://api.spotify.com/v1/me/player/play", {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            uris: [`spotify:track:${streak.trackId}`],
-          }),
-        });
-
-        await fetch("https://api.spotify.com/v1/me/player/repeat?state=track", {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        return;
-      }
-
-      // Correct song playing — back to normal
       prevState.current = "playing";
-      cancelPauseTimer();
-      onProgress?.(playback.progress_ms, playback.item.duration_ms);
+      await handleWeakness("wrong_song", wrongSong ?? undefined);
+      await forceCorrectTrack();
+      return;
+    }
 
-      const pollRes = await fetch("/api/ironman/poll", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          progress_ms: playback.progress_ms,
-          track_id: playback.item.id,
-          is_playing: playback.is_playing,
-        }),
-      });
+    // Correct song playing — back to normal
+    prevState.current = "playing";
+    cancelPauseTimer();
+    onProgress?.(playback.progress_ms, playback.item.duration_ms);
 
-      if (pollRes.ok) {
-        const data = await pollRes.json();
-        if (data.count !== countRef.current) {
-          countRef.current = data.count;
-          onCountUpdate(data.count);
-        }
+    const pollRes = await fetch("/api/ironman/poll", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        progress_ms: playback.progress_ms,
+        track_id: playback.item.id,
+        is_playing: playback.is_playing,
+      }),
+    });
+
+    if (pollRes.ok) {
+      const data = await pollRes.json();
+      if (data.count !== countRef.current) {
+        countRef.current = data.count;
+        onCountUpdate(data.count);
       }
-    } catch (e) {
-      // Next poll will retry
     }
   }, [
-    accessToken,
+    getCurrentlyPlaying,
     streak.trackId,
     onCountUpdate,
     onProgress,
     handleWeakness,
+    forceCorrectTrack,
     debouncedPauseWeakness,
     cancelPauseTimer,
   ]);
@@ -208,17 +193,7 @@ export function EnforcementEngine({
       prevState.current = "playing";
       cancelPauseTimer();
       handleWeakness("wrong_song");
-      // Force it back
-      fetch("https://api.spotify.com/v1/me/player/play", {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          uris: [`spotify:track:${streak.trackId}`],
-        }),
-      });
+      forceCorrectTrack();
       return;
     }
 
@@ -229,7 +204,7 @@ export function EnforcementEngine({
   }, [
     sdkState,
     streak.trackId,
-    accessToken,
+    forceCorrectTrack,
     handleWeakness,
     debouncedPauseWeakness,
     cancelPauseTimer,

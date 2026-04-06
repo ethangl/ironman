@@ -1,8 +1,9 @@
+import { Avatar } from "@/components/avatar";
 import { List, ListLink } from "@/components/list";
 import { getCurrentMilestone } from "@/lib/milestones";
 
 export interface ProfileData {
-  user: { name: string; image: string | null };
+  user: { id: string; name: string; image: string | null };
   stats: {
     totalPlays: number;
     totalStreaks: number;
@@ -52,20 +53,11 @@ export function ProfileView({ data }: { data: ProfileData }) {
   return (
     <main className="space-y-8">
       <header className="flex items-center gap-4">
-        <div className="bg-foreground/10 flex flex-none items-center justify-center size-16 rounded-full">
-          {data.user.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={data.user.image}
-              alt={data.user.name}
-              className="h-16 w-16 rounded-full"
-            />
-          ) : (
-            <span className="font-decorative text-7xl text-background -translate-x-0.5 translate-y-0.5 uppercase">
-              {data.user.name[0]}
-            </span>
-          )}
-        </div>
+        <Avatar
+          id={data.user.id}
+          image={data.user.image}
+          name={data.user.name}
+        />
         <div className="flex-auto space-y-1">
           <h1 className="text-2xl font-bold">{data.user.name}</h1>
           <p className="text-sm text-muted-foreground">

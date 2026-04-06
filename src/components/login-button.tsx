@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { signIn, signOut, useSession } from "@/lib/auth-client";
 import { LogOutIcon } from "lucide-react";
+import { Avatar } from "./avatar";
 import { Button } from "./ui/button";
 
 export function LoginButton() {
@@ -20,15 +21,12 @@ export function LoginButton() {
           href="/profile"
           className="inline-flex gap-2 text-sm text-muted-foreground hover:text-foreground transition"
         >
-          {session.user.image && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={session.user.image}
-              alt=""
-              className="h-8 w-8 rounded-full"
-            />
-          )}
-          <span className="text-sm">{session.user.name}</span>
+          <Avatar
+            id={session.user.id}
+            image={session.user.image || null}
+            name={session.user.name}
+            sizeClassName="size-6 text-xl"
+          />
         </Link>
         <Button variant="secondary" size="icon-xs" onClick={() => signOut()}>
           <LogOutIcon />

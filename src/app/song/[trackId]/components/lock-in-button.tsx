@@ -4,8 +4,8 @@ import { PlayIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { useWebPlayerContext } from "@/components/player/web-player-context";
 import { Button } from "@/components/ui/button";
+import { useWebPlayer } from "@/hooks/use-web-player";
 import { useSession } from "@/lib/auth-client";
 
 export function LockInButton({
@@ -22,8 +22,7 @@ export function LockInButton({
   trackDuration: number;
 }) {
   const { data: session } = useSession();
-  const { accessToken, refreshToken, initWebPlayer, waitForReady } =
-    useWebPlayerContext();
+  const { spotify } = useWebPlayer();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -41,7 +40,7 @@ export function LockInButton({
         await fetch("/api/ironman/surrender", { method: "POST" });
       }
 
-      initWebPlayer();
+      spotify.init();
 
       const body = {
         trackId,
@@ -60,39 +59,25 @@ export function LockInButton({
       });
 
       if (res.ok) {
-        await refreshToken();
         router.push("/");
         return;
       }
 
       // SDK fallback
-      if (res.status === 502 && accessToken) {
-        const sdkDeviceId = await waitForReady();
+      if (res.status === 502) {
+        const sdkDeviceId = await spotify.waitForReady();
         if (sdkDeviceId) {
           let playbackOk = false;
           for (let attempt = 0; attempt < 3; attempt++) {
             if (attempt > 0) await new Promise((r) => setTimeout(r, 1000));
             try {
-              const playRes = await fetch(
-                `https://api.spotify.com/v1/me/player/play?device_id=${sdkDeviceId}`,
-                {
-                  method: "PUT",
-                  headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({ uris: [`spotify:track:${trackId}`] }),
-                },
+              const playRes = await spotify.play(
+                `spotify:track:${trackId}`,
+                sdkDeviceId,
               );
-              if (playRes.ok || playRes.status === 204) {
+              if (playRes.ok) {
                 playbackOk = true;
-                await fetch(
-                  `https://api.spotify.com/v1/me/player/repeat?state=track&device_id=${sdkDeviceId}`,
-                  {
-                    method: "PUT",
-                    headers: { Authorization: `Bearer ${accessToken}` },
-                  },
-                );
+                await spotify.setRepeat("track", sdkDeviceId);
                 break;
               }
             } catch {}
@@ -105,7 +90,6 @@ export function LockInButton({
               body: JSON.stringify({ ...body, playbackStarted: true }),
             });
             if (streakRes.ok) {
-              await refreshToken();
               router.push("/");
               return;
             }
@@ -126,7 +110,6 @@ export function LockInButton({
   };
 
   const handleClick = async () => {
-    // Check for active streak
     const statusRes = await fetch("/api/ironman/status");
     const text = await statusRes.text();
     const active = !!(text && text !== "null");

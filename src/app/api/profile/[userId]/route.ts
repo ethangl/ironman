@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
@@ -9,7 +10,7 @@ export async function GET(
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { name: true, image: true },
+    select: { id: true, name: true, image: true },
   });
 
   if (!user) {
@@ -32,7 +33,7 @@ export async function GET(
   });
 
   return NextResponse.json({
-    user: { name: user.name, image: user.image },
+    user: { id: user.id, name: user.name, image: user.image },
     stats: { totalPlays, totalStreaks, uniqueSongs, weaknessCount },
     bestStreak: bestStreak
       ? {

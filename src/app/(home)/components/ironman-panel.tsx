@@ -16,10 +16,8 @@ import { WeaknessLog } from "./weakness-log";
 
 export function IronmanPanel({
   streak: initialStreak,
-  onSurrender,
 }: {
   streak: StreakData;
-  onSurrender: () => void;
 }) {
   const [count, setCount] = useState(initialStreak.count);
   const [weaknesses, setWeaknesses] = useState<WeaknessEvent[]>([]);
@@ -112,7 +110,7 @@ export function IronmanPanel({
           count={count}
           isIronMan={false}
         />
-        <SurrenderButton onSurrender={onSurrender} />
+        <SurrenderButton />
       </div>
       <div className="gap-8 grid lg:grid-cols-2 self-stretch space-y-12">
         <div className="space-y-12">

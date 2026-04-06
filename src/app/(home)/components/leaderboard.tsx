@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { Avatar } from "@/components/avatar";
 import { List, ListItem } from "@/components/list";
 import { getCurrentMilestone } from "@/lib/milestones";
 
@@ -63,12 +64,12 @@ function EntryRow({
         {entry.rank}
       </div>
 
-      {entry.userImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={entry.userImage} alt="" className="h-8 w-8 rounded-full" />
-      ) : (
-        <div className="h-8 w-8 rounded-full bg-white/10" />
-      )}
+      <Avatar
+        id={entry.userId}
+        image={entry.userImage}
+        name={entry.userName}
+        sizeClassName="size-8 text-3xl"
+      />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -171,7 +172,7 @@ export function Leaderboard({
   }, [trackId]);
 
   return (
-    <List title="Top Streaks" loading={loading} count={liveCount}>
+    <List title="Longest Streaks" loading={loading} count={liveCount}>
       {entries.map((entry) => (
         <EntryRow
           key={entry.id}

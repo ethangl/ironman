@@ -1,21 +1,20 @@
 "use client";
 
+import { SkullIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { SkullIcon } from "lucide-react";
+import { useWebPlayer } from "@/hooks/use-web-player";
 
-export function SurrenderButton({ onSurrender }: { onSurrender: () => void }) {
+export function SurrenderButton() {
+  const { surrender } = useWebPlayer();
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSurrender = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/ironman/surrender", { method: "POST" });
-      if (res.ok) {
-        onSurrender();
-      }
+      await surrender();
     } finally {
       setLoading(false);
       setConfirming(false);

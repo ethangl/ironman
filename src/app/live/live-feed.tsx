@@ -47,9 +47,22 @@ export function LiveFeed() {
         .finally(() => setLoading(false));
     };
 
-    fetchFeed();
-    const interval = setInterval(fetchFeed, 15000);
-    return () => clearInterval(interval);
+    const fetchIfVisible = () => {
+      if (document.visibilityState === "visible") {
+        fetchFeed();
+      }
+    };
+
+    fetchIfVisible();
+    const interval = setInterval(fetchIfVisible, 15000);
+    window.addEventListener("focus", fetchIfVisible);
+    document.addEventListener("visibilitychange", fetchIfVisible);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", fetchIfVisible);
+      document.removeEventListener("visibilitychange", fetchIfVisible);
+    };
   }, []);
 
   return (

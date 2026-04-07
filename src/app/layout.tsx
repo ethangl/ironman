@@ -3,7 +3,6 @@ import { Geist, Jacquard_12 } from "next/font/google";
 
 import { Navbar } from "@/components/navbar";
 import { WebPlayerProvider } from "@/components/player/web-player-provider";
-import { SpotifyActivityProvider } from "@/components/spotify-activity-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 import "./globals.css";
@@ -36,11 +35,9 @@ export default function RootLayout({
     >
       <body className="flex flex-col">
         <WebPlayerProvider>
-          <SpotifyActivityProvider>
-            <Navbar />
-            {children}
-            <Toaster />
-          </SpotifyActivityProvider>
+          <Navbar />
+          {children}
+          <Toaster />
         </WebPlayerProvider>
       </body>
     </html>

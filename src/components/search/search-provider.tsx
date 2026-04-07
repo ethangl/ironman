@@ -6,6 +6,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   ReactNode,
 } from "react";
@@ -32,20 +33,36 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     tracks: SpotifyTrack[];
   }>({ query: "", tracks: [] });
   const debouncedQuery = useDebounce(query, 300);
+  const cacheRef = useRef(new Map<string, SpotifyTrack[]>());
 
   useEffect(() => {
-    if (!debouncedQuery.trim()) return;
+    const trimmed = debouncedQuery.trim();
+    if (!trimmed) return;
 
-    let cancelled = false;
+    const cached = cacheRef.current.get(trimmed);
+    if (cached) {
+      setResults({ query: trimmed, tracks: cached });
+      return;
+    }
 
-    fetch(`/api/search?q=${encodeURIComponent(debouncedQuery)}`)
+    const controller = new AbortController();
+
+    fetch(`/api/search?q=${encodeURIComponent(trimmed)}`, {
+      signal: controller.signal,
+    })
       .then((r) => r.json())
       .then((data) => {
-        if (!cancelled) setResults({ query: debouncedQuery, tracks: data });
+        cacheRef.current.set(trimmed, data);
+        setResults({ query: trimmed, tracks: data });
+      })
+      .catch((error) => {
+        if (error.name !== "AbortError") {
+          console.error("[search] request failed:", error);
+        }
       });
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [debouncedQuery]);
 

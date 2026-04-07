@@ -19,9 +19,14 @@ export async function getSessionOrUnauth() {
 
 export async function getSpotifyToken(userId: string) {
   // Better Auth stores tokens in the account table and auto-refreshes
-  const token = await auth.api.getAccessToken({
-    body: { providerId: "spotify" },
-    headers: await headers(),
-  });
-  return token?.accessToken ?? null;
+  try {
+    const token = await auth.api.getAccessToken({
+      body: { providerId: "spotify" },
+      headers: await headers(),
+    });
+    return token?.accessToken ?? null;
+  } catch (error) {
+    console.warn("[auth] Failed to get Spotify access token for user", userId, error);
+    return null;
+  }
 }

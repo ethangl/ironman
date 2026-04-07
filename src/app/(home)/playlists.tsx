@@ -1,11 +1,16 @@
 import { FC, useCallback } from "react";
+import { toast } from "sonner";
 
-import { useSpotifyActivity, Playlist } from "@/hooks/use-spotify-activity";
+import {
+  useSpotifyActivity,
+  Playlist,
+  PlaylistTrack,
+} from "@/hooks/use-spotify-activity";
 import { useWebPlayerActions } from "@/hooks/use-web-player";
 import { PlayableTrack } from "@/types";
 import { Thumbnail } from "./thumbnail";
 
-function toPlayable(t: Playlist["tracks"][number]): PlayableTrack {
+function toPlayable(t: PlaylistTrack): PlayableTrack {
   return {
     id: t.id,
     name: t.name,
@@ -16,15 +21,27 @@ function toPlayable(t: Playlist["tracks"][number]): PlayableTrack {
 }
 
 export const Playlists: FC = () => {
-  const { playlists } = useSpotifyActivity();
+  const { playlists, getPlaylistTracks } = useSpotifyActivity();
   const { playTracks } = useWebPlayerActions();
 
   const handlePlay = useCallback(
-    (playlist: Playlist) => {
-      if (playlist.tracks.length === 0) return;
-      playTracks(playlist.tracks.map(toPlayable));
+    async (playlist: Playlist) => {
+      try {
+        const tracks = playlist.tracks ?? (await getPlaylistTracks(playlist.id));
+        if (tracks.length === 0) {
+          toast.error("That playlist does not have any playable tracks.");
+          return;
+        }
+        playTracks(tracks.map(toPlayable));
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Could not load that playlist right now.",
+        );
+      }
     },
-    [playTracks],
+    [getPlaylistTracks, playTracks],
   );
 
   return (
@@ -37,7 +54,7 @@ export const Playlists: FC = () => {
               <Thumbnail
                 description={`${playlist.trackCount} songs`}
                 name={playlist.name}
-                onPlay={() => handlePlay(playlist)}
+                onPlay={() => void handlePlay(playlist)}
                 src={playlist.image}
               />
             </li>

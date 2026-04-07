@@ -12,8 +12,32 @@ import {
 import { authClient, useSession } from "@/lib/auth-client";
 import { PlayableTrack, SpotifyTrack, StreakData } from "@/types";
 import { SdkPlaybackState } from "@/hooks/use-spotify";
+import { toast } from "sonner";
 import { MiniPlayer } from "./mini-player";
 import { StandardPlayer } from "./standard-player";
+
+const STREAK_CHANNEL_NAME = "ironman-streak";
+
+type StreakSyncMessage = {
+  type: "streak_state";
+  source: string;
+  streak: StreakData | null;
+};
+
+function getPlaybackFailureMessage(status: number) {
+  switch (status) {
+    case 401:
+      return "Your Spotify session expired. Reconnect Spotify and try again.";
+    case 403:
+      return "Spotify blocked this action. Premium or additional permissions may be required.";
+    case 429:
+      return "Spotify is rate limiting playback right now. Please wait a bit and try again.";
+    case 404:
+      return "No active Spotify device was available.";
+    default:
+      return "Spotify could not complete that action right now.";
+  }
+}
 
 function generateShuffleOrder(length: number, pinIndex: number): number[] {
   const order = Array.from({ length }, (_, i) => i);
@@ -38,6 +62,13 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   const [streak, setStreak] = useState<StreakData | null>(null);
   const [count, setCount] = useState(0);
   const countRef = useRef(0);
+  const streakRef = useRef<StreakData | null>(null);
+  const streakChannelRef = useRef<BroadcastChannel | null>(null);
+  const syncSourceRef = useRef<string | null>(null);
+  const playbackAttemptRef = useRef(0);
+  const startPlaybackInFlightRef = useRef(false);
+  const activePlaybackTrackRef = useRef<PlayableTrack | null>(null);
+  const queuedPlaybackTrackRef = useRef<PlayableTrack | null>(null);
 
   // Playback state
   const [progressMs, setProgressMs] = useState(0);
@@ -54,11 +85,6 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   const [shuffleOrder, setShuffleOrder] = useState<number[]>([]);
   const hasQueue = queue.length > 1;
 
-  const getEffectiveIndex = useCallback(
-    (idx: number) => (shuffled ? shuffleOrder[idx] ?? idx : idx),
-    [shuffled, shuffleOrder],
-  );
-
   const trackId = streak?.trackId ?? currentTrack?.id ?? null;
   const artworkUrl = streak?.trackImage ?? currentTrack?.albumImage ?? null;
 
@@ -69,8 +95,56 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const spotify = useSpotify({ getAccessToken, tokenRef, trackId });
+  const {
+    sdkState,
+    init: initSpotify,
+    waitForReady,
+    play,
+    resume,
+    pause,
+    setVolume: setSpotifyVolume,
+    setRepeat,
+    getCurrentlyPlaying,
+  } = spotify;
 
-  const paused = spotify.sdkState ? spotify.sdkState.paused : apiPaused;
+  const isAuthenticated = !!session;
+  const paused = sdkState ? sdkState.paused : apiPaused;
+
+  const getSyncSource = useCallback(() => {
+    if (!syncSourceRef.current) {
+      syncSourceRef.current =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `streak-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+    return syncSourceRef.current;
+  }, []);
+
+  const applyStreakState = useCallback((nextStreak: StreakData | null) => {
+    streakRef.current = nextStreak;
+    setStreak(nextStreak);
+    if (nextStreak) {
+      countRef.current = nextStreak.count;
+      setCount(nextStreak.count);
+      setDurationMs(nextStreak.trackDuration);
+      return;
+    }
+
+    countRef.current = 0;
+    setCount(0);
+    setDurationMs(0);
+  }, []);
+
+  const broadcastStreakState = useCallback(
+    (nextStreak: StreakData | null) => {
+      streakChannelRef.current?.postMessage({
+        type: "streak_state",
+        source: getSyncSource(),
+        streak: nextStreak,
+      } satisfies StreakSyncMessage);
+    },
+    [getSyncSource],
+  );
 
   // --- Palette extraction ---
 
@@ -93,47 +167,92 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     };
   }, [artworkUrl]);
 
-  // --- Streak polling ---
+  useEffect(() => {
+    streakRef.current = streak;
+  }, [streak]);
+
+  // --- Streak sync ---
+
+  const fetchStreakStatus = useCallback(async (): Promise<StreakData | null> => {
+    const res = await fetch("/api/ironman/status");
+    if (!res.ok) return null;
+    return res.json();
+  }, []);
 
   useEffect(() => {
+    if (!session) {
+      queueMicrotask(() => applyStreakState(null));
+      return;
+    }
+
     let cancelled = false;
-    const check = () => {
-      fetch("/api/ironman/status")
-        .then(async (r) => {
-          const text = await r.text();
-          if (!text || text === "null") return null;
-          try {
-            return JSON.parse(text);
-          } catch {
-            return null;
-          }
-        })
-        .then((data) => {
-          if (!cancelled) {
-            setStreak(data);
-            if (data) {
-              setCount(data.count);
-              countRef.current = data.count;
-              setDurationMs(data.trackDuration);
-            }
-          }
-        })
-        .catch(() => {});
+    const syncFromServer = async () => {
+      try {
+        const data = await fetchStreakStatus();
+        if (!cancelled) applyStreakState(data);
+      } catch {}
     };
-    check();
-    const interval = setInterval(check, 2_000);
+
+    void syncFromServer();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void syncFromServer();
+      }
+    };
+
+    window.addEventListener("focus", syncFromServer);
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      window.removeEventListener("focus", syncFromServer);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, []);
+  }, [session, applyStreakState, fetchStreakStatus]);
+
+  useEffect(() => {
+    if (!session || typeof BroadcastChannel === "undefined") return;
+
+    const channel = new BroadcastChannel(STREAK_CHANNEL_NAME);
+    streakChannelRef.current = channel;
+
+    const handleMessage = (event: MessageEvent<StreakSyncMessage>) => {
+      const message = event.data;
+      if (
+        !message ||
+        message.type !== "streak_state" ||
+        message.source === getSyncSource()
+      ) {
+        return;
+      }
+
+      applyStreakState(message.streak);
+    };
+
+    channel.addEventListener("message", handleMessage);
+
+    return () => {
+      channel.removeEventListener("message", handleMessage);
+      channel.close();
+      if (streakChannelRef.current === channel) {
+        streakChannelRef.current = null;
+      }
+    };
+  }, [session, applyStreakState, getSyncSource]);
 
   // --- Enforcement callbacks ---
 
   const handleCountUpdate = useCallback((newCount: number) => {
     countRef.current = newCount;
     setCount(newCount);
-  }, []);
+    if (streakRef.current) {
+      const nextStreak = { ...streakRef.current, count: newCount };
+      streakRef.current = nextStreak;
+      setStreak(nextStreak);
+      broadcastStreakState(nextStreak);
+    }
+  }, [broadcastStreakState]);
 
   const handleProgress = useCallback((p: number, d: number) => {
     setProgressMs(p);
@@ -142,60 +261,104 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
   const handleBroken = useCallback(() => {
     console.log("[web-player] streak broken — ending");
-    spotify.pause();
-    setStreak(null);
+    playbackAttemptRef.current += 1;
+    activePlaybackTrackRef.current = null;
+    queuedPlaybackTrackRef.current = null;
+    void pause();
+    applyStreakState(null);
+    broadcastStreakState(null);
     setCurrentTrack(null);
     setQueue([]);
     setQueueIndex(0);
-  }, [spotify.pause]);
+  }, [applyStreakState, broadcastStreakState, pause]);
 
   // --- Playback controls ---
 
-  const startPlayback = useCallback(
+  const runPlaybackAttempt = useCallback(
     async (track: PlayableTrack) => {
+      activePlaybackTrackRef.current = track;
+      const attemptId = ++playbackAttemptRef.current;
+      const isLatestAttempt = () => playbackAttemptRef.current === attemptId;
+
       const token = await getAccessToken();
       if (!token) return;
 
-      spotify.init();
+      initSpotify();
       setCurrentTrack(track);
 
       const uri = `spotify:track:${track.id}`;
-      const res = await spotify.play(uri);
+      const res = await play(uri);
 
       if (res.ok) {
-        setApiPaused(false);
+        if (isLatestAttempt()) setApiPaused(false);
         return;
       }
 
       // No active device — fall back to SDK
       if (res.status === 404) {
-        const sdkDeviceId = await spotify.waitForReady();
+        const sdkDeviceId = await waitForReady();
+        if (!isLatestAttempt()) return;
         if (!sdkDeviceId) {
-          alert(
+          toast.error(
             "Could not start playback. Please open Spotify on a device and try again.",
           );
-          setCurrentTrack(null);
+          if (isLatestAttempt()) setCurrentTrack(null);
           return;
         }
 
-        for (let attempt = 0; attempt < 3; attempt++) {
-          if (attempt > 0) await new Promise((r) => setTimeout(r, 1000));
+        for (let attempt = 0; attempt < 2; attempt++) {
+          if (!isLatestAttempt()) return;
+          if (attempt > 0) await new Promise((r) => setTimeout(r, 750));
           try {
-            const playRes = await spotify.play(uri, sdkDeviceId);
+            const playRes = await play(uri, sdkDeviceId);
             if (playRes.ok) {
-              setApiPaused(false);
+              if (isLatestAttempt()) setApiPaused(false);
               return;
             }
           } catch {}
         }
 
-        alert(
+        toast.error(
           "Could not start playback. Please open Spotify on a device and try again.",
         );
-        setCurrentTrack(null);
+        if (isLatestAttempt()) setCurrentTrack(null);
+        return;
+      }
+
+      if (isLatestAttempt()) {
+        toast.error(getPlaybackFailureMessage(res.status));
       }
     },
-    [getAccessToken, spotify.init, spotify.play, spotify.waitForReady],
+    [getAccessToken, initSpotify, play, waitForReady],
+  );
+
+  const startPlayback = useCallback(
+    async (track: PlayableTrack) => {
+      if (startPlaybackInFlightRef.current) {
+        const sameAsActive = activePlaybackTrackRef.current?.id === track.id;
+        const sameAsQueued = queuedPlaybackTrackRef.current?.id === track.id;
+        if (!sameAsActive && !sameAsQueued) {
+          queuedPlaybackTrackRef.current = track;
+        }
+        return;
+      }
+
+      startPlaybackInFlightRef.current = true;
+      let nextTrack: PlayableTrack | null = track;
+
+      try {
+        while (nextTrack) {
+          queuedPlaybackTrackRef.current = null;
+          await runPlaybackAttempt(nextTrack);
+          nextTrack = queuedPlaybackTrackRef.current;
+        }
+      } finally {
+        startPlaybackInFlightRef.current = false;
+        activePlaybackTrackRef.current = null;
+        queuedPlaybackTrackRef.current = null;
+      }
+    },
+    [runPlaybackAttempt],
   );
 
   const playTrack = useCallback(
@@ -241,7 +404,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   const prevTrack = useCallback(async () => {
     if (streak?.active || queue.length <= 1) return;
     // If more than 3s into the song, restart current track
-    const pos = spotify.sdkState?.position ?? progressMs;
+    const pos = sdkState?.position ?? progressMs;
     if (pos > 3000) {
       const effectiveIdx = shuffled ? shuffleOrder[queueIndex] ?? queueIndex : queueIndex;
       await startPlayback(queue[effectiveIdx]);
@@ -251,7 +414,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     setQueueIndex(prevIdx);
     const effectiveIdx = shuffled ? shuffleOrder[prevIdx] ?? prevIdx : prevIdx;
     await startPlayback(queue[effectiveIdx]);
-  }, [streak?.active, queue, queueIndex, shuffled, shuffleOrder, startPlayback, spotify.sdkState?.position, progressMs]);
+  }, [streak?.active, queue, queueIndex, shuffled, shuffleOrder, startPlayback, sdkState?.position, progressMs]);
 
   const toggleShuffle = useCallback(() => {
     if (queue.length <= 1) return;
@@ -272,7 +435,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
   const togglePlay = useCallback(async () => {
     if (paused) {
-      const res = await spotify.resume();
+      const res = await resume();
 
       if (res.ok) {
         setApiPaused(false);
@@ -281,31 +444,41 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
       // No active device — init SDK and play
       if (res.status === 404 && trackId) {
-        spotify.init();
-        const deviceId = await spotify.waitForReady();
+        initSpotify();
+        const deviceId = await waitForReady();
         if (deviceId) {
-          const playRes = await spotify.play(
+          const playRes = await play(
             `spotify:track:${trackId}`,
             deviceId,
           );
           if (playRes.ok) {
-            if (streak) await spotify.setRepeat("track", deviceId);
+            if (streak) await setRepeat("track", deviceId);
             setApiPaused(false);
           }
+        } else {
+          toast.error(
+            "Could not resume playback. Please open Spotify on a device and try again.",
+          );
         }
+      } else {
+        toast.error(getPlaybackFailureMessage(res.status));
       }
     } else {
-      await spotify.pause();
-      setApiPaused(true);
+      const res = await pause();
+      if (res.ok) {
+        setApiPaused(true);
+      } else {
+        toast.error(getPlaybackFailureMessage(res.status));
+      }
     }
-  }, [paused, trackId, streak, spotify.resume, spotify.init, spotify.waitForReady, spotify.play, spotify.setRepeat, spotify.pause]);
+  }, [paused, trackId, streak, resume, initSpotify, waitForReady, play, setRepeat, pause]);
 
   const setVolume = useCallback(
     async (val: number) => {
       setVolumeState(val);
-      await spotify.setVolume(val);
+      await setSpotifyVolume(val);
     },
-    [spotify.setVolume],
+    [setSpotifyVolume],
   );
 
   // --- Streak controls ---
@@ -328,25 +501,25 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setStreak(data);
-        setCount(data.count);
-        countRef.current = data.count;
-        setDurationMs(data.trackDuration);
+        applyStreakState(data);
+        broadcastStreakState(data);
         setCurrentTrack(null);
-        await spotify.setRepeat("track");
+        await setRepeat("track");
       }
     } catch {}
-  }, [getAccessToken, currentTrack, spotify.setRepeat]);
+  }, [applyStreakState, broadcastStreakState, getAccessToken, currentTrack, setRepeat]);
 
   const activateHardcore = useCallback(async () => {
     if (!streak?.active || streak.hardcore) return;
     try {
       const res = await fetch("/api/ironman/hardcore", { method: "POST" });
       if (res.ok) {
-        setStreak({ ...streak, hardcore: true });
+        const nextStreak = { ...streak, hardcore: true };
+        applyStreakState(nextStreak);
+        broadcastStreakState(nextStreak);
       }
     } catch {}
-  }, [streak]);
+  }, [applyStreakState, broadcastStreakState, streak]);
 
   const surrender = useCallback(async () => {
     const res = await fetch("/api/ironman/surrender", { method: "POST" });
@@ -368,12 +541,13 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
               : idx;
             if (effectiveQueueIdx !== -1) setQueueIndex(effectiveQueueIdx);
           }
-          await spotify.setRepeat("off");
         }
+        await setRepeat("off");
       }
-      setStreak(null);
+      applyStreakState(null);
+      broadcastStreakState(null);
     }
-  }, [streak, queue, shuffled, shuffleOrder, spotify.setRepeat]);
+  }, [applyStreakState, broadcastStreakState, streak, queue, shuffled, shuffleOrder, setRepeat]);
 
   // --- Auto-play from challenge link ---
 
@@ -398,23 +572,23 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const prev = prevSdkStateRef.current;
-    prevSdkStateRef.current = spotify.sdkState;
+    prevSdkStateRef.current = sdkState;
 
-    if (streak?.active || queue.length <= 1 || !spotify.sdkState || !prev) return;
+    if (streak?.active || queue.length <= 1 || !sdkState || !prev) return;
     if (prev.paused) return;
 
     const wasNearEnd = prev.position > prev.duration * 0.9;
-    const resetToStart = spotify.sdkState.position < prev.duration * 0.1;
-    const trackUnchanged = spotify.sdkState.trackId === prev.trackId;
+    const resetToStart = sdkState.position < prev.duration * 0.1;
+    const trackUnchanged = sdkState.trackId === prev.trackId;
 
     if (wasNearEnd && resetToStart && trackUnchanged) {
       nextTrackRef.current();
     }
-  }, [spotify.sdkState, streak?.active, queue.length]);
+  }, [sdkState, streak?.active, queue.length]);
 
   const actions = useMemo(
     () => ({
-      isAuthenticated: !!session,
+      isAuthenticated,
       playTrack,
       playTracks,
       nextTrack,
@@ -427,20 +601,19 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
       surrender,
       setExpanded,
       spotify: {
-        init: spotify.init,
-        waitForReady: spotify.waitForReady,
-        play: spotify.play,
-        setRepeat: spotify.setRepeat,
+        init: initSpotify,
+        waitForReady,
+        play,
+        setRepeat,
       },
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [!!session, playTrack, playTracks, nextTrack, prevTrack, togglePlay, toggleShuffle, setVolume, lockIn, activateHardcore, surrender, setExpanded, spotify.init, spotify.waitForReady, spotify.play, spotify.setRepeat],
+    [isAuthenticated, playTrack, playTracks, nextTrack, prevTrack, togglePlay, toggleShuffle, setVolume, lockIn, activateHardcore, surrender, setExpanded, initSpotify, waitForReady, play, setRepeat],
   );
 
   const state = useMemo(
     () => ({
       currentTrack,
-      sdkState: spotify.sdkState,
+      sdkState,
       paused,
       progressMs,
       durationMs,
@@ -454,7 +627,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
       shuffled,
       hasQueue,
     }),
-    [currentTrack, spotify.sdkState, paused, progressMs, durationMs, volume, streak, count, expanded, palette, queue, queueIndex, shuffled, hasQueue],
+    [currentTrack, sdkState, paused, progressMs, durationMs, volume, streak, count, expanded, palette, queue, queueIndex, shuffled, hasQueue],
   );
 
   return (
@@ -463,14 +636,14 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
         {streak?.active && (
           <EnforcementEngine
             streak={streak}
-            getCurrentlyPlaying={spotify.getCurrentlyPlaying}
-            play={spotify.play}
-            setRepeat={spotify.setRepeat}
+            getCurrentlyPlaying={getCurrentlyPlaying}
+            play={play}
+            setRepeat={setRepeat}
             onCountUpdate={handleCountUpdate}
             onProgress={handleProgress}
             onWeakness={() => {}}
             onBroken={handleBroken}
-            sdkState={spotify.sdkState}
+            sdkState={sdkState}
           />
         )}
         {children}

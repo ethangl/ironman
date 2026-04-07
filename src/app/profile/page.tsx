@@ -12,11 +12,28 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     fetch("/api/profile")
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .then(async (r) => {
+        if (!r.ok) return null;
+        return (await r.json()) as ProfileData;
+      })
+      .then((profile) => {
+        if (cancelled) return;
+        setData(profile);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setData(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading) {

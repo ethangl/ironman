@@ -143,9 +143,11 @@ function EntryRow({
 export function Leaderboard({
   trackId,
   liveCount,
+  title = "Longest Streaks",
 }: {
   trackId?: string;
   liveCount?: number;
+  title?: string;
 }) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [myEntry, setMyEntry] = useState<LeaderboardEntry | null>(null);
@@ -173,7 +175,7 @@ export function Leaderboard({
   }, [trackId]);
 
   return (
-    <List title="Longest Streaks" loading={loading} count={liveCount}>
+    <List title={title} loading={loading} count={liveCount}>
       {entries.map((entry) => (
         <EntryRow
           key={entry.id}

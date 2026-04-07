@@ -10,24 +10,40 @@ export default function PublicProfilePage({
   params: Promise<{ userId: string }>;
 }) {
   const { userId } = use(params);
+
+  return <PublicProfilePageBody key={userId} userId={userId} />;
+}
+
+function PublicProfilePageBody({ userId }: { userId: string }) {
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     fetch(`/api/profile/${userId}`)
       .then((r) => {
+        if (!r.ok && r.status !== 404) {
+          return null;
+        }
         if (r.status === 404) {
-          setNotFound(true);
+          if (!cancelled) setNotFound(true);
           return null;
         }
         return r.json();
       })
       .then((d) => {
-        if (d) setData(d);
+        if (!cancelled && d) setData(d);
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   if (loading) {

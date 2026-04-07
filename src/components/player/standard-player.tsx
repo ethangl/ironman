@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { ChevronsDownIcon, Volume2Icon, VolumeIcon } from "lucide-react";
 
 import { Slider } from "@/components/ui/slider";
@@ -34,13 +36,21 @@ export function StandardPlayer() {
     hasQueue,
     palette,
     pct,
-    shuffled,
     streak,
     volume,
     setExpanded,
     setVolume,
-    toggleShuffle,
   } = useNowPlaying();
+  const [draftVolume, setDraftVolume] = useState(volume);
+
+  useEffect(() => {
+    setDraftVolume(volume);
+  }, [volume]);
+
+  const commitVolume = async (nextVolume: number) => {
+    if (nextVolume === volume) return;
+    await setVolume(nextVolume);
+  };
 
   return (
     <PlayerWrapper
@@ -105,8 +115,11 @@ export function StandardPlayer() {
           <Slider
             min={0}
             max={100}
-            value={volume}
-            onValueChange={(e) => setVolume(Number(e))}
+            value={draftVolume}
+            onValueChange={(value) => setDraftVolume(Number(value))}
+            onValueCommitted={(value) => {
+              void commitVolume(Number(value));
+            }}
             className="flex-auto "
           />
           <Button variant="overlay" size="icon">

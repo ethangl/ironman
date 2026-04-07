@@ -64,6 +64,11 @@ export interface PlayResult {
   status: number;
 }
 
+interface ReadyWaiter {
+  resolve: (deviceId: string | null) => void;
+  timeoutId: ReturnType<typeof setTimeout>;
+}
+
 // --- SDK script loading ---
 
 let sdkLoaded = false;
@@ -88,6 +93,37 @@ function loadSdkScript() {
   document.body.appendChild(script);
 }
 
+function logSpotifyControlWrite(details: {
+  action: "play" | "resume" | "pause" | "repeat" | "volume";
+  source: "sdk" | "api";
+  status: number;
+  durationMs: number;
+  endpoint?: string;
+  extra?: Record<string, string | number | boolean | null | undefined>;
+}) {
+  if (process.env.NODE_ENV === "test") return;
+
+  const parts = [
+    `[spotify-control] ${details.action}`,
+    `source=${details.source}`,
+    `status=${details.status}`,
+    `duration=${details.durationMs}ms`,
+  ];
+
+  if (details.endpoint) {
+    parts.push(`endpoint=${details.endpoint}`);
+  }
+
+  if (details.extra) {
+    for (const [key, value] of Object.entries(details.extra)) {
+      if (value === undefined || value === null) continue;
+      parts.push(`${key}=${value}`);
+    }
+  }
+
+  console.info(parts.join(" "));
+}
+
 // --- Hook ---
 
 export function useSpotify({
@@ -103,8 +139,9 @@ export function useSpotify({
   const deviceIdRef = useRef<string | null>(null);
   const [sdkState, setSdkState] = useState<SdkPlaybackState | null>(null);
   const sdkStateRef = useRef<SdkPlaybackState | null>(null);
-  const readyResolveRef = useRef<((id: string) => void) | null>(null);
+  const readyWaitersRef = useRef<ReadyWaiter[]>([]);
   const positionPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const positionPollInFlightRef = useRef(false);
   const trackIdRef = useRef(trackId);
 
   useEffect(() => {
@@ -128,23 +165,39 @@ export function useSpotify({
       clearInterval(positionPollRef.current);
       positionPollRef.current = null;
     }
+    positionPollInFlightRef.current = false;
+  }, []);
+
+  const resolveReadyWaiters = useCallback((deviceId: string | null) => {
+    const waiters = readyWaitersRef.current;
+    readyWaitersRef.current = [];
+    for (const waiter of waiters) {
+      clearTimeout(waiter.timeoutId);
+      waiter.resolve(deviceId);
+    }
   }, []);
 
   const startPositionPolling = useCallback(
     (player: SpotifyPlayer) => {
       stopPositionPolling();
       positionPollRef.current = setInterval(async () => {
+        if (positionPollInFlightRef.current) return;
+        positionPollInFlightRef.current = true;
         const state = await player.getCurrentState();
-        if (!state) return;
-        const mapped: SdkPlaybackState = {
-          position: state.position,
-          duration: state.duration,
-          paused: state.paused,
-          trackId: state.track_window?.current_track?.id ?? null,
-        };
-        sdkStateRef.current = mapped;
-        setSdkState(mapped);
-        if (state.paused) stopPositionPolling();
+        try {
+          if (!state) return;
+          const mapped: SdkPlaybackState = {
+            position: state.position,
+            duration: state.duration,
+            paused: state.paused,
+            trackId: state.track_window?.current_track?.id ?? null,
+          };
+          sdkStateRef.current = mapped;
+          setSdkState(mapped);
+          if (state.paused) stopPositionPolling();
+        } finally {
+          positionPollInFlightRef.current = false;
+        }
       }, 500);
     },
     [stopPositionPolling],
@@ -177,10 +230,7 @@ export function useSpotify({
       (({ device_id }: { device_id: string }) => {
         console.log("[web-player] ready, device:", device_id);
         deviceIdRef.current = device_id;
-        if (readyResolveRef.current) {
-          readyResolveRef.current(device_id);
-          readyResolveRef.current = null;
-        }
+        resolveReadyWaiters(device_id);
       }) as () => void,
     );
 
@@ -188,6 +238,10 @@ export function useSpotify({
       "not_ready",
       (() => {
         console.log("[web-player] not ready");
+        deviceIdRef.current = null;
+        sdkStateRef.current = null;
+        setSdkState(null);
+        stopPositionPolling();
       }) as () => void,
     );
 
@@ -240,11 +294,26 @@ export function useSpotify({
     player.activateElement();
     player
       .connect()
-      .then((ok: boolean) =>
-        console.log("[web-player] connect:", ok ? "ok" : "failed"),
-      );
+      .then((ok: boolean) => {
+        console.log("[web-player] connect:", ok ? "ok" : "failed");
+        if (!ok && playerRef.current === player) {
+          player.disconnect();
+          playerRef.current = null;
+          deviceIdRef.current = null;
+          resolveReadyWaiters(null);
+        }
+      })
+      .catch((error) => {
+        console.error("[web-player] connect error:", error);
+        if (playerRef.current === player) {
+          player.disconnect();
+          playerRef.current = null;
+          deviceIdRef.current = null;
+          resolveReadyWaiters(null);
+        }
+      });
     playerRef.current = player;
-  }, [tokenRef, startPositionPolling, stopPositionPolling]);
+  }, [resolveReadyWaiters, tokenRef, startPositionPolling, stopPositionPolling]);
   useEffect(() => {
     initRef.current = init;
   }, [init]);
@@ -253,37 +322,55 @@ export function useSpotify({
     if (deviceIdRef.current) return Promise.resolve(deviceIdRef.current);
 
     return new Promise((resolve) => {
-      readyResolveRef.current = resolve;
-      setTimeout(() => {
-        readyResolveRef.current = null;
-        resolve(null);
-      }, 8000);
+      const waiter: ReadyWaiter = {
+        resolve,
+        timeoutId: setTimeout(() => {
+          readyWaitersRef.current = readyWaitersRef.current.filter(
+            (pendingWaiter) => pendingWaiter !== waiter,
+          );
+          resolve(null);
+        }, 8000),
+      };
+      readyWaitersRef.current.push(waiter);
     });
   }, []);
 
   const disconnect = useCallback(() => {
     pendingInit = null;
     stopPositionPolling();
+    resolveReadyWaiters(null);
     playerRef.current?.disconnect();
     playerRef.current = null;
     deviceIdRef.current = null;
     sdkStateRef.current = null;
     setSdkState(null);
-  }, [stopPositionPolling]);
+  }, [resolveReadyWaiters, stopPositionPolling]);
 
   useEffect(() => {
     return () => {
       stopPositionPolling();
+      resolveReadyWaiters(null);
       playerRef.current?.disconnect();
     };
-  }, [stopPositionPolling]);
+  }, [resolveReadyWaiters, stopPositionPolling]);
 
   // --- Spotify Web API methods ---
 
   const play = useCallback(
     async (uri: string, deviceId?: string): Promise<PlayResult> => {
+      const startedAt = Date.now();
       const token = await getAccessToken();
-      if (!token) return { ok: false, status: 0 };
+      if (!token) {
+        logSpotifyControlWrite({
+          action: "play",
+          source: "api",
+          status: 0,
+          durationMs: Date.now() - startedAt,
+          endpoint: "/me/player/play",
+          extra: { device_id: deviceId ?? null, uri },
+        });
+        return { ok: false, status: 0 };
+      }
       const url = deviceId
         ? `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`
         : "https://api.spotify.com/v1/me/player/play";
@@ -295,71 +382,198 @@ export function useSpotify({
         },
         body: JSON.stringify({ uris: [uri] }),
       });
+      logSpotifyControlWrite({
+        action: "play",
+        source: "api",
+        status: res.status,
+        durationMs: Date.now() - startedAt,
+        endpoint: "/me/player/play",
+        extra: { device_id: deviceId ?? null, uri },
+      });
       return { ok: res.ok || res.status === 204, status: res.status };
     },
     [getAccessToken],
   );
 
   const resume = useCallback(async (): Promise<PlayResult> => {
+    const startedAt = Date.now();
     if (isSdkActive()) {
       await playerRef.current!.togglePlay();
+      logSpotifyControlWrite({
+        action: "resume",
+        source: "sdk",
+        status: 200,
+        durationMs: Date.now() - startedAt,
+      });
       return { ok: true, status: 200 };
     }
     const token = await getAccessToken();
-    if (!token) return { ok: false, status: 0 };
+    if (!token) {
+      logSpotifyControlWrite({
+        action: "resume",
+        source: "api",
+        status: 0,
+        durationMs: Date.now() - startedAt,
+        endpoint: "/me/player/play",
+      });
+      return { ok: false, status: 0 };
+    }
     const res = await fetch("https://api.spotify.com/v1/me/player/play", {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}` },
     });
+    logSpotifyControlWrite({
+      action: "resume",
+      source: "api",
+      status: res.status,
+      durationMs: Date.now() - startedAt,
+      endpoint: "/me/player/play",
+    });
     return { ok: res.ok || res.status === 204, status: res.status };
   }, [getAccessToken, isSdkActive]);
 
-  const pause = useCallback(async () => {
+  const pause = useCallback(async (): Promise<PlayResult> => {
+    const startedAt = Date.now();
     if (isSdkActive()) {
       await playerRef.current!.pause();
-      return;
+      logSpotifyControlWrite({
+        action: "pause",
+        source: "sdk",
+        status: 200,
+        durationMs: Date.now() - startedAt,
+      });
+      return { ok: true, status: 200 };
     }
     const token = await getAccessToken();
-    if (!token) return;
+    if (!token) {
+      logSpotifyControlWrite({
+        action: "pause",
+        source: "api",
+        status: 0,
+        durationMs: Date.now() - startedAt,
+        endpoint: "/me/player/pause",
+      });
+      return { ok: false, status: 0 };
+    }
     try {
-      await fetch("https://api.spotify.com/v1/me/player/pause", {
+      const res = await fetch("https://api.spotify.com/v1/me/player/pause", {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });
-    } catch {}
+      logSpotifyControlWrite({
+        action: "pause",
+        source: "api",
+        status: res.status,
+        durationMs: Date.now() - startedAt,
+        endpoint: "/me/player/pause",
+      });
+      return { ok: res.ok || res.status === 204, status: res.status };
+    } catch {
+      logSpotifyControlWrite({
+        action: "pause",
+        source: "api",
+        status: 0,
+        durationMs: Date.now() - startedAt,
+        endpoint: "/me/player/pause",
+      });
+      return { ok: false, status: 0 };
+    }
   }, [getAccessToken, isSdkActive]);
 
   const setVolume = useCallback(
     async (percent: number) => {
+      const startedAt = Date.now();
       if (isSdkActive()) {
         await playerRef.current!.setVolume(percent / 100);
+        logSpotifyControlWrite({
+          action: "volume",
+          source: "sdk",
+          status: 200,
+          durationMs: Date.now() - startedAt,
+          extra: { percent },
+        });
         return;
       }
       const token = await getAccessToken();
-      if (!token) return;
+      if (!token) {
+        logSpotifyControlWrite({
+          action: "volume",
+          source: "api",
+          status: 0,
+          durationMs: Date.now() - startedAt,
+          endpoint: "/me/player/volume",
+          extra: { percent },
+        });
+        return;
+      }
       try {
-        await fetch(
+        const res = await fetch(
           `https://api.spotify.com/v1/me/player/volume?volume_percent=${percent}`,
           { method: "PUT", headers: { Authorization: `Bearer ${token}` } },
         );
-      } catch {}
+        logSpotifyControlWrite({
+          action: "volume",
+          source: "api",
+          status: res.status,
+          durationMs: Date.now() - startedAt,
+          endpoint: "/me/player/volume",
+          extra: { percent },
+        });
+      } catch {
+        logSpotifyControlWrite({
+          action: "volume",
+          source: "api",
+          status: 0,
+          durationMs: Date.now() - startedAt,
+          endpoint: "/me/player/volume",
+          extra: { percent },
+        });
+      }
     },
     [getAccessToken, isSdkActive],
   );
 
   const setRepeat = useCallback(
     async (state: string, deviceId?: string) => {
+      const startedAt = Date.now();
       const token = await getAccessToken();
-      if (!token) return;
+      if (!token) {
+        logSpotifyControlWrite({
+          action: "repeat",
+          source: "api",
+          status: 0,
+          durationMs: Date.now() - startedAt,
+          endpoint: "/me/player/repeat",
+          extra: { state, device_id: deviceId ?? null },
+        });
+        return;
+      }
       const url = deviceId
         ? `https://api.spotify.com/v1/me/player/repeat?state=${state}&device_id=${deviceId}`
         : `https://api.spotify.com/v1/me/player/repeat?state=${state}`;
       try {
-        await fetch(url, {
+        const res = await fetch(url, {
           method: "PUT",
           headers: { Authorization: `Bearer ${token}` },
         });
-      } catch {}
+        logSpotifyControlWrite({
+          action: "repeat",
+          source: "api",
+          status: res.status,
+          durationMs: Date.now() - startedAt,
+          endpoint: "/me/player/repeat",
+          extra: { state, device_id: deviceId ?? null },
+        });
+      } catch {
+        logSpotifyControlWrite({
+          action: "repeat",
+          source: "api",
+          status: 0,
+          durationMs: Date.now() - startedAt,
+          endpoint: "/me/player/repeat",
+          extra: { state, device_id: deviceId ?? null },
+        });
+      }
     },
     [getAccessToken],
   );

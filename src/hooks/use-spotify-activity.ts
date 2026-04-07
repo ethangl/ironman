@@ -29,7 +29,7 @@ export interface Playlist {
   description: string | null;
   image: string | null;
   trackCount: number;
-  tracks: PlaylistTrack[];
+  tracks: PlaylistTrack[] | null;
   owner: string | null;
   public: boolean;
 }
@@ -41,6 +41,7 @@ interface SpotifyActivityContextValue {
   loading: boolean;
   refresh: () => void;
   loadMorePlaylists: () => void;
+  getPlaylistTracks: (playlistId: string) => Promise<PlaylistTrack[]>;
 }
 
 export const SpotifyActivityContext =

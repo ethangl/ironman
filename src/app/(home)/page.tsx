@@ -4,6 +4,7 @@ import { Leaderboard } from "@/components/leaderboard";
 import { SearchInput } from "@/components/search/search-input";
 import { SearchProvider } from "@/components/search/search-provider";
 import { SearchResults } from "@/components/search/search-results";
+import { SpotifyActivityProvider } from "@/components/spotify-activity-provider";
 import { Separator } from "@/components/ui/separator";
 import { useSession } from "@/lib/auth-client";
 import { BangersBoard } from "./bangers-board";
@@ -25,8 +26,10 @@ export default function HomePage() {
             <SearchInput />
             <SearchResults />
           </SearchProvider>
-          <RecentTracks />
-          <Playlists />
+          <SpotifyActivityProvider>
+            <RecentTracks />
+            <Playlists />
+          </SpotifyActivityProvider>
         </>
       ) : (
         <HomeHero />

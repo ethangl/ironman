@@ -73,7 +73,9 @@ export function EnforcementEngine({
       });
 
       const result = await reportWeakness(type, detail);
+      console.log("[enforcement] weakness reported:", type, "result:", result);
       if (result?.broken) {
+        console.log("[enforcement] streak broken!");
         brokenRef.current = true;
         if (intervalRef.current) clearInterval(intervalRef.current);
         onBroken?.();
@@ -151,6 +153,8 @@ export function EnforcementEngine({
     cancelPauseTimer();
     onProgress?.(playback.progress_ms, playback.item.duration_ms);
 
+    if (brokenRef.current) return;
+
     const pollRes = await fetch("/api/ironman/poll", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -210,21 +214,28 @@ export function EnforcementEngine({
     cancelPauseTimer,
   ]);
 
+  const enforceRef = useRef(enforce);
   useEffect(() => {
-    enforce();
-    intervalRef.current = setInterval(enforce, POLL_INTERVAL);
+    enforceRef.current = enforce;
+  }, [enforce]);
+
+  useEffect(() => {
+    brokenRef.current = false;
+    enforceRef.current();
+    intervalRef.current = setInterval(() => enforceRef.current(), POLL_INTERVAL);
 
     const handleVisibility = () => {
-      if (document.visibilityState === "visible") enforce();
+      if (document.visibilityState === "visible") enforceRef.current();
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
+      brokenRef.current = true; // prevents in-flight enforce() calls from continuing
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [enforce]);
+  }, []); // runs once on mount
 
   return null;
 }

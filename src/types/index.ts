@@ -1,12 +1,34 @@
-export interface SpotifyTrack {
+export interface PlayableTrack {
   id: string;
   name: string;
   artist: string;
-  albumName: string;
   albumImage: string | null;
   durationMs: number;
+}
+
+export interface SpotifyTrack extends PlayableTrack {
+  albumName: string;
   topStreak?: { count: number; userName: string | null } | null;
   difficulty?: number;
+}
+
+/** Track info as stored in the DB (track-prefixed fields). */
+export interface TrackInfo {
+  trackId: string;
+  trackName: string;
+  trackArtist: string;
+  trackImage: string | null;
+  trackDuration: number;
+}
+
+export function toPlayable(t: TrackInfo): PlayableTrack {
+  return {
+    id: t.trackId,
+    name: t.trackName,
+    artist: t.trackArtist,
+    albumImage: t.trackImage,
+    durationMs: t.trackDuration,
+  };
 }
 
 export interface PlaybackState {
@@ -24,13 +46,8 @@ export interface PlaybackState {
   } | null;
 }
 
-export interface StreakData {
+export interface StreakData extends TrackInfo {
   id: string;
-  trackId: string;
-  trackName: string;
-  trackArtist: string;
-  trackImage: string | null;
-  trackDuration: number;
   count: number;
   active: boolean;
   hardcore?: boolean;

@@ -8,17 +8,15 @@ import { List, ListItem } from "@/components/list";
 import { difficultyLabel } from "@/lib/difficulty";
 import { getCurrentMilestone } from "@/lib/milestones";
 
-interface IronmenEntry {
+import { TrackInfo } from "@/types";
+
+interface IronmenEntry extends TrackInfo {
   rank: number;
   id: string;
   userId: string;
   count: number;
   active: boolean;
   hardcore: boolean;
-  trackId: string;
-  trackName: string;
-  trackArtist: string;
-  trackImage: string | null;
   userName: string | null;
   userImage: string | null;
   streakScore: number;

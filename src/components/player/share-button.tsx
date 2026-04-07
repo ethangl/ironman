@@ -2,7 +2,6 @@
 
 import { ClipboardCopyIcon, ShareIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCopy } from "@/lib/clipboard";
+import { Button } from "../ui/button";
 
 export function ShareButton({
   trackName,
@@ -80,9 +80,8 @@ export function ShareButton({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="secondary">
+          <Button variant="overlay" size="icon">
             <ShareIcon />
-            Brag
           </Button>
         }
       ></DropdownMenuTrigger>

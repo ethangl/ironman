@@ -77,3 +77,69 @@ export async function setRepeatMode(
 export async function getProfile(token: string) {
   return spotifyFetch("/me", token);
 }
+
+export async function getRecentlyPlayed(token: string, limit = 20) {
+  const data = await spotifyFetch(
+    `/me/player/recently-played?limit=${limit}`,
+    token
+  );
+  if (!data?.items) return [];
+  return data.items.map((item: any) => ({
+    playedAt: item.played_at,
+    track: {
+      id: item.track.id,
+      name: item.track.name,
+      artist: item.track.artists.map((a: any) => a.name).join(", "),
+      albumName: item.track.album.name,
+      albumImage: item.track.album.images[0]?.url ?? null,
+      durationMs: item.track.duration_ms,
+    },
+  }));
+}
+
+export async function getUserPlaylists(token: string, limit = 50, offset = 0) {
+  const data = await spotifyFetch(
+    `/me/playlists?limit=${limit}&offset=${offset}`,
+    token
+  );
+  if (!data?.items) return { items: [], total: 0 };
+
+  const items = await Promise.all(
+    data.items.map(async (p: any) => {
+      // Fetch actual tracks for each playlist
+      let tracks: any[] = [];
+      let trackCount = p.tracks?.total ?? 0;
+      try {
+        const detail = await spotifyFetch(`/playlists/${p.id}`, token);
+        const paging = detail?.tracks ?? detail?.items ?? {};
+        const trackItems: any[] = paging.items ?? [];
+        trackCount = paging.total ?? trackItems.length;
+        tracks = trackItems
+          .map((entry: any) => entry.track ?? entry.item)
+          .filter(Boolean)
+          .map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            artist: t.artists?.map((a: any) => a.name).join(", ") ?? "",
+            albumName: t.album?.name,
+            albumImage: t.album?.images?.[0]?.url ?? null,
+            durationMs: t.duration_ms,
+          }));
+      } catch (e) {
+        console.error(`[spotify] Failed to fetch playlist ${p.id}:`, e);
+      }
+      return {
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        image: p.images?.[0]?.url ?? null,
+        trackCount,
+        tracks,
+        owner: p.owner?.display_name ?? null,
+        public: p.public,
+      };
+    })
+  );
+
+  return { items, total: data.total };
+}

@@ -55,6 +55,7 @@ export async function GET() {
         trackName: s.trackName,
         trackArtist: s.trackArtist,
         trackImage: s.trackImage,
+        trackDuration: s.trackDuration,
         difficulty,
         totalAttempts: s.totalAttempts,
         avgCount: Math.round(avgCount),

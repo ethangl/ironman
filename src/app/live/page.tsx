@@ -1,6 +1,4 @@
-"use client";
-
-import { LiveFeed } from "../(home)/components/live-feed";
+import { LiveFeed } from "./live-feed";
 
 export default function HomePage() {
   return (

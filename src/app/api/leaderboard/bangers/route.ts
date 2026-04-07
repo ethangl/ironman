@@ -13,6 +13,7 @@ export async function GET() {
       trackName: string;
       trackArtist: string;
       trackImage: string | null;
+      trackDuration: number;
       totalPlays: number;
       totalAttempts: number;
       totalWeaknesses: number;
@@ -30,6 +31,7 @@ export async function GET() {
         trackName: s.trackName,
         trackArtist: s.trackArtist,
         trackImage: s.trackImage,
+        trackDuration: s.trackDuration,
         totalPlays: s.count,
         totalAttempts: 1,
         totalWeaknesses: s._count.weaknesses,
@@ -47,6 +49,7 @@ export async function GET() {
         trackName: s.trackName,
         trackArtist: s.trackArtist,
         trackImage: s.trackImage,
+        trackDuration: s.trackDuration,
         totalAttempts: s.totalAttempts,
         avgCount: Math.round(avgCount),
         weaknessRate: Math.round(weaknessRate * 100) / 100,

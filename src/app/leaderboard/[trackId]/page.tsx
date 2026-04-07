@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { Leaderboard } from "@/app/(home)/components/leaderboard";
+import { Leaderboard } from "@/components/leaderboard";
 import { prisma } from "@/lib/prisma";
 
 export async function generateMetadata({

@@ -3,30 +3,22 @@
 import { createContext, useContext } from "react";
 
 import { type PlayResult, type SdkPlaybackState } from "@/hooks/use-spotify";
-import { SpotifyTrack, StreakData } from "@/types";
+import { PlayableTrack, StreakData } from "@/types";
 
-interface WebPlayerContextValue {
-  // Auth
+/** Stable actions/state that rarely change — safe to consume without causing frequent re-renders. */
+interface WebPlayerActionsValue {
   isAuthenticated: boolean;
-
-  // Playback
-  playTrack: (track: SpotifyTrack) => Promise<void>;
+  playTrack: (track: PlayableTrack) => Promise<void>;
+  playTracks: (tracks: PlayableTrack[], startIndex?: number) => Promise<void>;
+  nextTrack: () => Promise<void>;
+  prevTrack: () => Promise<void>;
   togglePlay: () => Promise<void>;
+  toggleShuffle: () => void;
   setVolume: (val: number) => Promise<void>;
-  currentTrack: SpotifyTrack | null;
-  sdkState: SdkPlaybackState | null;
-  paused: boolean;
-  progressMs: number;
-  durationMs: number;
-  volume: number;
-
-  // Streak
-  streak: StreakData | null;
-  count: number;
-  lockIn: (hardcore?: boolean) => Promise<void>;
+  lockIn: () => Promise<void>;
+  activateHardcore: () => Promise<void>;
   surrender: () => Promise<void>;
-
-  // Spotify (for advanced consumers like lock-in-button)
+  setExpanded: (expanded: boolean) => void;
   spotify: {
     init: () => void;
     waitForReady: () => Promise<string | null>;
@@ -35,13 +27,48 @@ interface WebPlayerContextValue {
   };
 }
 
-export const WebPlayerContext = createContext<WebPlayerContextValue | null>(
-  null,
-);
+/** Fast-changing playback state — only consume in components that need live updates. */
+interface WebPlayerStateValue {
+  currentTrack: PlayableTrack | null;
+  sdkState: SdkPlaybackState | null;
+  paused: boolean;
+  progressMs: number;
+  durationMs: number;
+  volume: number;
+  streak: StreakData | null;
+  count: number;
+  expanded: boolean;
+  palette: string[];
+  queue: PlayableTrack[];
+  queueIndex: number;
+  shuffled: boolean;
+  hasQueue: boolean;
+}
 
-export function useWebPlayer() {
-  const ctx = useContext(WebPlayerContext);
+export type WebPlayerContextValue = WebPlayerActionsValue & WebPlayerStateValue;
+
+export const WebPlayerActionsContext =
+  createContext<WebPlayerActionsValue | null>(null);
+export const WebPlayerStateContext =
+  createContext<WebPlayerStateValue | null>(null);
+
+/** Returns only stable actions — does NOT re-render on playback progress. */
+export function useWebPlayerActions() {
+  const ctx = useContext(WebPlayerActionsContext);
   if (!ctx)
-    throw new Error("useWebPlayer must be used within WebPlayerProvider");
+    throw new Error("useWebPlayerActions must be used within WebPlayerProvider");
   return ctx;
+}
+
+/** Returns fast-changing playback state — will re-render on progress/state changes. */
+export function useWebPlayerState() {
+  const ctx = useContext(WebPlayerStateContext);
+  if (!ctx)
+    throw new Error("useWebPlayerState must be used within WebPlayerProvider");
+  return ctx;
+}
+
+/** Returns everything (actions + state). Use sparingly — prefer useWebPlayerActions or useWebPlayerState. */
+export function useWebPlayer() {
+  return { ...useWebPlayerActions(), ...useWebPlayerState() };
 }

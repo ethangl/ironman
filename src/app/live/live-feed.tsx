@@ -1,7 +1,8 @@
 "use client";
 
-import { List, ListItem } from "@/components/list";
 import { useEffect, useState } from "react";
+
+import { List, ListItem } from "@/components/list";
 
 interface FeedItem {
   id: string;

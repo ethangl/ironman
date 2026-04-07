@@ -13,10 +13,11 @@ interface LeaderboardEntry {
   userId?: string;
   count: number;
   active: boolean;
+  trackId?: string;
   trackName: string;
   trackArtist: string;
   trackImage: string | null;
-  trackId?: string;
+  trackDuration?: number;
   userName: string | null;
   userImage: string | null;
   startedAt: string;

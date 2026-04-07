@@ -18,6 +18,7 @@ export const auth = betterAuth({
         "user-read-playback-state",
         "user-modify-playback-state",
         "user-read-recently-played",
+        "playlist-read-private",
         "streaming",
       ],
       async getUserInfo(token) {

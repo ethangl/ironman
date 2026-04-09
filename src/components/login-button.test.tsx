@@ -1,33 +1,20 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { defaultAppDataClient } from "@/data/client";
+import { AppRuntimeProvider } from "@/runtime/app-runtime";
 import { LoginButton } from "./login-button";
 
 const mockUseSession = vi.fn();
-const mockReplace = vi.fn();
-const mockSearchParams = vi.fn();
+const mockUseBrowserSearchParams = vi.fn();
+const mockReplaceBrowserUrl = vi.fn();
 const mockSignInSocial = vi.fn();
 const mockSignOut = vi.fn();
 const mockToastError = vi.fn();
 
-vi.mock("next/link", () => ({
-  default: ({
-    children,
-    href,
-    ...rest
-  }: {
-    children: React.ReactNode;
-    href: string;
-  }) => (
-    <a href={href} {...rest}>
-      {children}
-    </a>
-  ),
-}));
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: mockReplace }),
-  useSearchParams: () => mockSearchParams(),
+vi.mock("@/hooks/use-browser-search-params", () => ({
+  useBrowserSearchParams: () => mockUseBrowserSearchParams(),
+  replaceBrowserUrl: (...args: unknown[]) => mockReplaceBrowserUrl(...args),
 }));
 
 vi.mock("@/lib/auth-client", () => ({
@@ -50,7 +37,15 @@ vi.mock("./avatar", () => ({
 
 function setSearchParams(params: Record<string, string>) {
   const searchParams = new URLSearchParams(params);
-  mockSearchParams.mockReturnValue(searchParams);
+  mockUseBrowserSearchParams.mockReturnValue(searchParams);
+}
+
+function renderLoginButton() {
+  return render(
+    <AppRuntimeProvider dataClient={defaultAppDataClient}>
+      <LoginButton />
+    </AppRuntimeProvider>,
+  );
 }
 
 describe("LoginButton", () => {
@@ -71,9 +66,11 @@ describe("LoginButton", () => {
   });
 
   it("starts Spotify sign-in when clicked outside cooldown", () => {
-    render(<LoginButton />);
+    renderLoginButton();
 
-    fireEvent.click(screen.getByRole("button", { name: "Sign in with Spotify" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Sign in with Spotify" }),
+    );
 
     expect(mockSignInSocial).toHaveBeenCalledWith({
       provider: "spotify",
@@ -90,21 +87,25 @@ describe("LoginButton", () => {
     });
 
     await act(async () => {
-      render(<LoginButton />);
+      renderLoginButton();
       await Promise.resolve();
     });
 
     expect(mockToastError).toHaveBeenCalledWith(
       "Spotify is cooling down. Try reconnecting in about a minute.",
     );
-    const button = screen.getByRole("button", { name: /Spotify cooling down/i });
+    const button = screen.getByRole("button", {
+      name: /Spotify cooling down/i,
+    });
     expect(button).toBeDisabled();
     expect(localStorage.getItem("spotify-auth-cooldown-until")).toBe(
       String(Date.now() + 60_000),
     );
-    expect(mockReplace).toHaveBeenCalledWith("/?foo=bar");
+    expect(mockReplaceBrowserUrl).toHaveBeenCalledWith("/?foo=bar");
     expect(
-      screen.getByText("Spotify asked us to slow down. Try reconnecting in about a minute."),
+      screen.getByText(
+        "Spotify asked us to slow down. Try reconnecting in about a minute.",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -114,7 +115,7 @@ describe("LoginButton", () => {
       String(Date.now() + 15_000),
     );
 
-    render(<LoginButton />);
+    renderLoginButton();
 
     expect(screen.getByRole("button", { name: "Retry in 15s" })).toBeDisabled();
 

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useAppDataClient } from "@/data/client";
-import type { ProfileData } from "@/frontend/profile/profile-view";
+import type { ProfileData } from "@/data/profile";
+import { useAppAuth } from "@/runtime/app-runtime";
 
 interface UseProfileDataResult {
   data: ProfileData | null;
@@ -55,12 +56,30 @@ function useProfileRequest(
 
 export function useCurrentProfileData() {
   const client = useAppDataClient();
-  return useProfileRequest(client.profile.getCurrent);
+  const { session } = useAppAuth();
+  const request = useCallback(
+    () =>
+      client.profile.getCurrent(
+        session
+          ? {
+              userId: session.user.id,
+              name: session.user.name,
+              image: session.user.image ?? null,
+            }
+          : null,
+      ),
+    [client, session],
+  );
+
+  return useProfileRequest(request);
 }
 
 export function usePublicProfileData(userId: string) {
   const client = useAppDataClient();
-  return useProfileRequest(
-    userId ? () => client.profile.getPublic(userId) : null,
+  const request = useCallback(
+    () => client.profile.getPublic(userId),
+    [client, userId],
   );
+
+  return useProfileRequest(userId ? request : null);
 }

@@ -1,6 +1,7 @@
 import { render, act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AppDataClientProvider, defaultAppDataClient } from "@/data/client";
 import { StreakData } from "@/types";
 import { EnforcementEngine } from "./enforcement-engine";
 
@@ -51,13 +52,15 @@ describe("EnforcementEngine", () => {
       .mockResolvedValue({ status: 401, playback: null });
 
     render(
-      <EnforcementEngine
-        streak={buildStreak()}
-        getCurrentlyPlaying={getCurrentlyPlaying}
-        play={vi.fn().mockResolvedValue({ ok: true, status: 200 })}
-        setRepeat={vi.fn().mockResolvedValue(undefined)}
-        onCountUpdate={vi.fn()}
-      />,
+      <AppDataClientProvider client={defaultAppDataClient}>
+        <EnforcementEngine
+          streak={buildStreak()}
+          getCurrentlyPlaying={getCurrentlyPlaying}
+          play={vi.fn().mockResolvedValue({ ok: true, status: 200 })}
+          setRepeat={vi.fn().mockResolvedValue(undefined)}
+          onCountUpdate={vi.fn()}
+        />
+      </AppDataClientProvider>,
     );
 
     await flushAsyncWork();
@@ -96,13 +99,15 @@ describe("EnforcementEngine", () => {
     );
 
     render(
-      <EnforcementEngine
-        streak={buildStreak()}
-        getCurrentlyPlaying={getCurrentlyPlaying}
-        play={vi.fn().mockResolvedValue({ ok: true, status: 200 })}
-        setRepeat={vi.fn().mockResolvedValue(undefined)}
-        onCountUpdate={vi.fn()}
-      />,
+      <AppDataClientProvider client={defaultAppDataClient}>
+        <EnforcementEngine
+          streak={buildStreak()}
+          getCurrentlyPlaying={getCurrentlyPlaying}
+          play={vi.fn().mockResolvedValue({ ok: true, status: 200 })}
+          setRepeat={vi.fn().mockResolvedValue(undefined)}
+          onCountUpdate={vi.fn()}
+        />
+      </AppDataClientProvider>,
     );
 
     await flushAsyncWork();
@@ -135,19 +140,21 @@ describe("EnforcementEngine", () => {
       .mockResolvedValue({ status: 401, playback: null });
 
     const { rerender } = render(
-      <EnforcementEngine
-        streak={buildStreak()}
-        getCurrentlyPlaying={getCurrentlyPlaying}
-        play={play}
-        setRepeat={setRepeat}
-        onCountUpdate={vi.fn()}
-        sdkState={{
-          paused: false,
-          position: 0,
-          duration: 123000,
-          trackId: "wrong-track",
-        }}
-      />,
+      <AppDataClientProvider client={defaultAppDataClient}>
+        <EnforcementEngine
+          streak={buildStreak()}
+          getCurrentlyPlaying={getCurrentlyPlaying}
+          play={play}
+          setRepeat={setRepeat}
+          onCountUpdate={vi.fn()}
+          sdkState={{
+            paused: false,
+            position: 0,
+            duration: 123000,
+            trackId: "wrong-track",
+          }}
+        />
+      </AppDataClientProvider>,
     );
 
     await flushAsyncWork();
@@ -155,19 +162,21 @@ describe("EnforcementEngine", () => {
     expect(setRepeat).toHaveBeenCalledTimes(1);
 
     rerender(
-      <EnforcementEngine
-        streak={buildStreak()}
-        getCurrentlyPlaying={getCurrentlyPlaying}
-        play={play}
-        setRepeat={setRepeat}
-        onCountUpdate={vi.fn()}
-        sdkState={{
-          paused: false,
-          position: 0,
-          duration: 123000,
-          trackId: "wrong-track",
-        }}
-      />,
+      <AppDataClientProvider client={defaultAppDataClient}>
+        <EnforcementEngine
+          streak={buildStreak()}
+          getCurrentlyPlaying={getCurrentlyPlaying}
+          play={play}
+          setRepeat={setRepeat}
+          onCountUpdate={vi.fn()}
+          sdkState={{
+            paused: false,
+            position: 0,
+            duration: 123000,
+            trackId: "wrong-track",
+          }}
+        />
+      </AppDataClientProvider>,
     );
 
     await flushAsyncWork();
@@ -179,19 +188,21 @@ describe("EnforcementEngine", () => {
     });
 
     rerender(
-      <EnforcementEngine
-        streak={buildStreak()}
-        getCurrentlyPlaying={getCurrentlyPlaying}
-        play={play}
-        setRepeat={setRepeat}
-        onCountUpdate={vi.fn()}
-        sdkState={{
-          paused: false,
-          position: 0,
-          duration: 123000,
-          trackId: "wrong-track",
-        }}
-      />,
+      <AppDataClientProvider client={defaultAppDataClient}>
+        <EnforcementEngine
+          streak={buildStreak()}
+          getCurrentlyPlaying={getCurrentlyPlaying}
+          play={play}
+          setRepeat={setRepeat}
+          onCountUpdate={vi.fn()}
+          sdkState={{
+            paused: false,
+            position: 0,
+            duration: 123000,
+            trackId: "wrong-track",
+          }}
+        />
+      </AppDataClientProvider>,
     );
 
     await flushAsyncWork();

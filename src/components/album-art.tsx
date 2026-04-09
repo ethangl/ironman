@@ -14,12 +14,7 @@ export const AlbumArt: FC<AlbumArtProps> = ({ className, src, ...props }) => {
       {...props}
     >
       {src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt=""
-          className="absolute block object-cover size-full"
-        />
+        <img src={src} alt="" className="absolute block object-cover size-full" />
       ) : (
         "?"
       )}

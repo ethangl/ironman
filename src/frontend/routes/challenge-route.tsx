@@ -26,7 +26,6 @@ export function ChallengeRoute() {
         {stats?.trackImage && (
           <div className="relative mx-auto mb-6 w-fit">
             <div className="absolute -inset-1 rounded-2xl bg-red-500/20 blur-xl" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={stats.trackImage}
               alt=""

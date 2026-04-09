@@ -1,20 +1,21 @@
-import { ReactNode } from "react";
-
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
+import { ReactNode } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useWebPlayerState } from "@/hooks/use-web-player";
-import { useWebPlayerActions } from "@/hooks/use-web-player";
+import { createAppDataClient, defaultAppDataClient } from "@/data/client";
+import { useWebPlayerActions, useWebPlayerState } from "@/hooks/use-web-player";
+import { AppRuntimeProvider } from "@/runtime/app-runtime";
 import { StreakData } from "@/types";
 import { WebPlayerProvider } from "./web-player-provider";
 
 const mockUseSession = vi.fn();
 const mockGetAccessToken = vi.fn();
-const mockUseSearchParams = vi.fn();
+const mockUseBrowserSearchParams = vi.fn();
 const mockUseSpotify = vi.fn();
+const mockSignOut = vi.fn();
 
-vi.mock("next/navigation", () => ({
-  useSearchParams: () => mockUseSearchParams(),
+vi.mock("@/hooks/use-browser-search-params", () => ({
+  useBrowserSearchParams: () => mockUseBrowserSearchParams(),
 }));
 
 vi.mock("@/lib/auth-client", () => ({
@@ -22,6 +23,10 @@ vi.mock("@/lib/auth-client", () => ({
   authClient: {
     getAccessToken: (...args: unknown[]) => mockGetAccessToken(...args),
   },
+  signIn: {
+    social: vi.fn(),
+  },
+  signOut: (...args: unknown[]) => ({ data: mockSignOut(...args) }),
 }));
 
 vi.mock("@/hooks/use-spotify", () => ({
@@ -94,7 +99,9 @@ const baseSpotifyMock = {
   pause: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
   setVolume: vi.fn().mockResolvedValue(undefined),
   setRepeat: vi.fn().mockResolvedValue(undefined),
-  getCurrentlyPlaying: vi.fn().mockResolvedValue({ status: 204, playback: null }),
+  getCurrentlyPlaying: vi
+    .fn()
+    .mockResolvedValue({ status: 204, playback: null }),
 };
 
 function PlayerProbe() {
@@ -108,18 +115,48 @@ function PlayerProbe() {
   );
 }
 
-function PlayActionProbe({ track }: { track: { id: string; name: string; artist: string; albumImage: string | null; durationMs: number } }) {
+function PlayActionProbe({
+  track,
+}: {
+  track: {
+    id: string;
+    name: string;
+    artist: string;
+    albumImage: string | null;
+    durationMs: number;
+  };
+}) {
   const { playTrack } = useWebPlayerActions();
-  return (
-    <button onClick={() => void playTrack(track)}>
-      play-track
-    </button>
-  );
+  return <button onClick={() => void playTrack(track)}>play-track</button>;
 }
 
 function renderProvider(children?: ReactNode) {
   return render(
-    <WebPlayerProvider>{children ?? <PlayerProbe />}</WebPlayerProvider>,
+    <AppRuntimeProvider dataClient={defaultAppDataClient}>
+      <WebPlayerProvider>{children ?? <PlayerProbe />}</WebPlayerProvider>
+    </AppRuntimeProvider>,
+  );
+}
+
+function createMockIronmanClient() {
+  return {
+    getStatus: vi.fn().mockResolvedValue(null),
+    start: vi.fn(),
+    activateHardcore: vi.fn(),
+    surrender: vi.fn(),
+    reportWeakness: vi.fn().mockResolvedValue(null),
+    poll: vi.fn().mockResolvedValue({ count: 0 }),
+  };
+}
+
+function renderProviderWithClient(
+  client: Parameters<typeof createAppDataClient>[0],
+  children?: ReactNode,
+) {
+  return render(
+    <AppRuntimeProvider dataClient={createAppDataClient(client)}>
+      <WebPlayerProvider>{children ?? <PlayerProbe />}</WebPlayerProvider>
+    </AppRuntimeProvider>,
   );
 }
 
@@ -164,7 +201,7 @@ describe("WebPlayerProvider", () => {
       data: { user: { id: "user-1" } },
     });
     mockGetAccessToken.mockResolvedValue({ data: { accessToken: "token" } });
-    mockUseSearchParams.mockReturnValue({
+    mockUseBrowserSearchParams.mockReturnValue({
       get: () => null,
     });
     mockUseSpotify.mockReturnValue({
@@ -177,21 +214,12 @@ describe("WebPlayerProvider", () => {
   });
 
   it("refreshes streak status on mount, focus, and visible-tab transitions", async () => {
-    const fetchSpy = vi
-      .spyOn(global, "fetch")
-      .mockResolvedValue(
-        new Response("null", {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
-
-    renderProvider();
+    const ironman = createMockIronmanClient();
+    renderProviderWithClient({ ironman });
 
     await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledWith("/api/ironman/status");
+      expect(ironman.getStatus).toHaveBeenCalledTimes(1);
     });
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
 
     Object.defineProperty(document, "visibilityState", {
       configurable: true,
@@ -200,7 +228,7 @@ describe("WebPlayerProvider", () => {
     act(() => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(ironman.getStatus).toHaveBeenCalledTimes(1);
 
     Object.defineProperty(document, "visibilityState", {
       configurable: true,
@@ -210,14 +238,14 @@ describe("WebPlayerProvider", () => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
     await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      expect(ironman.getStatus).toHaveBeenCalledTimes(2);
     });
 
     act(() => {
       window.dispatchEvent(new Event("focus"));
     });
     await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledTimes(3);
+      expect(ironman.getStatus).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -295,6 +323,14 @@ describe("WebPlayerProvider", () => {
         }}
       />,
     );
+
+    await waitFor(() => {
+      expect(mockGetAccessToken).toHaveBeenCalled();
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     const button = screen.getByRole("button", { name: "play-track" });
 

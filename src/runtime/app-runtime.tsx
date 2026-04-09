@@ -8,12 +8,7 @@ import {
   useState,
 } from "react";
 
-import {
-  AppDataClient,
-  AppDataClientProvider,
-  httpAppDataClient,
-  useAppDataClient,
-} from "@/data/client";
+import { AppDataClient, AppDataClientProvider } from "@/data/client";
 import { authClient, signIn, signOut, useSession } from "@/lib/auth-client";
 
 type SessionState = ReturnType<typeof useSession>;
@@ -111,9 +106,32 @@ function getSpotifyStatus({
 
 function useAuthRuntimeValue(dataClient: AppDataClient): AppRuntime {
   const { data: session, isPending } = useSession();
+  const [lastResolvedSession, setLastResolvedSession] =
+    useState<SessionData>(session);
+  const [lastSpotifyReadyUserId, setLastSpotifyReadyUserId] = useState<
+    string | null
+  >(null);
+  const effectiveSession =
+    session ?? (isPending ? lastResolvedSession : null);
+  const sessionUserId = effectiveSession?.user.id ?? null;
   const [spotifyConnection, setSpotifyConnection] = useState<
     "unknown" | "connected" | "disconnected"
-  >(() => (session ? "unknown" : "disconnected"));
+  >(() => (effectiveSession ? "unknown" : "disconnected"));
+
+  useEffect(() => {
+    if (session) {
+      queueMicrotask(() => {
+        setLastResolvedSession(session);
+      });
+      return;
+    }
+
+    if (!isPending) {
+      queueMicrotask(() => {
+        setLastResolvedSession(null);
+      });
+    }
+  }, [isPending, session]);
 
   const getSpotifyAccessToken = useCallback(async () => {
     const response = await authClient.getAccessToken({ providerId: "spotify" });
@@ -123,13 +141,14 @@ function useAuthRuntimeValue(dataClient: AppDataClient): AppRuntime {
   }, []);
 
   useEffect(() => {
-    if (!session) return;
+    if (!sessionUserId) {
+      queueMicrotask(() => {
+        setSpotifyConnection("disconnected");
+      });
+      return;
+    }
 
     let cancelled = false;
-    queueMicrotask(() => {
-      if (!cancelled) setSpotifyConnection("unknown");
-    });
-
     void authClient
       .getAccessToken({ providerId: "spotify" })
       .then((response) => {
@@ -146,41 +165,61 @@ function useAuthRuntimeValue(dataClient: AppDataClient): AppRuntime {
     return () => {
       cancelled = true;
     };
-  }, [session]);
+  }, [sessionUserId]);
+
+  useEffect(() => {
+    if (!sessionUserId) {
+      queueMicrotask(() => {
+        setLastSpotifyReadyUserId(null);
+      });
+      return;
+    }
+
+    if (spotifyConnection === "connected") {
+      queueMicrotask(() => {
+        setLastSpotifyReadyUserId(sessionUserId);
+      });
+    }
+  }, [sessionUserId, spotifyConnection]);
 
   const spotifyStatus = getSpotifyStatus({
     isPending,
-    session,
-    spotifyConnection: session ? spotifyConnection : "disconnected",
+    session: effectiveSession,
+    spotifyConnection: effectiveSession ? spotifyConnection : "disconnected",
   });
-  const isSpotifyReady = spotifyStatus.code === "connected";
+  const canUsePersonalSpotify =
+    !!effectiveSession &&
+    (spotifyConnection === "connected" ||
+      lastSpotifyReadyUserId === sessionUserId);
 
   return useMemo(
     () => ({
       auth: {
-        session,
+        session: effectiveSession,
         isPending,
-        isAuthenticated: !!session,
+        isAuthenticated: !!effectiveSession,
         signIn,
         signOut,
         getSpotifyAccessToken,
       },
       capabilities: {
-        hasSession: !!session,
-        spotifyConnection: session ? spotifyConnection : "disconnected",
+        hasSession: !!effectiveSession,
+        spotifyConnection: effectiveSession
+          ? spotifyConnection
+          : "disconnected",
         spotifyStatus,
-        canBrowsePersonalSpotify: isSpotifyReady,
-        canControlPlayback: isSpotifyReady,
-        canUseIronman: isSpotifyReady,
+        canBrowsePersonalSpotify: canUsePersonalSpotify,
+        canControlPlayback: canUsePersonalSpotify,
+        canUseIronman: canUsePersonalSpotify,
       },
       dataClient,
     }),
     [
+      canUsePersonalSpotify,
       dataClient,
+      effectiveSession,
       getSpotifyAccessToken,
-      isSpotifyReady,
       isPending,
-      session,
       spotifyStatus,
       spotifyConnection,
     ],
@@ -189,25 +228,29 @@ function useAuthRuntimeValue(dataClient: AppDataClient): AppRuntime {
 
 export function AppRuntimeProvider({
   children,
-  dataClient = httpAppDataClient,
+  dataClient,
 }: {
   children: ReactNode;
-  dataClient?: AppDataClient;
+  dataClient: AppDataClient;
 }) {
   const value = useAuthRuntimeValue(dataClient);
 
   return (
     <AppRuntimeContext.Provider value={value}>
-      <AppDataClientProvider client={dataClient}>{children}</AppDataClientProvider>
+      <AppDataClientProvider client={dataClient}>
+        {children}
+      </AppDataClientProvider>
     </AppRuntimeContext.Provider>
   );
 }
 
 export function useAppRuntime() {
   const context = useContext(AppRuntimeContext);
-  const dataClient = useAppDataClient();
-  const fallback = useAuthRuntimeValue(dataClient);
-  return context ?? fallback;
+  if (!context) {
+    throw new Error("useAppRuntime must be used within an AppRuntimeProvider.");
+  }
+
+  return context;
 }
 
 export function useAppAuth() {

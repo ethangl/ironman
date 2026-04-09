@@ -1,22 +1,19 @@
-This project now uses a Vite + React Router frontend with a Next-powered API/auth backend.
+This project uses a Vite + React Router frontend with Convex for backend data, auth, and server-side actions.
 
 ## Getting Started
 
-Run the frontend and API server in separate terminals:
+Run the frontend and Convex backend in separate terminals:
 
 ```bash
 pnpm dev
-pnpm dev:api
+pnpm dev:convex
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173) for the frontend. The API/auth server runs on [http://127.0.0.1:3000](http://127.0.0.1:3000) and is proxied through Vite during development.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173) for the frontend.
 
 Useful scripts:
 
 - `pnpm dev`: run the Vite frontend
-- `pnpm dev:api`: run the Next API/auth server
+- `pnpm dev:convex`: run the Convex backend
 - `pnpm build`: build the frontend bundle
-- `pnpm build:api`: build the API server
 - `pnpm preview`: preview the frontend bundle
-
-The remaining Next app surface is intentionally API-only under `src/app/api`.

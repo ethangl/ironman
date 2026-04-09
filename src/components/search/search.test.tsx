@@ -1,6 +1,13 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AppDataClientProvider, createAppDataClient } from "@/data/client";
 import { SearchInput } from "./search-input";
 import { SearchProvider } from "./search-provider";
 import { SearchResults } from "./search-results";
@@ -9,25 +16,44 @@ const mockPlayTrack = vi.fn();
 const mockPlayTracks = vi.fn();
 const mockToastError = vi.fn();
 
-vi.mock("next/link", () => ({
-  default: ({
-    children,
-    href,
-    ...rest
-  }: {
-    children: React.ReactNode;
-    href: string;
-  }) => (
-    <a href={href} {...rest}>
-      {children}
-    </a>
-  ),
-}));
-
 vi.mock("@/hooks/use-web-player", () => ({
   useWebPlayerActions: () => ({
     playTrack: (...args: unknown[]) => mockPlayTrack(...args),
     playTracks: (...args: unknown[]) => mockPlayTracks(...args),
+  }),
+  useWebPlayer: () => ({
+    playTrack: (...args: unknown[]) => mockPlayTrack(...args),
+    playTracks: (...args: unknown[]) => mockPlayTracks(...args),
+    currentTrack: null,
+    sdkState: null,
+    paused: true,
+    progressMs: 0,
+    durationMs: 0,
+    volume: 1,
+    streak: null,
+    count: 0,
+    expanded: false,
+    palette: [],
+    queue: [],
+    queueIndex: 0,
+    shuffled: false,
+    hasQueue: false,
+    isAuthenticated: true,
+    nextTrack: vi.fn(),
+    prevTrack: vi.fn(),
+    togglePlay: vi.fn(),
+    toggleShuffle: vi.fn(),
+    setVolume: vi.fn(),
+    lockIn: vi.fn(),
+    activateHardcore: vi.fn(),
+    surrender: vi.fn(),
+    setExpanded: vi.fn(),
+    spotify: {
+      init: vi.fn(),
+      waitForReady: vi.fn(),
+      play: vi.fn(),
+      setRepeat: vi.fn(),
+    },
   }),
 }));
 
@@ -47,19 +73,14 @@ vi.mock("sonner", () => ({
   },
 }));
 
-function jsonResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
-function renderSearch() {
+function renderSearch(overrides: Parameters<typeof createAppDataClient>[0] = {}) {
   return render(
-    <SearchProvider>
-      <SearchInput />
-      <SearchResults />
-    </SearchProvider>,
+    <AppDataClientProvider client={createAppDataClient(overrides)}>
+      <SearchProvider>
+        <SearchInput />
+        <SearchResults />
+      </SearchProvider>
+    </AppDataClientProvider>,
   );
 }
 
@@ -83,44 +104,43 @@ describe("search", () => {
   });
 
   it("renders songs, playlists, and artists from one search response", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
-      jsonResponse({
-        tracks: [
-          {
-            id: "track-1",
-            name: "Panopticon",
-            artist: "ISIS",
-            albumName: "Oceanic",
-            albumImage: "track.jpg",
-            durationMs: 320000,
-            topStreak: null,
-            difficulty: 4,
-          },
-        ],
-        playlists: [
-          {
-            id: "playlist-1",
-            name: "Heavy Rotation",
-            description: null,
-            image: "playlist.jpg",
-            owner: "ethan",
-            public: true,
-            trackCount: 12,
-          },
-        ],
-        artists: [
-          {
-            id: "artist-1",
-            name: "ISIS",
-            image: "artist.jpg",
-            followerCount: 0,
-            genres: ["post-metal"],
-          },
-        ],
-      }),
-    );
-
-    renderSearch();
+    renderSearch({
+      search: {
+        searchResults: vi.fn().mockResolvedValue({
+          tracks: [
+            {
+              id: "track-1",
+              name: "Panopticon",
+              artist: "ISIS",
+              albumName: "Oceanic",
+              albumImage: "track.jpg",
+              durationMs: 320000,
+            },
+          ],
+          playlists: [
+            {
+              id: "playlist-1",
+              name: "Heavy Rotation",
+              description: null,
+              image: "playlist.jpg",
+              owner: "ethan",
+              public: true,
+              trackCount: 12,
+            },
+          ],
+          artists: [
+            {
+              id: "artist-1",
+              name: "ISIS",
+              image: "artist.jpg",
+              followerCount: 0,
+              genres: ["post-metal"],
+            },
+          ],
+        }),
+        searchTracks: vi.fn().mockResolvedValue([]),
+      },
+    });
     await searchFor("isis");
 
     await waitFor(() => {
@@ -135,18 +155,14 @@ describe("search", () => {
   });
 
   it("shows a friendly error message when search fails", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
-      jsonResponse(
-        {
-          error: {
-            message: "Could not search Spotify right now.",
-          },
-        },
-        502,
-      ),
-    );
-
-    renderSearch();
+    renderSearch({
+      search: {
+        searchResults: vi
+          .fn()
+          .mockRejectedValue(new Error("Could not search Spotify right now.")),
+        searchTracks: vi.fn().mockResolvedValue([]),
+      },
+    });
     await searchFor("isis");
 
     await waitFor(() => {
@@ -157,11 +173,9 @@ describe("search", () => {
   });
 
   it("loads playlist tracks and starts playback from a playlist search result", async () => {
-    vi.spyOn(global, "fetch").mockImplementation(async (input) => {
-      const url = String(input);
-
-      if (url.includes("/api/search?")) {
-        return jsonResponse({
+    renderSearch({
+      search: {
+        searchResults: vi.fn().mockResolvedValue({
           tracks: [],
           playlists: [
             {
@@ -175,27 +189,32 @@ describe("search", () => {
             },
           ],
           artists: [],
-        });
-      }
-
-      if (url.endsWith("/api/playlists/playlist-1")) {
-        return jsonResponse({
-          items: [
-            {
-              id: "track-1",
-              name: "Weight",
-              artist: "ISIS",
-              albumImage: "track.jpg",
-              durationMs: 640000,
-            },
-          ],
-        });
-      }
-
-      throw new Error(`Unexpected fetch: ${url}`);
+        }),
+        searchTracks: vi.fn().mockResolvedValue([]),
+      },
+      spotifyActivity: {
+        getRecentlyPlayed: vi
+          .fn()
+          .mockResolvedValue({ items: [], rateLimited: false }),
+        getPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+        getPlaylistTracks: vi.fn().mockResolvedValue([
+          {
+            id: "track-1",
+            name: "Weight",
+            artist: "ISIS",
+            albumImage: "track.jpg",
+            durationMs: 640000,
+          },
+        ]),
+        getTopArtists: vi.fn().mockResolvedValue([]),
+        loadBootstrap: vi.fn().mockResolvedValue({
+          favoriteArtists: [],
+          playlists: [],
+          playlistsTotal: 0,
+          recentTracks: [],
+        }),
+      },
     });
-
-    renderSearch();
     await searchFor("heavy");
 
     await waitFor(() => {

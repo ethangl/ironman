@@ -1,9 +1,9 @@
 import { ReactNode } from "react";
 
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { httpAppDataClient } from "@/data/client";
+import { defaultAppDataClient } from "@/data/client";
 import { AppRuntimeProvider, useAppRuntime } from "./app-runtime";
 
 const mockUseSession = vi.fn();
@@ -36,7 +36,7 @@ function createDeferred<T>() {
 
 function wrapper({ children }: { children: ReactNode }) {
   return (
-    <AppRuntimeProvider dataClient={httpAppDataClient}>
+    <AppRuntimeProvider dataClient={defaultAppDataClient}>
       {children}
     </AppRuntimeProvider>
   );
@@ -70,7 +70,9 @@ describe("AppRuntimeProvider", () => {
       isPending: false,
     });
 
-    const deferred = createDeferred<{ data?: { accessToken: string | null } }>();
+    const deferred = createDeferred<{
+      data?: { accessToken: string | null };
+    }>();
     mockGetAccessToken.mockReturnValue(deferred.promise);
 
     const { result } = renderHook(() => useAppRuntime(), { wrapper });
@@ -137,5 +139,75 @@ describe("AppRuntimeProvider", () => {
     });
     expect(result.current.capabilities.canControlPlayback).toBe(true);
     expect(result.current.capabilities.canUseIronman).toBe(true);
+  });
+
+  it("does not bounce back to checking when the same session user re-renders", async () => {
+    const sessionValue = {
+      data: { user: { id: "user-1" } },
+      isPending: false,
+    };
+
+    mockUseSession.mockImplementation(() => sessionValue);
+    mockGetAccessToken.mockResolvedValue({
+      data: { accessToken: "spotify-token" },
+    });
+
+    const { result, rerender } = renderHook(() => useAppRuntime(), {
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
+    });
+
+    sessionValue.data = { user: { id: "user-1" } };
+    rerender();
+
+    expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
+    expect(mockGetAccessToken).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps personal spotify capabilities during a pending revalidation for the same user", async () => {
+    const sessionState: {
+      data: { user: { id: string } } | null;
+      isPending: boolean;
+    } = {
+      data: { user: { id: "user-1" } },
+      isPending: false,
+    };
+
+    mockUseSession.mockImplementation(() => sessionState);
+    mockGetAccessToken.mockResolvedValue({
+      data: { accessToken: "spotify-token" },
+    });
+
+    const { result, rerender } = renderHook(() => useAppRuntime(), {
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
+    });
+    expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(true);
+
+    sessionState.data = null;
+    sessionState.isPending = true;
+    rerender();
+
+    expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
+    expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(true);
+    expect(result.current.capabilities.canControlPlayback).toBe(true);
+    expect(result.current.capabilities.canUseIronman).toBe(true);
+  });
+
+  it("throws when used outside the runtime provider", () => {
+    mockUseSession.mockReturnValue({
+      data: null,
+      isPending: false,
+    });
+
+    expect(() => renderHook(() => useAppRuntime())).toThrow(
+      "useAppRuntime must be used within an AppRuntimeProvider.",
+    );
   });
 });

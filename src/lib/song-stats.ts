@@ -1,5 +1,5 @@
 import { computeSongDifficulty } from "@/lib/difficulty";
-import { prisma } from "@/lib/prisma";
+import type { LeaderboardStreakRecord } from "@/lib/leaderboards";
 
 export interface SongStats {
   trackName: string;
@@ -22,12 +22,13 @@ export interface SongStats {
   }>;
 }
 
-export async function getSongStats(trackId: string): Promise<SongStats | null> {
-  const streaks = await prisma.streak.findMany({
-    where: { trackId },
-    include: { user: { select: { name: true } } },
-  });
-
+export function buildSongStats(
+  streaks: Array<
+    LeaderboardStreakRecord & {
+      endedAtMs?: number;
+    }
+  >,
+): SongStats | null {
   if (streaks.length === 0) return null;
 
   const sample = streaks[0];
@@ -43,19 +44,17 @@ export async function getSongStats(trackId: string): Promise<SongStats | null> {
     streaks[0],
   );
 
-  const weaknessCount = await prisma.weakness.count({
-    where: { streakId: { in: streaks.map((s) => s.id) } },
-  });
+  const weaknessCount = streaks.reduce((sum, s) => sum + s.weaknessCount, 0);
 
   const shameList = streaks
-    .filter((s) => !s.active && s.endedAt != null)
+    .filter((s) => !s.active && s.endedAtMs != null)
     .sort((a, b) => a.count - b.count)
     .slice(0, 5)
     .map((s) => ({
-      userName: s.user.name,
+      userName: s.userName,
       count: s.count,
-      startedAt: s.startedAt.toISOString(),
-      endedAt: s.endedAt!.toISOString(),
+      startedAt: new Date(s.startedAtMs).toISOString(),
+      endedAt: new Date(s.endedAtMs!).toISOString(),
     }));
 
   const difficulty = computeSongDifficulty(
@@ -82,7 +81,7 @@ export async function getSongStats(trackId: string): Promise<SongStats | null> {
     weaknessCount,
     difficulty,
     ironMan:
-      best.count > 0 ? { name: best.user.name, count: best.count } : null,
+      best.count > 0 ? { name: best.userName, count: best.count } : null,
     shameList,
   };
 }

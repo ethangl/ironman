@@ -13,6 +13,11 @@
 # testing
 /coverage
 
+# convex
+/.convex
+/convex/_generated
+/scripts
+
 # next.js
 /.next/
 /out/

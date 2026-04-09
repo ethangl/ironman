@@ -36,9 +36,9 @@ export const PlayerWrapper: FC<PlayerWrapperProps> = ({
       <div className="relative h-full w-full">
         <div className="absolute pointer-events-none inset-0 overflow-hidden rounded-3xl z-0">
           {displayImage && (
-            // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
             <img
               src={displayImage}
+              alt=""
               className="absolute blur-md object-cover opacity-60 scale-200 size-full -translate-y-[25%]"
             />
           )}

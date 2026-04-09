@@ -2,9 +2,13 @@ import { useEffect, useState } from "react";
 
 import { useAppDataClient } from "@/data/client";
 import { type LeaderboardEntry } from "@/data/leaderboards";
+import { useAppAuth } from "@/runtime/app-runtime";
 
 export function useLeaderboardData(trackId?: string) {
   const client = useAppDataClient();
+  const {
+    session,
+  } = useAppAuth();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [myEntry, setMyEntry] = useState<LeaderboardEntry | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,7 +21,9 @@ export function useLeaderboardData(trackId?: string) {
     });
 
     const request = trackId
-      ? client.leaderboards.getTrack(trackId).then((data) => ({
+      ? client.leaderboards
+          .getTrack(trackId, session?.user.id ?? null)
+          .then((data) => ({
           entries: data.leaderboard ?? [],
           myEntry: data.myEntry ?? null,
         }))
@@ -44,7 +50,7 @@ export function useLeaderboardData(trackId?: string) {
     return () => {
       cancelled = true;
     };
-  }, [client, trackId]);
+  }, [client, session?.user.id, trackId]);
 
   return { entries, myEntry, loading };
 }

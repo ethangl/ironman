@@ -187,7 +187,9 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
       try {
         const data = await fetchStreakStatus();
         if (!cancelled) applyStreakState(data);
-      } catch {}
+      } catch {
+        // Ignore background sync failures and keep local player state intact.
+      }
     };
 
     void syncFromServer();
@@ -316,7 +318,9 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
               if (isLatestAttempt()) setApiPaused(false);
               return;
             }
-          } catch {}
+          } catch {
+            // Retry once more before surfacing a device/playback failure.
+          }
         }
 
         toast.error(
@@ -521,16 +525,18 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     if (!canUseIronman) return;
     const token = await getAccessToken();
     if (!token || !currentTrack) return;
-    try {
-      const data = await client.ironman.start({
-        ...toTrackInfo(currentTrack),
-        playbackStarted: true,
-      });
-      applyStreakState(data);
-      broadcastStreakState(data);
-      setCurrentTrack(null);
-      await setRepeat("track");
-    } catch {}
+      try {
+        const data = await client.ironman.start({
+          ...toTrackInfo(currentTrack),
+          playbackStarted: true,
+        });
+        applyStreakState(data);
+        broadcastStreakState(data);
+        setCurrentTrack(null);
+        await setRepeat("track");
+      } catch {
+        // Leave playback untouched when lock-in fails.
+      }
   }, [
     applyStreakState,
     broadcastStreakState,
@@ -543,20 +549,22 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
   const activateHardcore = useCallback(async () => {
     if (!canUseIronman || !streak?.active || streak.hardcore) return;
-    try {
-      await client.ironman.activateHardcore();
-      const nextStreak = { ...streak, hardcore: true };
-      applyStreakState(nextStreak);
-      broadcastStreakState(nextStreak);
-    } catch {}
+      try {
+        await client.ironman.activateHardcore();
+        const nextStreak = { ...streak, hardcore: true };
+        applyStreakState(nextStreak);
+        broadcastStreakState(nextStreak);
+      } catch {
+        // Keep the current streak state when hardcore activation fails.
+      }
   }, [applyStreakState, broadcastStreakState, canUseIronman, client, streak]);
 
   const surrender = useCallback(async () => {
     if (!canUseIronman) return;
-    try {
-      await client.ironman.surrender();
-      if (streak) {
-        setCurrentTrack(toTrack(streak));
+      try {
+        await client.ironman.surrender();
+        if (streak) {
+          setCurrentTrack(toTrack(streak));
         // Resume queue position if there was a queue
         if (queue.length > 1) {
           const idx = queue.findIndex((t) => t.id === streak.trackId);
@@ -568,10 +576,12 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
           }
         }
         await setRepeat("off");
+        }
+        applyStreakState(null);
+        broadcastStreakState(null);
+      } catch {
+        // Ignore surrender failures and preserve the active streak locally.
       }
-      applyStreakState(null);
-      broadcastStreakState(null);
-    } catch {}
   }, [
     applyStreakState,
     broadcastStreakState,

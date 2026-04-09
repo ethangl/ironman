@@ -1,41 +1,7 @@
 import { Avatar } from "@/components/avatar";
 import { List, ListLink } from "@/components/list";
 import { LogoutButton } from "@/components/logout-button";
-
-export interface ProfileData {
-  user: { id: string; name: string; image: string | null };
-  stats: {
-    totalPlays: number;
-    totalStreaks: number;
-    uniqueSongs: number;
-    weaknessCount: number;
-  };
-  bestStreak: {
-    trackName: string;
-    trackArtist: string;
-    trackImage: string | null;
-    trackId: string;
-    count: number;
-  } | null;
-  activeStreak: {
-    trackName: string;
-    trackArtist: string;
-    trackImage: string | null;
-    trackId: string;
-    count: number;
-  } | null;
-  history: {
-    id: string;
-    trackId: string;
-    trackName: string;
-    trackArtist: string;
-    trackImage: string | null;
-    count: number;
-    active: boolean;
-    startedAt: string;
-    endedAt: string | null;
-  }[];
-}
+import type { ProfileData } from "@/lib/profile-data";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -86,7 +52,6 @@ export function ProfileView({ data }: { data: ProfileData }) {
             className="border border-yellow-500/20 bg-linear-to-r from-yellow-500/10 to-transparent transition hover:bg-yellow-500/5"
           >
             {data.bestStreak.trackImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={data.bestStreak.trackImage}
                 alt=""
@@ -115,7 +80,6 @@ export function ProfileView({ data }: { data: ProfileData }) {
         {data.history.map((s) => (
           <ListLink key={s.id} href={`/song/${s.trackId}`}>
             {s.trackImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={s.trackImage}
                 alt=""

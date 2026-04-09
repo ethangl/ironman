@@ -5,7 +5,14 @@ import {
   RecentTrack,
 } from "@/hooks/use-spotify-activity";
 
-import { getRouteErrorMessage } from "@/data/http";
+import { authClient } from "@/lib/auth-client";
+import {
+  getPlaylistTracks,
+  getRecentlyPlayed,
+  getTopArtists,
+  getUserPlaylists,
+  SpotifyApiError,
+} from "@/lib/spotify";
 
 const PLAYLIST_PAGE_SIZE = 50;
 const TOP_ARTISTS_LIMIT = 10;
@@ -29,61 +36,79 @@ export interface ActivityBootstrap {
 
 export { PLAYLIST_PAGE_SIZE };
 
-async function parseJsonSafe<T>(response: Response, fallback: T) {
-  return response.json().catch(() => fallback) as Promise<T>;
+async function getSpotifyClientAccessToken() {
+  const accessToken = await authClient.getAccessToken({
+    providerId: "spotify",
+  });
+
+  return accessToken?.data?.accessToken ?? null;
 }
 
 export async function getRecentlyPlayedActivity(): Promise<RecentlyPlayedResult> {
-  const response = await fetch("/api/recently-played");
-  if (!response.ok) {
-    return { items: [], rateLimited: false };
+  const token = await getSpotifyClientAccessToken();
+  if (!token) {
+    throw new Error("Reconnect Spotify to load your recent tracks.");
   }
 
-  return {
-    items: await parseJsonSafe<RecentTrack[]>(response, []),
-    rateLimited: response.headers.get("x-spotify-rate-limited") === "1",
-  };
+  try {
+    return {
+      items: await getRecentlyPlayed(token),
+      rateLimited: false,
+    };
+  } catch (error) {
+    if (error instanceof SpotifyApiError && error.status === 429) {
+      return {
+        items: [],
+        rateLimited: true,
+      };
+    }
+
+    throw error;
+  }
 }
 
 export async function getPlaylistsPage(
   limit = PLAYLIST_PAGE_SIZE,
   offset = 0,
 ): Promise<PlaylistsPage> {
-  const response = await fetch(`/api/playlists?limit=${limit}&offset=${offset}`);
-  if (!response.ok) {
-    return { items: [], total: 0 };
+  const token = await getSpotifyClientAccessToken();
+  if (!token) {
+    throw new Error("Reconnect Spotify to load your playlists.");
   }
 
-  return parseJsonSafe<PlaylistsPage>(response, { items: [], total: 0 });
+  try {
+    return await getUserPlaylists(token, limit, offset);
+  } catch {
+    return { items: [], total: 0 };
+  }
 }
 
 export async function getPlaylistTracksById(
   playlistId: string,
 ): Promise<PlaylistTrack[]> {
-  const response = await fetch(`/api/playlists/${playlistId}`);
-  if (!response.ok) {
-    const data = await response
-      .json()
-      .catch(() => ({ error: "Could not load playlist tracks." }));
-
-    throw new Error(
-      getRouteErrorMessage(data, "Could not load playlist tracks."),
-    );
+  const token = await getSpotifyClientAccessToken();
+  if (!token) {
+    throw new Error("Reconnect Spotify to load playlist tracks.");
   }
 
-  const data = await parseJsonSafe<{ items: PlaylistTrack[] }>(response, {
-    items: [],
-  });
-  return data.items ?? [];
+  try {
+    return await getPlaylistTracks(token, playlistId);
+  } catch {
+    throw new Error("Could not load playlist tracks.");
+  }
 }
 
 export async function getTopArtistsActivity(
   limit = TOP_ARTISTS_LIMIT,
 ): Promise<FavoriteArtist[]> {
-  const response = await fetch(`/api/top-artists?limit=${limit}`);
-  if (!response.ok) {
-    return [];
+  const token = await getSpotifyClientAccessToken();
+  if (!token) {
+    throw new Error("Reconnect Spotify to load your top artists.");
   }
 
-  return parseJsonSafe<FavoriteArtist[]>(response, []);
+  try {
+    return await getTopArtists(token, limit);
+  } catch {
+    return [];
+  }
 }

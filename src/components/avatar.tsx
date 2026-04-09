@@ -32,7 +32,6 @@ export const Avatar: FC<AvatarProps> = ({
       style={{ "--user-color": `oklch(0.98 0.4 ${hue})` } as CSSProperties}
     >
       {image ? (
-        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={image}
           alt={normalizedName}

@@ -1,31 +1,19 @@
 import { createContext, ReactNode, useContext } from "react";
 
-import {
-  type ArtistsClient,
-  spotifyArtistsClient,
-} from "@/data/artists-client";
-import {
-  convexIronmanClient,
-  type IronmanClient,
-} from "@/data/ironman-client";
+import { spotifyArtistsClient, type ArtistsClient } from "./artists-client";
+import { convexIronmanClient, type IronmanClient } from "./ironman-client";
 import {
   convexLeaderboardsClient,
   type LeaderboardsClient,
-} from "@/data/leaderboards-client";
-import {
-  convexPaletteClient,
-  type PaletteClient,
-} from "@/data/palette-client";
-import {
-  convexProfileClient,
-  type ProfileClient,
-} from "@/data/profile-client";
-import { spotifySearchClient, type SearchClient } from "@/data/search-client";
-import { convexSongsClient, type SongsClient } from "@/data/songs-client";
+} from "./leaderboards-client";
+import { convexPaletteClient, type PaletteClient } from "./palette-client";
+import { convexProfileClient, type ProfileClient } from "./profile-client";
+import { spotifySearchClient, type SearchClient } from "./search-client";
+import { convexSongsClient, type SongsClient } from "./songs-client";
 import {
   spotifyActivityClient,
   type SpotifyActivityClient,
-} from "@/data/spotify-activity-client";
+} from "./spotify-activity-client";
 
 export interface AppDataClient {
   profile: ProfileClient;

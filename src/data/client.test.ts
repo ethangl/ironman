@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { ArtistsClient } from "@/data/artists-client";
-import { createAppDataClient, defaultAppDataClient } from "@/data/client";
-import type { IronmanClient } from "@/data/ironman-client";
-import type { LeaderboardsClient } from "@/data/leaderboards-client";
-import type { PaletteClient } from "@/data/palette-client";
-import type { ProfileClient } from "@/data/profile-client";
-import type { SearchClient } from "@/data/search-client";
-import type { SongsClient } from "@/data/songs-client";
-import type { SpotifyActivityClient } from "@/data/spotify-activity-client";
+import type { ArtistsClient } from "./artists-client";
+import { createAppDataClient, defaultAppDataClient } from "./client";
+import type { IronmanClient } from "./ironman-client";
+import type { LeaderboardsClient } from "./leaderboards-client";
+import type { PaletteClient } from "./palette-client";
+import type { ProfileClient } from "./profile-client";
+import type { SearchClient } from "./search-client";
+import type { SongsClient } from "./songs-client";
+import type { SpotifyActivityClient } from "./spotify-activity-client";
 
 describe("createAppDataClient", () => {
   it("uses the default slice clients when no overrides are given", () => {

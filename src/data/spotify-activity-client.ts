@@ -1,43 +1,67 @@
+import type { PlaylistTrack } from "@/hooks/use-spotify-activity";
+import { api } from "../../convex/_generated/api";
 import {
-  getPlaylistTracksById,
-  getPlaylistsPage,
-  getRecentlyPlayedActivity,
-  getTopArtistsActivity,
+  PLAYLIST_PAGE_SIZE,
   type ActivityBootstrap,
   type PlaylistsPage,
   type RecentlyPlayedResult,
-} from "@/data/spotify-activity";
-import type { PlaylistTrack } from "@/hooks/use-spotify-activity";
+} from "./spotify-activity";
+import { getAuthenticatedSpotifyConvexClient } from "./spotify-convex-client";
+
+const TOP_ARTISTS_LIMIT = 10;
 
 export interface SpotifyActivityClient {
   getRecentlyPlayed: () => Promise<RecentlyPlayedResult>;
   getPlaylistsPage: (limit?: number, offset?: number) => Promise<PlaylistsPage>;
   getPlaylistTracks: (playlistId: string) => Promise<PlaylistTrack[]>;
-  getTopArtists: (limit?: number) => ReturnType<typeof getTopArtistsActivity>;
+  getTopArtists: (
+    limit?: number,
+  ) => Promise<ActivityBootstrap["favoriteArtists"]>;
   loadBootstrap: () => Promise<ActivityBootstrap>;
 }
 
 async function loadSpotifyActivityBootstrap(): Promise<ActivityBootstrap> {
-  const [recentResult, playlistData, artistData] = await Promise.all([
-    getRecentlyPlayedActivity(),
-    getPlaylistsPage(),
-    getTopArtistsActivity(),
-  ]);
+  const client = await getAuthenticatedSpotifyConvexClient();
 
-  return {
-    favoriteArtists: artistData,
-    playlists: playlistData.items,
-    playlistsTotal: playlistData.total,
-    recentTracks: recentResult.items,
-  };
+  return client.action(api.spotify.activityBootstrap, {
+    playlistLimit: PLAYLIST_PAGE_SIZE,
+    playlistOffset: 0,
+    topArtistsLimit: TOP_ARTISTS_LIMIT,
+    recentlyPlayedLimit: 50,
+  });
 }
 
 export function createSpotifyActivityClient(): SpotifyActivityClient {
   return {
-    getRecentlyPlayed: getRecentlyPlayedActivity,
-    getPlaylistsPage,
-    getPlaylistTracks: getPlaylistTracksById,
-    getTopArtists: getTopArtistsActivity,
+    async getRecentlyPlayed() {
+      const client = await getAuthenticatedSpotifyConvexClient();
+
+      return client.action(api.spotify.recentlyPlayed, {
+        limit: 50,
+      });
+    },
+    async getPlaylistsPage(limit = PLAYLIST_PAGE_SIZE, offset = 0) {
+      const client = await getAuthenticatedSpotifyConvexClient();
+
+      return client.action(api.spotify.playlistsPage, {
+        limit,
+        offset,
+      });
+    },
+    async getPlaylistTracks(playlistId) {
+      const client = await getAuthenticatedSpotifyConvexClient();
+
+      return client.action(api.spotify.playlistTracks, {
+        playlistId,
+      });
+    },
+    async getTopArtists(limit = TOP_ARTISTS_LIMIT) {
+      const client = await getAuthenticatedSpotifyConvexClient();
+
+      return client.action(api.spotify.topArtists, {
+        limit,
+      });
+    },
     loadBootstrap: loadSpotifyActivityBootstrap,
   };
 }

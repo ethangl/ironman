@@ -1,4 +1,4 @@
-import type { LeaderboardStreakRecord } from "@/lib/leaderboards";
+import type { LeaderboardStreakRecord } from "./leaderboards";
 
 export interface ProfileData {
   user: { id: string; name: string; image: string | null };

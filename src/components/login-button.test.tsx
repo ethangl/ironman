@@ -17,12 +17,12 @@ vi.mock("@/hooks/use-browser-search-params", () => ({
   replaceBrowserUrl: (...args: unknown[]) => mockReplaceBrowserUrl(...args),
 }));
 
-vi.mock("@/lib/auth-client", () => ({
-  useSession: () => mockUseSession(),
-  signIn: {
+vi.mock("@/lib/convex-auth-client", () => ({
+  useConvexSession: () => mockUseSession(),
+  convexSignIn: {
     social: (...args: unknown[]) => mockSignInSocial(...args),
   },
-  signOut: () => mockSignOut(),
+  convexSignOut: () => mockSignOut(),
 }));
 
 vi.mock("sonner", () => ({

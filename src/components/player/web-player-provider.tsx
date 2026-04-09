@@ -94,7 +94,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     return tokenRef.current;
   }, [getSpotifyAccessToken]);
 
-  const spotify = useSpotify({ getAccessToken, tokenRef, trackId });
+  const spotify = useSpotify({ tokenRef, trackId });
   const {
     sdkState,
     init: initSpotify,

@@ -1,5 +1,5 @@
-import { computeSongDifficulty } from "@/lib/difficulty";
-import type { LeaderboardStreakRecord } from "@/lib/leaderboards";
+import { computeSongDifficulty } from "./difficulty";
+import type { LeaderboardStreakRecord } from "./leaderboards";
 
 export interface SongStats {
   trackName: string;

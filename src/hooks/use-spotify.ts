@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { spotifyPlaybackClient } from "@/data/spotify-playback-client";
+
 // --- Spotify SDK types ---
 
 interface SpotifyPlayerConstructorOptions {
@@ -125,11 +127,9 @@ function logSpotifyControlWrite(details: {
 // --- Hook ---
 
 export function useSpotify({
-  getAccessToken,
   tokenRef,
   trackId,
 }: {
-  getAccessToken: () => Promise<string | null>;
   tokenRef: React.MutableRefObject<string | null>;
   trackId: string | null;
 }) {
@@ -354,29 +354,7 @@ export function useSpotify({
   const play = useCallback(
     async (uri: string, deviceId?: string): Promise<PlayResult> => {
       const startedAt = Date.now();
-      const token = await getAccessToken();
-      if (!token) {
-        logSpotifyControlWrite({
-          action: "play",
-          source: "api",
-          status: 0,
-          durationMs: Date.now() - startedAt,
-          endpoint: "/me/player/play",
-          extra: { device_id: deviceId ?? null, uri },
-        });
-        return { ok: false, status: 0 };
-      }
-      const url = deviceId
-        ? `https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`
-        : "https://api.spotify.com/v1/me/player/play";
-      const res = await fetch(url, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ uris: [uri] }),
-      });
+      const res = await spotifyPlaybackClient.play(uri, deviceId);
       logSpotifyControlWrite({
         action: "play",
         source: "api",
@@ -385,9 +363,9 @@ export function useSpotify({
         endpoint: "/me/player/play",
         extra: { device_id: deviceId ?? null, uri },
       });
-      return { ok: res.ok || res.status === 204, status: res.status };
+      return res;
     },
-    [getAccessToken],
+    [],
   );
 
   const resume = useCallback(async (): Promise<PlayResult> => {
@@ -402,21 +380,7 @@ export function useSpotify({
       });
       return { ok: true, status: 200 };
     }
-    const token = await getAccessToken();
-    if (!token) {
-      logSpotifyControlWrite({
-        action: "resume",
-        source: "api",
-        status: 0,
-        durationMs: Date.now() - startedAt,
-        endpoint: "/me/player/play",
-      });
-      return { ok: false, status: 0 };
-    }
-    const res = await fetch("https://api.spotify.com/v1/me/player/play", {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await spotifyPlaybackClient.resume();
     logSpotifyControlWrite({
       action: "resume",
       source: "api",
@@ -424,8 +388,8 @@ export function useSpotify({
       durationMs: Date.now() - startedAt,
       endpoint: "/me/player/play",
     });
-    return { ok: res.ok || res.status === 204, status: res.status };
-  }, [getAccessToken, isSdkActive]);
+    return res;
+  }, [isSdkActive]);
 
   const pause = useCallback(async (): Promise<PlayResult> => {
     const startedAt = Date.now();
@@ -439,41 +403,16 @@ export function useSpotify({
       });
       return { ok: true, status: 200 };
     }
-    const token = await getAccessToken();
-    if (!token) {
-      logSpotifyControlWrite({
-        action: "pause",
-        source: "api",
-        status: 0,
-        durationMs: Date.now() - startedAt,
-        endpoint: "/me/player/pause",
-      });
-      return { ok: false, status: 0 };
-    }
-    try {
-      const res = await fetch("https://api.spotify.com/v1/me/player/pause", {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      logSpotifyControlWrite({
-        action: "pause",
-        source: "api",
-        status: res.status,
-        durationMs: Date.now() - startedAt,
-        endpoint: "/me/player/pause",
-      });
-      return { ok: res.ok || res.status === 204, status: res.status };
-    } catch {
-      logSpotifyControlWrite({
-        action: "pause",
-        source: "api",
-        status: 0,
-        durationMs: Date.now() - startedAt,
-        endpoint: "/me/player/pause",
-      });
-      return { ok: false, status: 0 };
-    }
-  }, [getAccessToken, isSdkActive]);
+    const res = await spotifyPlaybackClient.pause();
+    logSpotifyControlWrite({
+      action: "pause",
+      source: "api",
+      status: res.status,
+      durationMs: Date.now() - startedAt,
+      endpoint: "/me/player/pause",
+    });
+    return res;
+  }, [isSdkActive]);
 
   const setVolume = useCallback(
     async (percent: number) => {
@@ -489,113 +428,42 @@ export function useSpotify({
         });
         return;
       }
-      const token = await getAccessToken();
-      if (!token) {
-        logSpotifyControlWrite({
-          action: "volume",
-          source: "api",
-          status: 0,
-          durationMs: Date.now() - startedAt,
-          endpoint: "/me/player/volume",
-          extra: { percent },
-        });
-        return;
-      }
-      try {
-        const res = await fetch(
-          `https://api.spotify.com/v1/me/player/volume?volume_percent=${percent}`,
-          { method: "PUT", headers: { Authorization: `Bearer ${token}` } },
-        );
-        logSpotifyControlWrite({
-          action: "volume",
-          source: "api",
-          status: res.status,
-          durationMs: Date.now() - startedAt,
-          endpoint: "/me/player/volume",
-          extra: { percent },
-        });
-      } catch {
-        logSpotifyControlWrite({
-          action: "volume",
-          source: "api",
-          status: 0,
-          durationMs: Date.now() - startedAt,
-          endpoint: "/me/player/volume",
-          extra: { percent },
-        });
-      }
+      const res = await spotifyPlaybackClient.setVolume(percent);
+      logSpotifyControlWrite({
+        action: "volume",
+        source: "api",
+        status: res.status,
+        durationMs: Date.now() - startedAt,
+        endpoint: "/me/player/volume",
+        extra: { percent },
+      });
     },
-    [getAccessToken, isSdkActive],
+    [isSdkActive],
   );
 
   const setRepeat = useCallback(
     async (state: string, deviceId?: string) => {
       const startedAt = Date.now();
-      const token = await getAccessToken();
-      if (!token) {
-        logSpotifyControlWrite({
-          action: "repeat",
-          source: "api",
-          status: 0,
-          durationMs: Date.now() - startedAt,
-          endpoint: "/me/player/repeat",
-          extra: { state, device_id: deviceId ?? null },
-        });
-        return;
-      }
-      const url = deviceId
-        ? `https://api.spotify.com/v1/me/player/repeat?state=${state}&device_id=${deviceId}`
-        : `https://api.spotify.com/v1/me/player/repeat?state=${state}`;
-      try {
-        const res = await fetch(url, {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        logSpotifyControlWrite({
-          action: "repeat",
-          source: "api",
-          status: res.status,
-          durationMs: Date.now() - startedAt,
-          endpoint: "/me/player/repeat",
-          extra: { state, device_id: deviceId ?? null },
-        });
-      } catch {
-        logSpotifyControlWrite({
-          action: "repeat",
-          source: "api",
-          status: 0,
-          durationMs: Date.now() - startedAt,
-          endpoint: "/me/player/repeat",
-          extra: { state, device_id: deviceId ?? null },
-        });
-      }
+      const res = await spotifyPlaybackClient.setRepeat(
+        state as "track" | "context" | "off",
+        deviceId,
+      );
+      logSpotifyControlWrite({
+        action: "repeat",
+        source: "api",
+        status: res.status,
+        durationMs: Date.now() - startedAt,
+        endpoint: "/me/player/repeat",
+        extra: { state, device_id: deviceId ?? null },
+      });
     },
-    [getAccessToken],
+    [],
   );
 
   const getCurrentlyPlaying = useCallback(async (): Promise<{
     status: number;
     playback: SpotifyPlayback | null;
-  }> => {
-    const token = await getAccessToken();
-    if (!token) return { status: 0, playback: null };
-    try {
-      const res = await fetch(
-        "https://api.spotify.com/v1/me/player/currently-playing",
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      if (!res.ok && res.status !== 204 && res.status !== 202) {
-        return { status: res.status, playback: null };
-      }
-      if (res.status === 204 || res.status === 202) {
-        return { status: res.status, playback: null };
-      }
-      const playback = await res.json();
-      return { status: res.status, playback };
-    } catch {
-      return { status: 0, playback: null };
-    }
-  }, [getAccessToken]);
+  }> => spotifyPlaybackClient.getCurrentlyPlaying(), []);
 
   return {
     // SDK lifecycle

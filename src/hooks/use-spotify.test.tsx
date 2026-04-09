@@ -1,6 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { spotifyPlaybackClient } from "@/data/spotify-playback-client";
 import { useSpotify } from "./use-spotify";
 
 type ListenerMap = Record<string, (data?: unknown) => void>;
@@ -44,9 +45,34 @@ class FakeSpotifyPlayer {
 describe("useSpotify", () => {
   beforeEach(() => {
     FakeSpotifyPlayer.reset();
+    vi.restoreAllMocks();
     Object.defineProperty(window, "Spotify", {
       configurable: true,
       value: { Player: FakeSpotifyPlayer },
+    });
+    vi.spyOn(spotifyPlaybackClient, "pause").mockResolvedValue({
+      ok: false,
+      status: 429,
+    });
+    vi.spyOn(spotifyPlaybackClient, "play").mockResolvedValue({
+      ok: true,
+      status: 204,
+    });
+    vi.spyOn(spotifyPlaybackClient, "resume").mockResolvedValue({
+      ok: true,
+      status: 204,
+    });
+    vi.spyOn(spotifyPlaybackClient, "setRepeat").mockResolvedValue({
+      ok: true,
+      status: 204,
+    });
+    vi.spyOn(spotifyPlaybackClient, "setVolume").mockResolvedValue({
+      ok: true,
+      status: 204,
+    });
+    vi.spyOn(spotifyPlaybackClient, "getCurrentlyPlaying").mockResolvedValue({
+      status: 204,
+      playback: null,
     });
   });
 
@@ -58,7 +84,6 @@ describe("useSpotify", () => {
     const tokenRef = { current: "token" };
     const { result } = renderHook(() =>
       useSpotify({
-        getAccessToken: vi.fn().mockResolvedValue("token"),
         tokenRef,
         trackId: "track-1",
       }),
@@ -85,7 +110,6 @@ describe("useSpotify", () => {
     const tokenRef = { current: "token" };
     const { result } = renderHook(() =>
       useSpotify({
-        getAccessToken: vi.fn().mockResolvedValue("token"),
         tokenRef,
         trackId: "track-1",
       }),
@@ -112,7 +136,6 @@ describe("useSpotify", () => {
     const tokenRef = { current: "token" };
     const { result } = renderHook(() =>
       useSpotify({
-        getAccessToken: vi.fn().mockResolvedValue("token"),
         tokenRef,
         trackId: "track-1",
       }),
@@ -146,14 +169,9 @@ describe("useSpotify", () => {
   });
 
   it("reports pause failures instead of treating them as success", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValueOnce(
-      new Response(null, { status: 429 }),
-    );
-
     const tokenRef = { current: "token" };
     const { result } = renderHook(() =>
       useSpotify({
-        getAccessToken: vi.fn().mockResolvedValue("token"),
         tokenRef,
         trackId: "track-1",
       }),

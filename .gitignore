@@ -15,8 +15,6 @@
 
 # convex
 /.convex
-/convex/_generated
-/scripts
 
 # next.js
 /.next/

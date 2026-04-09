@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "dev:convex": "convex dev --typecheck disable --codegen disable",
+    "dev:convex": "convex dev",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "lint": "eslint",

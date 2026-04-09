@@ -1,13 +1,13 @@
 import { ConvexHttpClient } from "convex/browser";
 
+import { api } from "../../convex/_generated/api";
 import {
   type BangerSong,
   type HellscapeSong,
   type IronmenEntry,
   type LeaderboardEntry,
   type TrackLeaderboardResponse,
-} from "@/data/leaderboards";
-import { api } from "../../convex/_generated/api";
+} from "./leaderboards";
 
 export interface LeaderboardsClient {
   getGlobal: () => Promise<LeaderboardEntry[]>;

@@ -6,7 +6,7 @@ import { Navbar } from "@/components/navbar";
 import { WebPlayerProvider } from "@/components/player/web-player-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { defaultAppDataClient } from "@/data/client";
-import { authClient } from "@/lib/auth-client";
+import { convexAuthClient as authClient } from "@/lib/convex-auth-client";
 import { getConvexReactClient } from "@/lib/convex-react";
 import { AppRuntimeProvider } from "@/runtime/app-runtime";
 

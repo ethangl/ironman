@@ -5,6 +5,7 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
   {
     ignores: [
+      "**/_generated/**",
       "convex/_generated/**",
       "dist/**",
       "node_modules/**",

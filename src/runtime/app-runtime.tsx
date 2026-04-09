@@ -9,7 +9,12 @@ import {
 } from "react";
 
 import { AppDataClient, AppDataClientProvider } from "@/data/client";
-import { authClient, signIn, signOut, useSession } from "@/lib/auth-client";
+import {
+  convexAuthClient as authClient,
+  convexSignIn as signIn,
+  convexSignOut as signOut,
+  useConvexSession as useSession,
+} from "@/lib/convex-auth-client";
 
 type SessionState = ReturnType<typeof useSession>;
 type SessionData = SessionState["data"];

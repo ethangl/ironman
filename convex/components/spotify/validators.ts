@@ -1,0 +1,59 @@
+import { v } from "convex/values";
+
+export const topStreakValidator = v.union(
+  v.object({
+    count: v.number(),
+    userName: v.union(v.string(), v.null()),
+  }),
+  v.null(),
+);
+
+export const spotifyTrackValidator = v.object({
+  id: v.string(),
+  name: v.string(),
+  artist: v.string(),
+  albumName: v.string(),
+  albumImage: v.union(v.string(), v.null()),
+  durationMs: v.number(),
+  topStreak: v.optional(topStreakValidator),
+  difficulty: v.optional(v.number()),
+});
+
+export const spotifyArtistValidator = v.object({
+  id: v.string(),
+  name: v.string(),
+  image: v.union(v.string(), v.null()),
+  followerCount: v.number(),
+  genres: v.array(v.string()),
+});
+
+export const spotifyPlaylistValidator = v.object({
+  id: v.string(),
+  name: v.string(),
+  description: v.union(v.string(), v.null()),
+  image: v.union(v.string(), v.null()),
+  owner: v.union(v.string(), v.null()),
+  public: v.boolean(),
+  trackCount: v.number(),
+});
+
+export const spotifyAlbumReleaseValidator = v.object({
+  id: v.string(),
+  name: v.string(),
+  image: v.union(v.string(), v.null()),
+  releaseDate: v.union(v.string(), v.null()),
+  totalTracks: v.number(),
+  albumType: v.union(v.string(), v.null()),
+});
+
+export const spotifySearchResultsValidator = v.object({
+  tracks: v.array(spotifyTrackValidator),
+  artists: v.array(spotifyArtistValidator),
+  playlists: v.array(spotifyPlaylistValidator),
+});
+
+export const spotifyArtistPageDataValidator = v.object({
+  artist: spotifyArtistValidator,
+  topTracks: v.array(spotifyTrackValidator),
+  releases: v.array(spotifyAlbumReleaseValidator),
+});

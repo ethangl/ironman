@@ -1,14 +1,16 @@
 import { ConvexHttpClient } from "convex/browser";
 
-import type { ProfileData } from "@/data/profile";
 import { api } from "../../convex/_generated/api";
+import type { ProfileData } from "@/lib/profile-data";
 
 export interface ProfileClient {
-  getCurrent: (args: {
-    userId: string;
-    name: string;
-    image: string | null;
-  } | null) => Promise<ProfileData | null>;
+  getCurrent: (
+    args: {
+      userId: string;
+      name: string;
+      image: string | null;
+    } | null,
+  ) => Promise<ProfileData | null>;
   getPublic: (userId: string) => Promise<ProfileData | null>;
 }
 

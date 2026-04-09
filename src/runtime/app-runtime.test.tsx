@@ -11,15 +11,15 @@ const mockGetAccessToken = vi.fn();
 const mockSignInSocial = vi.fn();
 const mockSignOut = vi.fn();
 
-vi.mock("@/lib/auth-client", () => ({
-  authClient: {
+vi.mock("@/lib/convex-auth-client", () => ({
+  convexAuthClient: {
     getAccessToken: (...args: unknown[]) => mockGetAccessToken(...args),
   },
-  signIn: {
+  convexSignIn: {
     social: (...args: unknown[]) => mockSignInSocial(...args),
   },
-  signOut: (...args: unknown[]) => mockSignOut(...args),
-  useSession: () => mockUseSession(),
+  convexSignOut: (...args: unknown[]) => mockSignOut(...args),
+  useConvexSession: () => mockUseSession(),
 }));
 
 function createDeferred<T>() {

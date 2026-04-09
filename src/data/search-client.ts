@@ -1,6 +1,6 @@
-import { authClient } from "@/lib/auth-client";
-import { searchSpotify, searchTracks as searchTracksByName } from "@/lib/spotify";
 import type { SpotifySearchResults, SpotifyTrack } from "@/types";
+import { api } from "../../convex/_generated/api";
+import { getAuthenticatedSpotifyConvexClient } from "./spotify-convex-client";
 
 export interface SearchClient {
   searchResults: (
@@ -16,41 +16,35 @@ function createAbortError() {
   return error;
 }
 
-async function getSpotifySearchAccessToken() {
-  const accessToken = await authClient.getAccessToken({
-    providerId: "spotify",
-  });
-
-  return accessToken?.data?.accessToken ?? null;
-}
-
-export function createSpotifySearchClient(): SearchClient {
+export function createConvexSpotifySearchClient(): SearchClient {
   return {
     async searchResults(query, signal) {
       if (signal?.aborted) {
         throw createAbortError();
       }
 
-      const token = await getSpotifySearchAccessToken();
-      if (!token) {
-        throw new Error("Reconnect Spotify to search.");
+      if (signal?.aborted) {
+        throw createAbortError();
       }
+
+      const client = await getAuthenticatedSpotifyConvexClient();
 
       if (signal?.aborted) {
         throw createAbortError();
       }
 
-      return searchSpotify(query, token);
+      return client.action(api.spotify.search, {
+        query,
+      });
     },
     async searchTracks(query) {
-      const token = await getSpotifySearchAccessToken();
-      if (!token) {
-        throw new Error("Reconnect Spotify to search.");
-      }
+      const client = await getAuthenticatedSpotifyConvexClient();
 
-      return searchTracksByName(query, token);
+      return client.action(api.spotify.searchTracks, {
+        query,
+      });
     },
   };
 }
 
-export const spotifySearchClient = createSpotifySearchClient();
+export const spotifySearchClient = createConvexSpotifySearchClient();

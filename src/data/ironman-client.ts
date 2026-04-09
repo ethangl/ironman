@@ -1,17 +1,19 @@
 import { ConvexHttpClient } from "convex/browser";
 
+import { convexAuthClient as authClient } from "@/lib/convex-auth-client";
+import type { StreakData, TrackInfo } from "@/types";
+import { api } from "../../convex/_generated/api";
 import {
   type PollIronmanInput,
   type PollIronmanResult,
   type ReportWeaknessResult,
-} from "@/data/ironman";
-import { authClient } from "@/lib/auth-client";
-import type { StreakData, TrackInfo } from "@/types";
-import { api } from "../../convex/_generated/api";
+} from "./ironman";
 
 export interface IronmanClient {
   getStatus: () => Promise<StreakData | null>;
-  start: (track: TrackInfo & { playbackStarted: boolean }) => Promise<StreakData>;
+  start: (
+    track: TrackInfo & { playbackStarted: boolean },
+  ) => Promise<StreakData>;
   activateHardcore: () => Promise<unknown>;
   surrender: () => Promise<unknown>;
   reportWeakness: (

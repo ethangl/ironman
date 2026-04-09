@@ -18,15 +18,15 @@ vi.mock("@/hooks/use-browser-search-params", () => ({
   useBrowserSearchParams: () => mockUseBrowserSearchParams(),
 }));
 
-vi.mock("@/lib/auth-client", () => ({
-  useSession: () => mockUseSession(),
-  authClient: {
+vi.mock("@/lib/convex-auth-client", () => ({
+  useConvexSession: () => mockUseSession(),
+  convexAuthClient: {
     getAccessToken: (...args: unknown[]) => mockGetAccessToken(...args),
   },
-  signIn: {
+  convexSignIn: {
     social: vi.fn(),
   },
-  signOut: (...args: unknown[]) => ({ data: mockSignOut(...args) }),
+  convexSignOut: (...args: unknown[]) => ({ data: mockSignOut(...args) }),
 }));
 
 vi.mock("@/hooks/use-spotify", () => ({

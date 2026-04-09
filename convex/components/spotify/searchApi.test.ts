@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getArtistPageData, searchSpotify } from "./spotify";
+import { getArtistPageData, searchSpotify } from "./searchApi";
 
 describe("searchSpotify", () => {
   afterEach(() => {

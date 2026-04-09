@@ -58,14 +58,17 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     }
 
     const controller = new AbortController();
+    let cancelled = false;
 
     client.search.searchResults(trimmed, controller.signal)
       .then((data) => {
+        if (cancelled || controller.signal.aborted) return;
         setError(null);
         cacheRef.current.set(trimmed, data);
         setResults({ query: trimmed, data });
       })
       .catch((error) => {
+        if (cancelled || controller.signal.aborted) return;
         if (error.name !== "AbortError") {
           setResults({ query: trimmed, data: EMPTY_RESULTS });
           setError(
@@ -78,6 +81,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
       });
 
     return () => {
+      cancelled = true;
       controller.abort();
     };
   }, [client, debouncedQuery]);

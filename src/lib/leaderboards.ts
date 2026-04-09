@@ -1,6 +1,6 @@
-import { TrackInfo } from "@/types";
+import type { TrackInfo } from "../types";
 
-import { computeSongDifficulty, computeStreakScore } from "@/lib/difficulty";
+import { computeSongDifficulty, computeStreakScore } from "./difficulty";
 
 export interface LeaderboardEntry {
   rank: number;

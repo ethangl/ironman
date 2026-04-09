@@ -1,7 +1,7 @@
 import { ConvexHttpClient } from "convex/browser";
 
-import type { SongStats } from "@/data/songs";
 import { api } from "../../convex/_generated/api";
+import type { SongStats } from "@/lib/song-stats";
 
 export interface SongsClient {
   getStats: (trackId: string) => Promise<SongStats | null>;

@@ -1,5 +1,3 @@
-"use client";
-
 import { ShuffleIcon } from "lucide-react";
 import { FC } from "react";
 

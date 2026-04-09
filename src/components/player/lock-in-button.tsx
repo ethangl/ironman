@@ -1,5 +1,3 @@
-"use client";
-
 import { LockIcon, LockOpenIcon } from "lucide-react";
 import { FC } from "react";
 

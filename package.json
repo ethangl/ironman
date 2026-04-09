@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 127.0.0.1",
-    "build": "next build",
-    "start": "next start",
+    "dev": "vite --host 127.0.0.1",
+    "dev:api": "next dev -H 127.0.0.1",
+    "build": "vite build",
+    "build:api": "next build",
+    "preview": "vite preview --host 127.0.0.1",
+    "start:api": "next start -H 127.0.0.1",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -27,6 +30,7 @@
     "prisma": "^7.6.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-router-dom": "^7.8.2",
     "shadcn": "^4.1.2",
     "shaders": "^2.5.90",
     "sonner": "^2.0.7",
@@ -56,6 +60,7 @@
     "jsdom": "^29.0.2",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vite": "^8.0.8",
     "vitest": "^4.1.3"
   },
   "packageManager": "pnpm@10.32.1+sha512.a706938f0e89ac1456b6563eab4edf1d1faf3368d1191fc5c59790e96dc918e4456ab2e67d613de1043d2e8c81f87303e6b40d4ffeca9df15ef1ad567348f2be"

@@ -1,56 +1,26 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useAppDataClient, type AppDataClient } from "@/data/client";
+import {
+  type ActivityBootstrap,
+  PLAYLIST_PAGE_SIZE,
+} from "@/data/spotify-activity";
 import {
   FavoriteArtist,
   Playlist,
   RecentTrack,
   SpotifyActivityContext,
 } from "@/hooks/use-spotify-activity";
-import { useSession } from "@/lib/auth-client";
+import { useAppCapabilities } from "@/runtime/app-runtime";
 
-const PLAYLIST_PAGE_SIZE = 50;
 const RECENT_POLL_MS = 30_000;
 const ACTIVITY_BOOTSTRAP_TTL_MS = 10_000;
-
-type ActivityBootstrap = {
-  favoriteArtists: FavoriteArtist[];
-  playlists: Playlist[];
-  playlistsTotal: number;
-  recentTracks: RecentTrack[];
-};
 
 let activityBootstrapCache: ActivityBootstrap | null = null;
 let activityBootstrapExpiresAt = 0;
 let activityBootstrapInFlight: Promise<ActivityBootstrap> | null = null;
 
-function getRouteErrorMessage(data: unknown, fallback: string) {
-  if (
-    data &&
-    typeof data === "object" &&
-    "error" in data &&
-    data.error &&
-    typeof data.error === "object" &&
-    "message" in data.error &&
-    typeof data.error.message === "string"
-  ) {
-    return data.error.message;
-  }
-
-  if (
-    data &&
-    typeof data === "object" &&
-    "error" in data &&
-    typeof data.error === "string"
-  ) {
-    return data.error;
-  }
-
-  return fallback;
-}
-
-async function loadActivityBootstrap(): Promise<ActivityBootstrap> {
+async function loadActivityBootstrap(client: AppDataClient): Promise<ActivityBootstrap> {
   const now = Date.now();
   if (activityBootstrapCache && activityBootstrapExpiresAt > now) {
     return activityBootstrapCache;
@@ -61,25 +31,14 @@ async function loadActivityBootstrap(): Promise<ActivityBootstrap> {
   }
 
   activityBootstrapInFlight = Promise.all([
-    fetch("/api/recently-played"),
-    fetch(`/api/playlists?limit=${PLAYLIST_PAGE_SIZE}&offset=0`),
-    fetch("/api/top-artists?limit=10"),
+    client.spotifyActivity.getRecentlyPlayed(),
+    client.spotifyActivity.getPlaylistsPage(PLAYLIST_PAGE_SIZE, 0),
+    client.spotifyActivity.getTopArtists(),
   ])
-    .then(async ([recentRes, playlistRes, artistsRes]) => {
-      const [recentTracks, playlistData, artistData] = await Promise.all([
-        recentRes.ok && recentRes.headers.get("x-spotify-rate-limited") !== "1"
-          ? recentRes.json()
-          : Promise.resolve(activityBootstrapCache?.recentTracks ?? []),
-        playlistRes.ok
-          ? playlistRes.json()
-          : Promise.resolve({
-              items: activityBootstrapCache?.playlists ?? [],
-              total: activityBootstrapCache?.playlistsTotal ?? 0,
-            }),
-        artistsRes.ok
-          ? artistsRes.json()
-          : Promise.resolve(activityBootstrapCache?.favoriteArtists ?? []),
-      ]);
+    .then(([recentResult, playlistData, artistData]) => {
+      const recentTracks = recentResult.rateLimited
+        ? (activityBootstrapCache?.recentTracks ?? [])
+        : recentResult.items;
 
       const bootstrap = {
         favoriteArtists: artistData as FavoriteArtist[],
@@ -104,8 +63,8 @@ export function SpotifyActivityProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session } = useSession();
-  const isAuthenticated = !!session;
+  const client = useAppDataClient();
+  const { canBrowsePersonalSpotify } = useAppCapabilities();
 
   const [recentTracks, setRecentTracks] = useState<RecentTrack[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -128,18 +87,18 @@ export function SpotifyActivityProvider({
   };
 
   const fetchRecent = useCallback(async () => {
-    if (!isAuthenticated) return;
-    const res = await fetch("/api/recently-played");
-    if (res.ok && res.headers.get("x-spotify-rate-limited") !== "1") {
-      setRecentTracks(dedupeRecent(await res.json()));
+    if (!canBrowsePersonalSpotify) return;
+    const result = await client.spotifyActivity.getRecentlyPlayed();
+    if (!result.rateLimited) {
+      setRecentTracks(dedupeRecent(result.items));
     }
-  }, [isAuthenticated]);
+  }, [canBrowsePersonalSpotify, client]);
 
   const fetchAll = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (!canBrowsePersonalSpotify) return;
     setLoading(true);
     try {
-      const data = await loadActivityBootstrap();
+      const data = await loadActivityBootstrap(client);
       setFavoriteArtists(data.favoriteArtists);
       setRecentTracks(dedupeRecent(data.recentTracks));
       setPlaylists(data.playlists);
@@ -149,7 +108,7 @@ export function SpotifyActivityProvider({
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [canBrowsePersonalSpotify, client]);
 
   // Initial fetch
   useEffect(() => {
@@ -158,7 +117,7 @@ export function SpotifyActivityProvider({
 
   // Poll recently played
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!canBrowsePersonalSpotify) return;
     const pollIfVisible = () => {
       if (document.visibilityState === "visible") {
         void fetchRecent();
@@ -180,48 +139,32 @@ export function SpotifyActivityProvider({
       window.removeEventListener("focus", pollIfVisible);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [isAuthenticated, fetchRecent]);
+  }, [canBrowsePersonalSpotify, fetchRecent]);
 
   const loadMorePlaylists = useCallback(async () => {
-    if (!isAuthenticated || offsetRef.current >= playlistsTotal) return;
-    const res = await fetch(
-      `/api/playlists?limit=${PLAYLIST_PAGE_SIZE}&offset=${offsetRef.current}`,
+    if (!canBrowsePersonalSpotify || offsetRef.current >= playlistsTotal) return;
+    const data = await client.spotifyActivity.getPlaylistsPage(
+      PLAYLIST_PAGE_SIZE,
+      offsetRef.current,
     );
-    if (res.ok) {
-      const data = await res.json();
-      setPlaylists((prev) => [...prev, ...data.items]);
-      setPlaylistsTotal(data.total);
-      offsetRef.current += data.items.length;
-    }
-  }, [isAuthenticated, playlistsTotal]);
+    setPlaylists((prev) => [...prev, ...data.items]);
+    setPlaylistsTotal(data.total);
+    offsetRef.current += data.items.length;
+  }, [canBrowsePersonalSpotify, client, playlistsTotal]);
 
-  const getPlaylistTracks = useCallback(
-    async (playlistId: string) => {
-      const cached = playlistTracksRef.current.get(playlistId);
-      if (cached) return cached;
+  const getPlaylistTracks = useCallback(async (playlistId: string) => {
+    const cached = playlistTracksRef.current.get(playlistId);
+    if (cached) return cached;
 
-      const res = await fetch(`/api/playlists/${playlistId}`);
-      if (!res.ok) {
-        const data = await res
-          .json()
-          .catch(() => ({ error: "Could not load playlist tracks." }));
-        throw new Error(
-          getRouteErrorMessage(data, "Could not load playlist tracks."),
-        );
-      }
-
-      const data = await res.json();
-      const tracks = data.items as Playlist["tracks"];
-      playlistTracksRef.current.set(playlistId, tracks);
-      setPlaylists((prev) =>
-        prev.map((playlist) =>
-          playlist.id === playlistId ? { ...playlist, tracks } : playlist,
-        ),
-      );
-      return tracks ?? [];
-    },
-    [],
-  );
+    const tracks = await client.spotifyActivity.getPlaylistTracks(playlistId);
+    playlistTracksRef.current.set(playlistId, tracks);
+    setPlaylists((prev) =>
+      prev.map((playlist) =>
+        playlist.id === playlistId ? { ...playlist, tracks } : playlist,
+      ),
+    );
+    return tracks ?? [];
+  }, [client]);
 
   return (
     <SpotifyActivityContext.Provider

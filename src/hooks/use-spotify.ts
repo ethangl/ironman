@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // --- Spotify SDK types ---
@@ -225,71 +223,63 @@ export function useSpotify({
       volume: 0.5,
     });
 
-    player.addListener(
-      "ready",
-      (({ device_id }: { device_id: string }) => {
-        console.log("[web-player] ready, device:", device_id);
-        deviceIdRef.current = device_id;
-        resolveReadyWaiters(device_id);
-      }) as () => void,
-    );
+    player.addListener("ready", (({ device_id }: { device_id: string }) => {
+      console.log("[web-player] ready, device:", device_id);
+      deviceIdRef.current = device_id;
+      resolveReadyWaiters(device_id);
+    }) as () => void);
 
-    player.addListener(
-      "not_ready",
-      (() => {
-        console.log("[web-player] not ready");
-        deviceIdRef.current = null;
+    player.addListener("not_ready", (() => {
+      console.log("[web-player] not ready");
+      deviceIdRef.current = null;
+      sdkStateRef.current = null;
+      setSdkState(null);
+      stopPositionPolling();
+    }) as () => void);
+
+    player.addListener("player_state_changed", ((
+      state: SpotifyPlaybackState | null,
+    ) => {
+      if (!state) {
         sdkStateRef.current = null;
         setSdkState(null);
+        return;
+      }
+      const mapped: SdkPlaybackState = {
+        position: state.position,
+        duration: state.duration,
+        paused: state.paused,
+        trackId: state.track_window?.current_track?.id ?? null,
+      };
+      sdkStateRef.current = mapped;
+      setSdkState(mapped);
+
+      if (!state.paused) {
+        startPositionPolling(player);
+      } else {
         stopPositionPolling();
-      }) as () => void,
-    );
+      }
+    }) as () => void);
 
-    player.addListener(
-      "player_state_changed",
-      ((state: SpotifyPlaybackState | null) => {
-        if (!state) {
-          sdkStateRef.current = null;
-          setSdkState(null);
-          return;
-        }
-        const mapped: SdkPlaybackState = {
-          position: state.position,
-          duration: state.duration,
-          paused: state.paused,
-          trackId: state.track_window?.current_track?.id ?? null,
-        };
-        sdkStateRef.current = mapped;
-        setSdkState(mapped);
+    player.addListener("initialization_error", (({
+      message,
+    }: {
+      message: string;
+    }) => {
+      console.error("[web-player] init error:", message);
+    }) as () => void);
 
-        if (!state.paused) {
-          startPositionPolling(player);
-        } else {
-          stopPositionPolling();
-        }
-      }) as () => void,
-    );
+    player.addListener("authentication_error", (({
+      message,
+    }: {
+      message: string;
+    }) => {
+      console.error("[web-player] auth error:", message);
+    }) as () => void);
 
-    player.addListener(
-      "initialization_error",
-      (({ message }: { message: string }) => {
-        console.error("[web-player] init error:", message);
-      }) as () => void,
-    );
-
-    player.addListener(
-      "authentication_error",
-      (({ message }: { message: string }) => {
-        console.error("[web-player] auth error:", message);
-      }) as () => void,
-    );
-
-    player.addListener(
-      "account_error",
-      (({ message }: { message: string }) => {
-        console.error("[web-player] account error:", message);
-      }) as () => void,
-    );
+    player.addListener("account_error", (({ message }: { message: string }) => {
+      console.error("[web-player] account error:", message);
+    }) as () => void);
 
     player.activateElement();
     player
@@ -313,7 +303,12 @@ export function useSpotify({
         }
       });
     playerRef.current = player;
-  }, [resolveReadyWaiters, tokenRef, startPositionPolling, stopPositionPolling]);
+  }, [
+    resolveReadyWaiters,
+    tokenRef,
+    startPositionPolling,
+    stopPositionPolling,
+  ]);
   useEffect(() => {
     initRef.current = init;
   }, [init]);

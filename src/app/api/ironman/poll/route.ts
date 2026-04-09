@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionOrUnauth } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { detectCompletion } from "@/lib/streak";
-import { justHitMilestone } from "@/lib/milestones";
-import { logFeedEvent } from "@/lib/feed";
 
 export async function POST(req: NextRequest) {
   const { session, error } = await getSessionOrUnauth();
@@ -38,19 +36,6 @@ export async function POST(req: NextRequest) {
     )
   ) {
     newCount += 1;
-
-    // Check if a milestone was just hit
-    const milestone = justHitMilestone(streak.count, newCount);
-    if (milestone) {
-      await logFeedEvent(
-        streak.id,
-        session!.user.id,
-        "milestone",
-        streak.trackName,
-        streak.trackArtist,
-        `${milestone.badge} ${milestone.label} (${milestone.threshold} plays)`
-      );
-    }
   }
 
   await prisma.streak.update({

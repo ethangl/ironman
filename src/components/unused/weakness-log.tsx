@@ -1,5 +1,3 @@
-"use client";
-
 import { List, ListItem } from "@/components/list";
 import type { WeaknessEvent } from "@/components/player/enforcement-engine";
 

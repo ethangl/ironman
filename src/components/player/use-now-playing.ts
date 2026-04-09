@@ -1,5 +1,3 @@
-"use client";
-
 import { useWebPlayer } from "@/hooks/use-web-player";
 
 export function useNowPlaying() {

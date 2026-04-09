@@ -1,5 +1,3 @@
-"use client";
-
 import { PauseIcon, PlayIcon } from "lucide-react";
 import { FC } from "react";
 

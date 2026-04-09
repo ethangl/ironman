@@ -1,5 +1,3 @@
-"use client";
-
 import { SkullIcon } from "lucide-react";
 import { useState } from "react";
 

@@ -1,5 +1,3 @@
-"use client";
-
 import { RewindIcon } from "lucide-react";
 import { FC } from "react";
 

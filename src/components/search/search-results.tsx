@@ -1,59 +1,17 @@
-"use client";
-
-import Link from "next/link";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { useAppDataClient } from "@/data/client";
 import { AlbumArt } from "@/components/album-art";
+import { AppLink } from "@/components/app-link";
 import { Button } from "@/components/ui/button";
 import { useWebPlayerActions } from "@/hooks/use-web-player";
 import { cn } from "@/lib/utils";
-import { PlayableTrack, SpotifyArtist, SpotifyPlaylist } from "@/types";
+import { SpotifyArtist, SpotifyPlaylist, Track } from "@/types";
 import { List, ListItem } from "../list";
 import { TrackCell } from "../track-cell";
 import { ScrollArea } from "../ui/scroll-area";
 import { useSearch } from "./search-provider";
-
-function getSearchErrorMessage(data: unknown, fallback: string) {
-  if (
-    data &&
-    typeof data === "object" &&
-    "error" in data &&
-    data.error &&
-    typeof data.error === "object" &&
-    "message" in data.error &&
-    typeof data.error.message === "string"
-  ) {
-    return data.error.message;
-  }
-
-  if (
-    data &&
-    typeof data === "object" &&
-    "error" in data &&
-    typeof data.error === "string"
-  ) {
-    return data.error;
-  }
-
-  return fallback;
-}
-
-function toPlayableTrack(track: {
-  id: string;
-  name: string;
-  artist: string;
-  albumImage: string | null;
-  durationMs: number;
-}): PlayableTrack {
-  return {
-    id: track.id,
-    name: track.name,
-    artist: track.artist,
-    albumImage: track.albumImage,
-    durationMs: track.durationMs,
-  };
-}
 
 function SearchEntityCard({
   image,
@@ -76,9 +34,9 @@ function SearchEntityCard({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
           {href ? (
-            <Link href={href} className="transition hover:text-foreground">
+            <AppLink href={href} className="transition hover:text-foreground">
               {title}
-            </Link>
+            </AppLink>
           ) : (
             title
           )}
@@ -148,12 +106,13 @@ function PlaylistResultCard({
 }
 
 export function SearchResults() {
+  const client = useAppDataClient();
   const { query, results, loading, error } = useSearch();
   const { playTracks } = useWebPlayerActions();
   const [loadingPlaylistId, setLoadingPlaylistId] = useState<string | null>(
     null,
   );
-  const playlistTracksRef = useRef(new Map<string, PlayableTrack[]>());
+  const playlistTracksRef = useRef(new Map<string, Track[]>());
 
   const trimmedQuery = query.trim();
   const hasResults =
@@ -170,18 +129,9 @@ export function SearchResults() {
       }
 
       setLoadingPlaylistId(playlist.id);
-      const res = await fetch(`/api/playlists/${playlist.id}`);
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(
-          getSearchErrorMessage(data, "Could not load playlist tracks."),
-        );
-      }
-
-      const tracks = Array.isArray(data?.items)
-        ? data.items.map(toPlayableTrack)
-        : [];
+      const tracks = (await client.spotifyActivity.getPlaylistTracks(
+        playlist.id,
+      )) as Track[];
 
       if (tracks.length === 0) {
         toast.error("That playlist does not have any playable tracks.");
@@ -229,16 +179,7 @@ export function SearchResults() {
           <List title="Songs" count={results.tracks.length}>
             {results.tracks.map((track, i) => (
               <ListItem key={track.id}>
-                <TrackCell
-                  count={i + 1}
-                  track={{
-                    trackId: track.id,
-                    trackName: track.name,
-                    trackArtist: track.artist,
-                    trackImage: track.albumImage,
-                    trackDuration: track.durationMs,
-                  }}
-                />
+                <TrackCell count={i + 1} track={track} />
               </ListItem>
             ))}
           </List>

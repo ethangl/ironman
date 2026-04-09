@@ -123,8 +123,8 @@ model FeedEvent {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  type      String // "lock_in", "surrender", "milestone"
-  detail    String? // e.g. milestone label
+  type      String // "lock_in", "surrender"
+  detail    String?
   trackName String
   trackArtist String
   createdAt DateTime @default(now())

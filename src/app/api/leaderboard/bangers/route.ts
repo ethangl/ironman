@@ -41,7 +41,6 @@ const getCachedBangersLeaderboard = unstable_cache(
     }
 
     return Array.from(byTrack.entries())
-      .filter(([, s]) => s.totalAttempts >= 3)
       .map(([trackId, s]) => {
         const avgCount = s.totalPlays / s.totalAttempts;
         const weaknessRate = s.totalWeaknesses / Math.max(s.totalPlays, 1);

@@ -1,5 +1,3 @@
-"use client";
-
 import { FastForwardIcon } from "lucide-react";
 import { FC } from "react";
 

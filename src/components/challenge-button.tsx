@@ -1,5 +1,3 @@
-"use client";
-
 import { ClipboardCopyIcon, SwordsIcon } from "lucide-react";
 
 import {

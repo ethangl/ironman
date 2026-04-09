@@ -1,29 +1,8 @@
-"use client";
-
-import Link from "next/link";
-import { useEffect, useState } from "react";
-
+import { AppLink } from "@/components/app-link";
 import { Avatar } from "@/components/avatar";
 import { List, ListItem } from "@/components/list";
-import { getCurrentMilestone } from "@/lib/milestones";
-
-interface LeaderboardEntry {
-  rank: number;
-  id: string;
-  userId?: string;
-  count: number;
-  active: boolean;
-  trackId?: string;
-  trackName: string;
-  trackArtist: string;
-  trackImage: string | null;
-  trackDuration?: number;
-  userName: string | null;
-  userImage: string | null;
-  startedAt: string;
-  isMe?: boolean;
-  weaknessCount?: number;
-}
+import type { LeaderboardEntry } from "@/data/leaderboards";
+import { useLeaderboardData } from "@/hooks/use-leaderboard-data";
 
 function EntryRow({
   entry,
@@ -75,12 +54,12 @@ function EntryRow({
       <div className="flex-1 min-w-0 truncate">
         <div className="flex items-center gap-2">
           {entry.userId && !entry.isMe ? (
-            <Link
+            <AppLink
               href={`/profile/${entry.userId}`}
               className="truncate font-medium text-sm hover:text-red-400 transition"
             >
               {entry.userName ?? "Anonymous"}
-            </Link>
+            </AppLink>
           ) : (
             <span className="truncate font-medium text-sm">
               {entry.isMe ? "You" : (entry.userName ?? "Anonymous")}
@@ -94,12 +73,12 @@ function EntryRow({
           </span>
         )}
         {showTrack && entry.trackId && (
-          <Link
+          <AppLink
             href={`/song/${entry.trackId}`}
             className="truncate text-xs text-muted-foreground hover:text-foreground transition"
           >
             {entry.trackName} - {entry.trackArtist}
-          </Link>
+          </AppLink>
         )}
         {showTrack && !entry.trackId && (
           <p className="truncate text-xs text-muted-foreground">
@@ -109,14 +88,6 @@ function EntryRow({
       </div>
 
       <div className="text-right shrink-0">
-        {(() => {
-          const milestone = getCurrentMilestone(count);
-          return milestone ? (
-            <span className="text-sm mr-1" title={milestone.label}>
-              {milestone.badge}
-            </span>
-          ) : null;
-        })()}
         <span className="text-xl font-bold tabular-nums">{count}</span>
         <span className="ml-1 text-xs text-muted-foreground">plays</span>
         {isNewRecord && (
@@ -138,30 +109,7 @@ export function Leaderboard({
   liveCount?: number;
   title?: string;
 }) {
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-  const [myEntry, setMyEntry] = useState<LeaderboardEntry | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const url = trackId
-      ? `/api/leaderboard/${trackId}`
-      : "/api/leaderboard/global";
-
-    fetch(url)
-      .then((r) => r.json())
-      .then((data) => {
-        // Track-specific endpoint returns { leaderboard, myEntry }
-        // Global endpoint returns an array directly
-        if (Array.isArray(data)) {
-          setEntries(data);
-        } else {
-          setEntries(data.leaderboard ?? []);
-          setMyEntry(data.myEntry ?? null);
-        }
-      })
-      .catch(() => setEntries([]))
-      .finally(() => setLoading(false));
-  }, [trackId]);
+  const { entries, myEntry, loading } = useLeaderboardData(trackId);
 
   return (
     <List title={title} loading={loading} count={liveCount}>

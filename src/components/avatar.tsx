@@ -1,7 +1,6 @@
-"use client";
+import { CSSProperties, FC } from "react";
 
 import { cn } from "@/lib/utils";
-import { CSSProperties, FC } from "react";
 
 export type AvatarProps = {
   id?: string;

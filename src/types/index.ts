@@ -1,4 +1,4 @@
-export interface PlayableTrack {
+export interface Track {
   id: string;
   name: string;
   artist: string;
@@ -6,7 +6,9 @@ export interface PlayableTrack {
   durationMs: number;
 }
 
-export interface SpotifyTrack extends PlayableTrack {
+export type PlayableTrack = Track;
+
+export interface SpotifyTrack extends Track {
   albumName: string;
   topStreak?: { count: number; userName: string | null } | null;
   difficulty?: number;
@@ -60,13 +62,37 @@ export interface TrackInfo {
   trackDuration: number;
 }
 
-export function toPlayable(t: TrackInfo): PlayableTrack {
+export type TrackLike = Track | TrackInfo;
+
+export function isTrackInfo(track: TrackLike): track is TrackInfo {
+  return "trackId" in track;
+}
+
+export function toTrack(track: TrackLike): Track {
+  if (!isTrackInfo(track)) {
+    return track;
+  }
+
   return {
-    id: t.trackId,
-    name: t.trackName,
-    artist: t.trackArtist,
-    albumImage: t.trackImage,
-    durationMs: t.trackDuration,
+    id: track.trackId,
+    name: track.trackName,
+    artist: track.trackArtist,
+    albumImage: track.trackImage,
+    durationMs: track.trackDuration,
+  };
+}
+
+export function toTrackInfo(track: TrackLike): TrackInfo {
+  if (isTrackInfo(track)) {
+    return track;
+  }
+
+  return {
+    trackId: track.id,
+    trackName: track.name,
+    trackArtist: track.artist,
+    trackImage: track.albumImage,
+    trackDuration: track.durationMs,
   };
 }
 

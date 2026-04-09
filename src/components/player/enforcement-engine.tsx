@@ -1,7 +1,6 @@
-"use client";
-
 import { useCallback, useEffect, useRef } from "react";
 
+import { useAppDataClient } from "@/data/client";
 import {
   type PlayResult,
   type SdkPlaybackState,
@@ -33,21 +32,6 @@ function logEnforcement(message: string, details?: Record<string, unknown>) {
   console.info("[enforcement]", message);
 }
 
-async function reportWeakness(
-  type: string,
-  detail?: string,
-): Promise<{ broken: boolean } | null> {
-  try {
-    const res = await fetch("/api/ironman/weakness", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, detail }),
-    });
-    if (res.ok) return res.json();
-  } catch {}
-  return null;
-}
-
 export function EnforcementEngine({
   streak,
   getCurrentlyPlaying,
@@ -72,12 +56,15 @@ export function EnforcementEngine({
   onBroken?: () => void;
   sdkState?: SdkPlaybackState | null;
 }) {
+  const client = useAppDataClient();
   const countRef = useRef(streak.count);
   const prevState = useRef<"playing" | "paused" | "quit">("playing");
   const brokenRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const leaderHeartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const leaderHeartbeatRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
   const tabIdRef = useRef<string | null>(null);
   const isLeaderRef = useRef(false);
   const enforceInFlightRef = useRef(false);
@@ -97,7 +84,9 @@ export function EnforcementEngine({
         createdAt: new Date().toISOString(),
       });
 
-      const result = await reportWeakness(type, detail);
+      const result = await client.ironman
+        .reportWeakness(type, detail)
+        .catch(() => null);
       console.log("[enforcement] weakness reported:", type, "result:", result);
       if (result?.broken) {
         console.log("[enforcement] streak broken!");
@@ -106,7 +95,7 @@ export function EnforcementEngine({
         onBroken?.();
       }
     },
-    [onWeakness, onBroken],
+    [client, onWeakness, onBroken],
   );
 
   const debouncedPauseWeakness = useCallback(
@@ -233,7 +222,10 @@ export function EnforcementEngine({
         });
         return;
       }
-      logEnforcement("wrong song detected", { detail, expectedTrackId: streak.trackId });
+      logEnforcement("wrong song detected", {
+        detail,
+        expectedTrackId: streak.trackId,
+      });
       correctionInFlightRef.current = true;
       prevState.current = "playing";
       cancelPauseTimer();
@@ -313,29 +305,23 @@ export function EnforcementEngine({
 
       if (brokenRef.current) return;
 
-      const pollRes = await fetch("/api/ironman/poll", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          progress_ms: playback.progress_ms,
-          track_id: playback.item.id,
-          is_playing: playback.is_playing,
-        }),
-      });
+      const data = await client.ironman.poll({
+        progressMs: playback.progress_ms,
+        trackId: playback.item.id,
+        isPlaying: playback.is_playing,
+      }).catch(() => null);
 
-      if (pollRes.ok) {
-        const data = await pollRes.json();
-        if (data.count !== countRef.current) {
-          countRef.current = data.count;
-          onCountUpdate(data.count);
-          logEnforcement("count updated", { count: data.count });
-        }
+      if (data && data.count !== countRef.current) {
+        countRef.current = data.count;
+        onCountUpdate(data.count);
+        logEnforcement("count updated", { count: data.count });
       }
     } finally {
       enforceInFlightRef.current = false;
     }
   }, [
     cancelPauseTimer,
+    client,
     debouncedPauseWeakness,
     getCurrentlyPlaying,
     handleWrongSong,

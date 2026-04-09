@@ -1,15 +1,15 @@
-"use client";
-
-import { SpotifySearchResults } from "@/types";
-import { useDebounce } from "@/hooks/use-debounce";
 import {
   createContext,
+  ReactNode,
   useContext,
   useEffect,
   useRef,
   useState,
-  ReactNode,
 } from "react";
+
+import { useAppDataClient } from "@/data/client";
+import { useDebounce } from "@/hooks/use-debounce";
+import { SpotifySearchResults } from "@/types";
 
 const EMPTY_RESULTS: SpotifySearchResults = {
   tracks: [],
@@ -34,6 +34,7 @@ export function useSearch() {
 }
 
 export function SearchProvider({ children }: { children: ReactNode }) {
+  const client = useAppDataClient();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{
     query: string;
@@ -58,34 +59,9 @@ export function SearchProvider({ children }: { children: ReactNode }) {
 
     const controller = new AbortController();
 
-    fetch(`/api/search?q=${encodeURIComponent(trimmed)}`, {
-      signal: controller.signal,
-    })
-      .then(async (r) => {
-        const text = await r.text();
-        const data = text ? (JSON.parse(text) as unknown) : null;
-        if (!r.ok) {
-          throw new Error(
-            data &&
-              typeof data === "object" &&
-              "error" in data &&
-              data.error &&
-              typeof data.error === "object" &&
-              "message" in data.error &&
-              typeof data.error.message === "string"
-              ? data.error.message
-              : data &&
-                  typeof data === "object" &&
-                  "error" in data &&
-                  typeof data.error === "string"
-                ? data.error
-                : "Search failed.",
-          );
-        }
-        setError(null);
-        return data as SpotifySearchResults;
-      })
+    client.search.searchResults(trimmed, controller.signal)
       .then((data) => {
+        setError(null);
         cacheRef.current.set(trimmed, data);
         setResults({ query: trimmed, data });
       })
@@ -93,7 +69,9 @@ export function SearchProvider({ children }: { children: ReactNode }) {
         if (error.name !== "AbortError") {
           setResults({ query: trimmed, data: EMPTY_RESULTS });
           setError(
-            error instanceof Error ? error.message : "Could not search Spotify.",
+            error instanceof Error
+              ? error.message
+              : "Could not search Spotify.",
           );
           console.error("[search] request failed:", error);
         }
@@ -102,7 +80,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     return () => {
       controller.abort();
     };
-  }, [debouncedQuery]);
+  }, [client, debouncedQuery]);
 
   const trimmed = query.trim();
   const loading = trimmed !== "" && results.query !== trimmed;
@@ -111,7 +89,13 @@ export function SearchProvider({ children }: { children: ReactNode }) {
 
   return (
     <SearchContext.Provider
-      value={{ query, setQuery, results: displayResults, loading, error: displayError }}
+      value={{
+        query,
+        setQuery,
+        results: displayResults,
+        loading,
+        error: displayError,
+      }}
     >
       {children}
     </SearchContext.Provider>

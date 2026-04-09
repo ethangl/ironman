@@ -1,6 +1,7 @@
-import { cn } from "@/lib/utils";
-import Link from "next/link";
 import { ComponentProps, FC, PropsWithChildren } from "react";
+
+import { cn } from "@/lib/utils";
+import { AppLink } from "./app-link";
 import { Spinner } from "./ui/spinner";
 
 export type ListProps = PropsWithChildren & {
@@ -42,18 +43,18 @@ const ListItem: FC<ComponentProps<"li">> = ({ children, className }) => (
   <li className={cn(listItemClassName, className)}>{children}</li>
 );
 
-export type ListLinkProps = ComponentProps<typeof Link>;
+export type ListLinkProps = ComponentProps<typeof AppLink>;
 
 const listLinkClassName = "hover:bg-accent/30 transition-colors";
 
 const ListLink: FC<ListLinkProps> = ({ children, className, ...props }) => (
   <li>
-    <Link
+    <AppLink
       className={cn(listItemClassName, listLinkClassName, className)}
       {...props}
     >
       {children}
-    </Link>
+    </AppLink>
   </li>
 );
 

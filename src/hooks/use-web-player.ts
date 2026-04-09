@@ -1,15 +1,13 @@
-"use client";
-
 import { createContext, useContext } from "react";
 
 import { type PlayResult, type SdkPlaybackState } from "@/hooks/use-spotify";
-import { PlayableTrack, StreakData } from "@/types";
+import { StreakData, Track } from "@/types";
 
 /** Stable actions/state that rarely change — safe to consume without causing frequent re-renders. */
 interface WebPlayerActionsValue {
   isAuthenticated: boolean;
-  playTrack: (track: PlayableTrack) => Promise<void>;
-  playTracks: (tracks: PlayableTrack[], startIndex?: number) => Promise<void>;
+  playTrack: (track: Track) => Promise<void>;
+  playTracks: (tracks: Track[], startIndex?: number) => Promise<void>;
   nextTrack: () => Promise<void>;
   prevTrack: () => Promise<void>;
   togglePlay: () => Promise<void>;
@@ -29,7 +27,7 @@ interface WebPlayerActionsValue {
 
 /** Fast-changing playback state — only consume in components that need live updates. */
 interface WebPlayerStateValue {
-  currentTrack: PlayableTrack | null;
+  currentTrack: Track | null;
   sdkState: SdkPlaybackState | null;
   paused: boolean;
   progressMs: number;
@@ -39,7 +37,7 @@ interface WebPlayerStateValue {
   count: number;
   expanded: boolean;
   palette: string[];
-  queue: PlayableTrack[];
+  queue: Track[];
   queueIndex: number;
   shuffled: boolean;
   hasQueue: boolean;
@@ -49,14 +47,17 @@ export type WebPlayerContextValue = WebPlayerActionsValue & WebPlayerStateValue;
 
 export const WebPlayerActionsContext =
   createContext<WebPlayerActionsValue | null>(null);
-export const WebPlayerStateContext =
-  createContext<WebPlayerStateValue | null>(null);
+export const WebPlayerStateContext = createContext<WebPlayerStateValue | null>(
+  null,
+);
 
 /** Returns only stable actions — does NOT re-render on playback progress. */
 export function useWebPlayerActions() {
   const ctx = useContext(WebPlayerActionsContext);
   if (!ctx)
-    throw new Error("useWebPlayerActions must be used within WebPlayerProvider");
+    throw new Error(
+      "useWebPlayerActions must be used within WebPlayerProvider",
+    );
   return ctx;
 }
 

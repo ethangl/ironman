@@ -1,5 +1,3 @@
-"use client";
-
 import { ChevronUpIcon } from "lucide-react";
 
 import { AlbumArt } from "../album-art";

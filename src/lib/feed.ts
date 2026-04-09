@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 export async function logFeedEvent(
   streakId: string,
   userId: string,
-  type: "lock_in" | "surrender" | "milestone",
+  type: "lock_in" | "surrender",
   trackName: string,
   trackArtist: string,
   detail?: string

@@ -1,46 +1,19 @@
-"use client";
-
 import { createContext, useContext } from "react";
+
+import { SpotifyArtist, SpotifyPlaylist, SpotifyTrack } from "@/types";
 
 export interface RecentTrack {
   playedAt: string;
-  track: {
-    id: string;
-    name: string;
-    artist: string;
-    albumName: string;
-    albumImage: string | null;
-    durationMs: number;
-  };
+  track: SpotifyTrack;
 }
 
-export interface PlaylistTrack {
-  id: string;
-  name: string;
-  artist: string;
-  albumName: string;
-  albumImage: string | null;
-  durationMs: number;
-}
+export type PlaylistTrack = SpotifyTrack;
 
-export interface Playlist {
-  id: string;
-  name: string;
-  description: string | null;
-  image: string | null;
-  trackCount: number;
-  tracks: PlaylistTrack[] | null;
-  owner: string | null;
-  public: boolean;
-}
+export type Playlist = SpotifyPlaylist & {
+  tracks?: PlaylistTrack[] | null;
+};
 
-export interface FavoriteArtist {
-  id: string;
-  name: string;
-  image: string | null;
-  followerCount: number;
-  genres: string[];
-}
+export type FavoriteArtist = SpotifyArtist;
 
 interface SpotifyActivityContextValue {
   recentTracks: RecentTrack[];

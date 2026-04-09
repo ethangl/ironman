@@ -1,17 +1,16 @@
-"use client";
-
-import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { EnforcementEngine } from "@/components/player/enforcement-engine";
+import { useAppDataClient } from "@/data/client";
+import { useBrowserSearchParams } from "@/hooks/use-browser-search-params";
 import { SdkPlaybackState, useSpotify } from "@/hooks/use-spotify";
 import {
   WebPlayerActionsContext,
   WebPlayerStateContext,
 } from "@/hooks/use-web-player";
-import { authClient, useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
-import { PlayableTrack, SpotifyTrack, StreakData } from "@/types";
+import { useAppAuth, useAppCapabilities } from "@/runtime/app-runtime";
+import { SpotifyTrack, StreakData, Track, toTrack, toTrackInfo } from "@/types";
 import { toast } from "sonner";
 import { MiniPlayer } from "./mini-player";
 import { StandardPlayer } from "./standard-player";
@@ -52,13 +51,15 @@ function generateShuffleOrder(length: number, pinIndex: number): number[] {
 }
 
 export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession();
+  const client = useAppDataClient();
+  const { session, getSpotifyAccessToken } = useAppAuth();
+  const { canControlPlayback, canUseIronman } = useAppCapabilities();
   const tokenRef = useRef<string | null>(null);
-  const searchParams = useSearchParams();
+  const searchParams = useBrowserSearchParams();
   const autoPlayAttempted = useRef(false);
 
   // Track & streak state
-  const [currentTrack, setCurrentTrack] = useState<PlayableTrack | null>(null);
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [streak, setStreak] = useState<StreakData | null>(null);
   const [count, setCount] = useState(0);
   const countRef = useRef(0);
@@ -67,8 +68,8 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   const syncSourceRef = useRef<string | null>(null);
   const playbackAttemptRef = useRef(0);
   const startPlaybackInFlightRef = useRef(false);
-  const activePlaybackTrackRef = useRef<PlayableTrack | null>(null);
-  const queuedPlaybackTrackRef = useRef<PlayableTrack | null>(null);
+  const activePlaybackTrackRef = useRef<Track | null>(null);
+  const queuedPlaybackTrackRef = useRef<Track | null>(null);
 
   // Playback state
   const [progressMs, setProgressMs] = useState(0);
@@ -79,7 +80,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   const [palette, setPalette] = useState<string[]>([]);
 
   // Queue state
-  const [queue, setQueue] = useState<PlayableTrack[]>([]);
+  const [queue, setQueue] = useState<Track[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
   const [shuffled, setShuffled] = useState(false);
   const [shuffleOrder, setShuffleOrder] = useState<number[]>([]);
@@ -89,10 +90,9 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   const artworkUrl = streak?.trackImage ?? currentTrack?.albumImage ?? null;
 
   const getAccessToken = useCallback(async () => {
-    const res = await authClient.getAccessToken({ providerId: "spotify" });
-    tokenRef.current = res.data?.accessToken ?? null;
+    tokenRef.current = await getSpotifyAccessToken();
     return tokenRef.current;
-  }, []);
+  }, [getSpotifyAccessToken]);
 
   const spotify = useSpotify({ getAccessToken, tokenRef, trackId });
   const {
@@ -107,7 +107,6 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     getCurrentlyPlaying,
   } = spotify;
 
-  const isAuthenticated = !!session;
   const paused = sdkState ? sdkState.paused : apiPaused;
 
   const getSyncSource = useCallback(() => {
@@ -151,8 +150,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!artworkUrl) return;
     let cancelled = false;
-    fetch(`/api/palette?url=${encodeURIComponent(artworkUrl)}`)
-      .then((r) => r.json())
+    client.palette.get(artworkUrl)
       .then((colors: string[]) => {
         if (cancelled) return;
         setPalette(colors);
@@ -165,7 +163,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
       const root = document.documentElement;
       for (let i = 0; i < 5; i++) root.style.removeProperty(`--palette-${i}`);
     };
-  }, [artworkUrl]);
+  }, [artworkUrl, client]);
 
   useEffect(() => {
     streakRef.current = streak;
@@ -175,10 +173,8 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
   const fetchStreakStatus =
     useCallback(async (): Promise<StreakData | null> => {
-      const res = await fetch("/api/ironman/status");
-      if (!res.ok) return null;
-      return res.json();
-    }, []);
+      return client.ironman.getStatus();
+    }, [client]);
 
   useEffect(() => {
     if (!session) {
@@ -279,7 +275,8 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   // --- Playback controls ---
 
   const runPlaybackAttempt = useCallback(
-    async (track: PlayableTrack) => {
+    async (track: Track) => {
+      if (!canControlPlayback) return;
       activePlaybackTrackRef.current = track;
       const attemptId = ++playbackAttemptRef.current;
       const isLatestAttempt = () => playbackAttemptRef.current === attemptId;
@@ -333,11 +330,11 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
         toast.error(getPlaybackFailureMessage(res.status));
       }
     },
-    [getAccessToken, initSpotify, play, waitForReady],
+    [canControlPlayback, getAccessToken, initSpotify, play, waitForReady],
   );
 
   const startPlayback = useCallback(
-    async (track: PlayableTrack) => {
+    async (track: Track) => {
       if (startPlaybackInFlightRef.current) {
         const sameAsActive = activePlaybackTrackRef.current?.id === track.id;
         const sameAsQueued = queuedPlaybackTrackRef.current?.id === track.id;
@@ -348,7 +345,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
       }
 
       startPlaybackInFlightRef.current = true;
-      let nextTrack: PlayableTrack | null = track;
+      let nextTrack: Track | null = track;
 
       try {
         while (nextTrack) {
@@ -366,7 +363,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   );
 
   const playTrack = useCallback(
-    async (track: PlayableTrack) => {
+    async (track: Track) => {
       setQueue([track]);
       setQueueIndex(0);
       setShuffled(false);
@@ -377,7 +374,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   );
 
   const playTracks = useCallback(
-    async (tracks: PlayableTrack[], startIndex = 0) => {
+    async (tracks: Track[], startIndex = 0) => {
       if (tracks.length === 0) return;
       setQueue(tracks);
       if (shuffled) {
@@ -393,7 +390,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   );
 
   const nextTrack = useCallback(async () => {
-    if (streak?.active || queue.length <= 1) return;
+    if (!canControlPlayback || streak?.active || queue.length <= 1) return;
     const nextIdx = (queueIndex + 1) % queue.length;
     setQueueIndex(nextIdx);
     const effectiveIdx = shuffled
@@ -406,6 +403,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     queueIndex,
     shuffled,
     shuffleOrder,
+    canControlPlayback,
     startPlayback,
   ]);
 
@@ -415,7 +413,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   }, [nextTrack]);
 
   const prevTrack = useCallback(async () => {
-    if (streak?.active || queue.length <= 1) return;
+    if (!canControlPlayback || streak?.active || queue.length <= 1) return;
     // If more than 3s into the song, restart current track
     const pos = sdkState?.position ?? progressMs;
     if (pos > 3000) {
@@ -437,6 +435,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     queueIndex,
     shuffled,
     shuffleOrder,
+    canControlPlayback,
     startPlayback,
     sdkState?.position,
     progressMs,
@@ -460,6 +459,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   }, [queue.length, shuffled, queueIndex, shuffleOrder]);
 
   const togglePlay = useCallback(async () => {
+    if (!canControlPlayback) return;
     if (paused) {
       const res = await resume();
 
@@ -503,6 +503,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     waitForReady,
     play,
     setRepeat,
+    canControlPlayback,
     pause,
   ]);
 
@@ -517,60 +518,45 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   // --- Streak controls ---
 
   const lockIn = useCallback(async () => {
+    if (!canUseIronman) return;
     const token = await getAccessToken();
     if (!token || !currentTrack) return;
     try {
-      const res = await fetch("/api/ironman/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          trackId: currentTrack.id,
-          trackName: currentTrack.name,
-          trackArtist: currentTrack.artist,
-          trackImage: currentTrack.albumImage,
-          trackDuration: currentTrack.durationMs,
-          playbackStarted: true,
-        }),
+      const data = await client.ironman.start({
+        ...toTrackInfo(currentTrack),
+        playbackStarted: true,
       });
-      if (res.ok) {
-        const data = await res.json();
-        applyStreakState(data);
-        broadcastStreakState(data);
-        setCurrentTrack(null);
-        await setRepeat("track");
-      }
+      applyStreakState(data);
+      broadcastStreakState(data);
+      setCurrentTrack(null);
+      await setRepeat("track");
     } catch {}
   }, [
     applyStreakState,
     broadcastStreakState,
+    client,
     getAccessToken,
+    canUseIronman,
     currentTrack,
     setRepeat,
   ]);
 
   const activateHardcore = useCallback(async () => {
-    if (!streak?.active || streak.hardcore) return;
+    if (!canUseIronman || !streak?.active || streak.hardcore) return;
     try {
-      const res = await fetch("/api/ironman/hardcore", { method: "POST" });
-      if (res.ok) {
-        const nextStreak = { ...streak, hardcore: true };
-        applyStreakState(nextStreak);
-        broadcastStreakState(nextStreak);
-      }
+      await client.ironman.activateHardcore();
+      const nextStreak = { ...streak, hardcore: true };
+      applyStreakState(nextStreak);
+      broadcastStreakState(nextStreak);
     } catch {}
-  }, [applyStreakState, broadcastStreakState, streak]);
+  }, [applyStreakState, broadcastStreakState, canUseIronman, client, streak]);
 
   const surrender = useCallback(async () => {
-    const res = await fetch("/api/ironman/surrender", { method: "POST" });
-    if (res.ok) {
+    if (!canUseIronman) return;
+    try {
+      await client.ironman.surrender();
       if (streak) {
-        setCurrentTrack({
-          id: streak.trackId,
-          name: streak.trackName,
-          artist: streak.trackArtist,
-          albumImage: streak.trackImage,
-          durationMs: streak.trackDuration,
-        });
+        setCurrentTrack(toTrack(streak));
         // Resume queue position if there was a queue
         if (queue.length > 1) {
           const idx = queue.findIndex((t) => t.id === streak.trackId);
@@ -585,10 +571,12 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
       }
       applyStreakState(null);
       broadcastStreakState(null);
-    }
+    } catch {}
   }, [
     applyStreakState,
     broadcastStreakState,
+    canUseIronman,
+    client,
     streak,
     queue,
     shuffled,
@@ -600,18 +588,17 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const lockInTrackId = searchParams.get("lockIn");
-    if (!lockInTrackId || !session || autoPlayAttempted.current) return;
+    if (!lockInTrackId || !canControlPlayback || !session || autoPlayAttempted.current) return;
 
     autoPlayAttempted.current = true;
 
-    fetch(`/api/search?q=track:${lockInTrackId}`)
-      .then((r) => r.json())
-      .then((data: { tracks?: SpotifyTrack[] }) => {
-        const match = (data.tracks ?? []).find((t) => t.id === lockInTrackId);
+    client.search.searchTracks(`track:${lockInTrackId}`)
+      .then((tracks: SpotifyTrack[]) => {
+        const match = tracks.find((t) => t.id === lockInTrackId);
         if (match) playTrack(match);
       })
       .catch(() => {});
-  }, [session, playTrack, searchParams]);
+  }, [canControlPlayback, client, session, playTrack, searchParams]);
 
   // --- Auto-advance queue ---
 
@@ -635,7 +622,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
   const actions = useMemo(
     () => ({
-      isAuthenticated,
+      isAuthenticated: canControlPlayback,
       playTrack,
       playTracks,
       nextTrack,
@@ -655,7 +642,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
       },
     }),
     [
-      isAuthenticated,
+      canControlPlayback,
       playTrack,
       playTracks,
       nextTrack,

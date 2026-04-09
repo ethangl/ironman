@@ -13,16 +13,17 @@ export async function GET() {
     where: { userId: session.user.id },
     orderBy: { count: "desc" },
   });
+  const visibleStreaks = streaks.filter((s) => s.count > 1);
 
-  const totalPlays = streaks.reduce((sum, s) => sum + s.count, 0);
-  const totalStreaks = streaks.length;
-  const bestStreak = streaks[0] ?? null;
-  const activeStreak = streaks.find((s) => s.active) ?? null;
-  const uniqueSongs = new Set(streaks.map((s) => s.trackId)).size;
+  const totalPlays = visibleStreaks.reduce((sum, s) => sum + s.count, 0);
+  const totalStreaks = visibleStreaks.length;
+  const bestStreak = visibleStreaks[0] ?? null;
+  const activeStreak = visibleStreaks.find((s) => s.active) ?? null;
+  const uniqueSongs = new Set(visibleStreaks.map((s) => s.trackId)).size;
 
   // Count weaknesses across all streaks
   const weaknessCount = await prisma.weakness.count({
-    where: { streakId: { in: streaks.map((s) => s.id) } },
+    where: { streakId: { in: visibleStreaks.map((s) => s.id) } },
   });
 
   return NextResponse.json({
@@ -55,7 +56,7 @@ export async function GET() {
           count: activeStreak.count,
         }
       : null,
-    history: streaks.map((s) => ({
+    history: visibleStreaks.map((s) => ({
       id: s.id,
       trackId: s.trackId,
       trackName: s.trackName,

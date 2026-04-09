@@ -1,10 +1,8 @@
-"use client";
-
 import { ComponentProps, FC } from "react";
-
-import { cn } from "@/lib/utils";
 import { ComponentProps as SwirlProps } from "shaders/core/Swirl";
 import { FilmGrain, Shader, Swirl } from "shaders/react";
+
+import { cn } from "@/lib/utils";
 import { useNowPlaying } from "./use-now-playing";
 
 export type PlayerWrapperProps = ComponentProps<"section"> & {

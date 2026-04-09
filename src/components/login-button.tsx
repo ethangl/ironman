@@ -1,11 +1,13 @@
-"use client";
-
 import { Clock3Icon } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
-import { signIn, useSession } from "@/lib/auth-client";
+import {
+  replaceBrowserUrl,
+  useBrowserSearchParams,
+} from "@/hooks/use-browser-search-params";
+import { cn } from "@/lib/utils";
+import { useAppAuth } from "@/runtime/app-runtime";
 import { Button } from "./ui/button";
 
 const SPOTIFY_AUTH_PROVIDER = "spotify";
@@ -45,10 +47,13 @@ function subscribeToSpotifyCooldown(onStoreChange: () => void) {
   };
 }
 
-export function LoginButton() {
-  const { data: session, isPending } = useSession();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export function LoginButton({
+  align = "end",
+}: {
+  align?: "start" | "end";
+}) {
+  const { session, isPending, signIn } = useAppAuth();
+  const searchParams = useBrowserSearchParams();
   const [now, setNow] = useState(() => Date.now());
   const cooldownUntil = useSyncExternalStore(
     subscribeToSpotifyCooldown,
@@ -79,8 +84,8 @@ export function LoginButton() {
     nextParams.delete("error");
     nextParams.delete("authProvider");
     const nextQuery = nextParams.toString();
-    router.replace(nextQuery ? `/?${nextQuery}` : "/");
-  }, [authError, authProvider, router, searchParams]);
+    replaceBrowserUrl(nextQuery ? `/?${nextQuery}` : "/");
+  }, [authError, authProvider, searchParams]);
 
   useEffect(() => {
     if (cooldownUntil <= now) return;
@@ -113,8 +118,15 @@ export function LoginButton() {
     return <div className="h-10 w-24 animate-pulse rounded-lg bg-white/10" />;
   }
 
+  const buttonLabel = session ? "Reconnect Spotify" : "Sign in with Spotify";
+
   return (
-    <div className="flex flex-col items-end gap-1.5">
+    <div
+      className={cn(
+        "flex flex-col gap-1.5",
+        align === "start" ? "items-start" : "items-end",
+      )}
+    >
       <Button
         disabled={isCoolingDown}
         onClick={() =>
@@ -135,7 +147,7 @@ export function LoginButton() {
         )}
         {isCoolingDown
           ? (cooldownLabel ?? "Spotify cooling down")
-          : "Sign in with Spotify"}
+          : buttonLabel}
       </Button>
       {isCoolingDown && (
         <p className="text-[11px] text-muted-foreground">

@@ -1,8 +1,5 @@
-"use client";
-
-import { useEffect, useState } from "react";
-
 import { ChevronsDownIcon, Volume2Icon, VolumeIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Slider } from "@/components/ui/slider";
 import { AlbumArt } from "../album-art";

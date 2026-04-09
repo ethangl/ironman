@@ -1,7 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { computeSongDifficulty } from "@/lib/difficulty";
+import { prisma } from "@/lib/prisma";
 
 const getCachedHellscapeLeaderboard = unstable_cache(
   async () => {
@@ -42,7 +42,6 @@ const getCachedHellscapeLeaderboard = unstable_cache(
     }
 
     return Array.from(byTrack.entries())
-      .filter(([, s]) => s.totalAttempts >= 3)
       .map(([trackId, s]) => {
         const avgCount = s.totalPlays / s.totalAttempts;
         const weaknessRate = s.totalWeaknesses / Math.max(s.totalPlays, 1);

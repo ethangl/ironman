@@ -15,7 +15,7 @@ export const PrevTrackButton: FC<ButtonProps> = ({ ...props }) => {
       onClick={prevTrack}
       {...props}
     >
-      <RewindIcon />
+      <RewindIcon fill="currentColor" strokeWidth={0} />
     </Button>
   );
 };

@@ -5,12 +5,12 @@ import { useEffect, useState } from "react";
 import { ChevronsDownIcon, Volume2Icon, VolumeIcon } from "lucide-react";
 
 import { Slider } from "@/components/ui/slider";
+import { AlbumArt } from "../album-art";
+import { PlayButton } from "../play-button";
 import { Button } from "../ui/button";
-import { AlbumArt } from "./album-art";
 import { HardcoreButton } from "./hardcore-button";
 import { LockInButton } from "./lock-in-button";
 import { NextTrackButton } from "./next-track-button";
-import { PlayButton } from "./play-button";
 import { PlayerWrapper } from "./player-wrapper";
 import { PrevTrackButton } from "./prev-track-button";
 import { ShareButton } from "./share-button";
@@ -58,13 +58,13 @@ export function StandardPlayer() {
         colorA: palette[0],
         colorB: palette[2],
         detail: 1,
-        speed: 0.25,
+        speed: 0.5,
       }}
       toggled={expanded}
       fullScreen={!!streak?.hardcore}
     >
-      <div className="max-w-md mx-auto p-6 pb-4 rounded-3xl">
-        <AlbumArt src={displayImage} className="my-12 mx-auto size-72" />
+      <div className="p-7 pb-2 rounded-3xl">
+        <AlbumArt src={displayImage} className="mb-9 mx-auto size-80" />
         <header className="mb-5 mix-blend-plus-darker dark:mix-blend-plus-lighter space-y-6">
           <div className="flex gap-6 items-start">
             <div className="flex-auto isolate min-w-0 space-y-0.5">
@@ -93,7 +93,7 @@ export function StandardPlayer() {
           </div>
         </header>
 
-        <nav className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center mb-10 mix-blend-plus-darker dark:mix-blend-plus-lighter">
+        <nav className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center mb-8 mix-blend-plus-darker dark:mix-blend-plus-lighter">
           <div className="flex flex-auto gap-4 items-center justify-end">
             {hasQueue && (
               <>

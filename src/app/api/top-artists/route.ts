@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+
 import { getSessionOrUnauth, getSpotifyToken } from "@/lib/auth-helpers";
 import { spotifyCacheTtl } from "@/lib/spotify-cache-ttl";
 import { getCachedSpotifyResult } from "@/lib/spotify-request-cache";
-import { getUserPlaylists } from "@/lib/spotify";
+import { getTopArtists } from "@/lib/spotify";
 import { createSpotifyRouteErrorResponse } from "@/lib/spotify-route-errors";
 
-const PLAYLISTS_TTL_MS = spotifyCacheTtl(5 * 60_000);
+const TOP_ARTISTS_TTL_MS = spotifyCacheTtl(5 * 60_000);
 
 export async function GET(req: NextRequest) {
   const { session, error } = await getSessionOrUnauth();
@@ -16,15 +17,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No Spotify token" }, { status: 401 });
   }
 
-  const limit = Number(req.nextUrl.searchParams.get("limit") ?? 50);
-  const offset = Number(req.nextUrl.searchParams.get("offset") ?? 0);
+  const limit = Number(req.nextUrl.searchParams.get("limit") ?? 20);
   let cacheEvent: "hit" | "join" | "miss" | "store" | "stale" | "none" = "none";
 
   try {
-    const data = await getCachedSpotifyResult(
-      `playlists:${session!.user.id}:${limit}:${offset}`,
-      PLAYLISTS_TTL_MS,
-      () => getUserPlaylists(token, limit, offset),
+    const items = await getCachedSpotifyResult(
+      `top-artists:${session!.user.id}:${limit}`,
+      TOP_ARTISTS_TTL_MS,
+      () => getTopArtists(token, limit),
       {
         allowStaleOnError: true,
         onEvent: (event) => {
@@ -32,23 +32,26 @@ export async function GET(req: NextRequest) {
         },
       },
     );
+
     if (process.env.NODE_ENV !== "test") {
       console.info(
-        `[spotify-route] /api/playlists limit=${limit} offset=${offset} cache=${cacheEvent} items=${data.items.length} total=${data.total}`,
+        `[spotify-route] /api/top-artists limit=${limit} cache=${cacheEvent} items=${items.length}`,
       );
     }
-    return NextResponse.json(data, {
+
+    return NextResponse.json(items, {
       headers: { "x-spotify-cache": cacheEvent },
     });
   } catch (error) {
     if (process.env.NODE_ENV !== "test") {
       console.warn(
-        `[spotify-route] /api/playlists limit=${limit} offset=${offset} cache=${cacheEvent} error=${error instanceof Error ? error.message : "unknown"}`,
+        `[spotify-route] /api/top-artists limit=${limit} cache=${cacheEvent} error=${error instanceof Error ? error.message : "unknown"}`,
       );
     }
+
     return createSpotifyRouteErrorResponse(
       error,
-      "Could not load your Spotify playlists right now.",
+      "Could not load your favorite artists right now.",
     );
   }
 }

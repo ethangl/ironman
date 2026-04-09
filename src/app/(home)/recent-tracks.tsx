@@ -1,5 +1,6 @@
 import { FC } from "react";
 
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSpotifyActivity } from "@/hooks/use-spotify-activity";
 import { useWebPlayerActions } from "@/hooks/use-web-player";
 import { Thumbnail } from "./thumbnail";
@@ -11,20 +12,20 @@ export const RecentTracks: FC = () => {
   return (
     <section className="space-y-4">
       <h3 className="text-lg font-bold">Recents</h3>
-      <div className="max-w-full -mb-8 overflow-x-auto pb-8">
-        <ol className="flex gap-2">
+      <ScrollArea>
+        <ol className="flex gap-2 w-max">
           {recentTracks.map(({ track }) => (
             <li key={track.id}>
               <Thumbnail
                 description={track.albumName}
+                handlePlay={() => playTrack(track)}
                 name={track.name}
                 src={track.albumImage}
-                onClick={() => playTrack(track)}
               />
             </li>
           ))}
         </ol>
-      </div>
+      </ScrollArea>
     </section>
   );
 };

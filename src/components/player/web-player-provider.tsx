@@ -4,14 +4,14 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { EnforcementEngine } from "@/components/player/enforcement-engine";
-import { useSpotify } from "@/hooks/use-spotify";
+import { SdkPlaybackState, useSpotify } from "@/hooks/use-spotify";
 import {
   WebPlayerActionsContext,
   WebPlayerStateContext,
 } from "@/hooks/use-web-player";
 import { authClient, useSession } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 import { PlayableTrack, SpotifyTrack, StreakData } from "@/types";
-import { SdkPlaybackState } from "@/hooks/use-spotify";
 import { toast } from "sonner";
 import { MiniPlayer } from "./mini-player";
 import { StandardPlayer } from "./standard-player";
@@ -173,11 +173,12 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
   // --- Streak sync ---
 
-  const fetchStreakStatus = useCallback(async (): Promise<StreakData | null> => {
-    const res = await fetch("/api/ironman/status");
-    if (!res.ok) return null;
-    return res.json();
-  }, []);
+  const fetchStreakStatus =
+    useCallback(async (): Promise<StreakData | null> => {
+      const res = await fetch("/api/ironman/status");
+      if (!res.ok) return null;
+      return res.json();
+    }, []);
 
   useEffect(() => {
     if (!session) {
@@ -243,16 +244,19 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
   // --- Enforcement callbacks ---
 
-  const handleCountUpdate = useCallback((newCount: number) => {
-    countRef.current = newCount;
-    setCount(newCount);
-    if (streakRef.current) {
-      const nextStreak = { ...streakRef.current, count: newCount };
-      streakRef.current = nextStreak;
-      setStreak(nextStreak);
-      broadcastStreakState(nextStreak);
-    }
-  }, [broadcastStreakState]);
+  const handleCountUpdate = useCallback(
+    (newCount: number) => {
+      countRef.current = newCount;
+      setCount(newCount);
+      if (streakRef.current) {
+        const nextStreak = { ...streakRef.current, count: newCount };
+        streakRef.current = nextStreak;
+        setStreak(nextStreak);
+        broadcastStreakState(nextStreak);
+      }
+    },
+    [broadcastStreakState],
+  );
 
   const handleProgress = useCallback((p: number, d: number) => {
     setProgressMs(p);
@@ -392,9 +396,18 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     if (streak?.active || queue.length <= 1) return;
     const nextIdx = (queueIndex + 1) % queue.length;
     setQueueIndex(nextIdx);
-    const effectiveIdx = shuffled ? shuffleOrder[nextIdx] ?? nextIdx : nextIdx;
+    const effectiveIdx = shuffled
+      ? (shuffleOrder[nextIdx] ?? nextIdx)
+      : nextIdx;
     await startPlayback(queue[effectiveIdx]);
-  }, [streak?.active, queue, queueIndex, shuffled, shuffleOrder, startPlayback]);
+  }, [
+    streak?.active,
+    queue,
+    queueIndex,
+    shuffled,
+    shuffleOrder,
+    startPlayback,
+  ]);
 
   const nextTrackRef = useRef(nextTrack);
   useEffect(() => {
@@ -406,15 +419,28 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     // If more than 3s into the song, restart current track
     const pos = sdkState?.position ?? progressMs;
     if (pos > 3000) {
-      const effectiveIdx = shuffled ? shuffleOrder[queueIndex] ?? queueIndex : queueIndex;
+      const effectiveIdx = shuffled
+        ? (shuffleOrder[queueIndex] ?? queueIndex)
+        : queueIndex;
       await startPlayback(queue[effectiveIdx]);
       return;
     }
     const prevIdx = (queueIndex - 1 + queue.length) % queue.length;
     setQueueIndex(prevIdx);
-    const effectiveIdx = shuffled ? shuffleOrder[prevIdx] ?? prevIdx : prevIdx;
+    const effectiveIdx = shuffled
+      ? (shuffleOrder[prevIdx] ?? prevIdx)
+      : prevIdx;
     await startPlayback(queue[effectiveIdx]);
-  }, [streak?.active, queue, queueIndex, shuffled, shuffleOrder, startPlayback, sdkState?.position, progressMs]);
+  }, [
+    streak?.active,
+    queue,
+    queueIndex,
+    shuffled,
+    shuffleOrder,
+    startPlayback,
+    sdkState?.position,
+    progressMs,
+  ]);
 
   const toggleShuffle = useCallback(() => {
     if (queue.length <= 1) return;
@@ -447,10 +473,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
         initSpotify();
         const deviceId = await waitForReady();
         if (deviceId) {
-          const playRes = await play(
-            `spotify:track:${trackId}`,
-            deviceId,
-          );
+          const playRes = await play(`spotify:track:${trackId}`, deviceId);
           if (playRes.ok) {
             if (streak) await setRepeat("track", deviceId);
             setApiPaused(false);
@@ -471,7 +494,17 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
         toast.error(getPlaybackFailureMessage(res.status));
       }
     }
-  }, [paused, trackId, streak, resume, initSpotify, waitForReady, play, setRepeat, pause]);
+  }, [
+    paused,
+    trackId,
+    streak,
+    resume,
+    initSpotify,
+    waitForReady,
+    play,
+    setRepeat,
+    pause,
+  ]);
 
   const setVolume = useCallback(
     async (val: number) => {
@@ -507,7 +540,13 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
         await setRepeat("track");
       }
     } catch {}
-  }, [applyStreakState, broadcastStreakState, getAccessToken, currentTrack, setRepeat]);
+  }, [
+    applyStreakState,
+    broadcastStreakState,
+    getAccessToken,
+    currentTrack,
+    setRepeat,
+  ]);
 
   const activateHardcore = useCallback(async () => {
     if (!streak?.active || streak.hardcore) return;
@@ -547,7 +586,15 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
       applyStreakState(null);
       broadcastStreakState(null);
     }
-  }, [applyStreakState, broadcastStreakState, streak, queue, shuffled, shuffleOrder, setRepeat]);
+  }, [
+    applyStreakState,
+    broadcastStreakState,
+    streak,
+    queue,
+    shuffled,
+    shuffleOrder,
+    setRepeat,
+  ]);
 
   // --- Auto-play from challenge link ---
 
@@ -559,8 +606,8 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
     fetch(`/api/search?q=track:${lockInTrackId}`)
       .then((r) => r.json())
-      .then((tracks: SpotifyTrack[]) => {
-        const match = tracks.find((t) => t.id === lockInTrackId);
+      .then((data: { tracks?: SpotifyTrack[] }) => {
+        const match = (data.tracks ?? []).find((t) => t.id === lockInTrackId);
         if (match) playTrack(match);
       })
       .catch(() => {});
@@ -607,7 +654,24 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
         setRepeat,
       },
     }),
-    [isAuthenticated, playTrack, playTracks, nextTrack, prevTrack, togglePlay, toggleShuffle, setVolume, lockIn, activateHardcore, surrender, setExpanded, initSpotify, waitForReady, play, setRepeat],
+    [
+      isAuthenticated,
+      playTrack,
+      playTracks,
+      nextTrack,
+      prevTrack,
+      togglePlay,
+      toggleShuffle,
+      setVolume,
+      lockIn,
+      activateHardcore,
+      surrender,
+      setExpanded,
+      initSpotify,
+      waitForReady,
+      play,
+      setRepeat,
+    ],
   );
 
   const state = useMemo(
@@ -627,7 +691,22 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
       shuffled,
       hasQueue,
     }),
-    [currentTrack, sdkState, paused, progressMs, durationMs, volume, streak, count, expanded, palette, queue, queueIndex, shuffled, hasQueue],
+    [
+      currentTrack,
+      sdkState,
+      paused,
+      progressMs,
+      durationMs,
+      volume,
+      streak,
+      count,
+      expanded,
+      palette,
+      queue,
+      queueIndex,
+      shuffled,
+      hasQueue,
+    ],
   );
 
   return (
@@ -647,6 +726,13 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
           />
         )}
         {children}
+        <div
+          className={cn(
+            "fixed inset-0 pointer-events-none transition-all z-45",
+            expanded && "backdrop-blur-xs pointer-events-auto",
+          )}
+          onClick={() => setExpanded(false)}
+        />
         <MiniPlayer />
         <StandardPlayer />
       </WebPlayerStateContext.Provider>

@@ -34,10 +34,19 @@ export interface Playlist {
   public: boolean;
 }
 
+export interface FavoriteArtist {
+  id: string;
+  name: string;
+  image: string | null;
+  followerCount: number;
+  genres: string[];
+}
+
 interface SpotifyActivityContextValue {
   recentTracks: RecentTrack[];
   playlists: Playlist[];
   playlistsTotal: number;
+  favoriteArtists: FavoriteArtist[];
   loading: boolean;
   refresh: () => void;
   loadMorePlaylists: () => void;

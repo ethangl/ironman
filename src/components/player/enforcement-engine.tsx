@@ -22,6 +22,17 @@ export interface WeaknessEvent {
   createdAt: string;
 }
 
+function logEnforcement(message: string, details?: Record<string, unknown>) {
+  if (process.env.NODE_ENV === "test") return;
+
+  if (details && Object.keys(details).length > 0) {
+    console.info("[enforcement]", message, details);
+    return;
+  }
+
+  console.info("[enforcement]", message);
+}
+
 async function reportWeakness(
   type: string,
   detail?: string,
@@ -145,18 +156,21 @@ export function EnforcementEngine({
     });
     window.localStorage.setItem(LEADER_KEY, entry);
     isLeaderRef.current = true;
+    logEnforcement("leader heartbeat/write", { tabId: getTabId() });
   }, [getTabId]);
 
   const releaseLeader = useCallback(() => {
     const current = readLeader();
     if (current?.tabId === tabIdRef.current) {
       window.localStorage.removeItem(LEADER_KEY);
+      logEnforcement("leader released", { tabId: tabIdRef.current });
     }
     isLeaderRef.current = false;
   }, [readLeader]);
 
   const tryBecomeLeader = useCallback(() => {
     if (document.visibilityState !== "visible") {
+      logEnforcement("leader skipped: hidden tab");
       releaseLeader();
       return false;
     }
@@ -167,31 +181,59 @@ export function EnforcementEngine({
 
     if (expired || isCurrentLeader) {
       writeLeader();
+      logEnforcement("leader active", {
+        tabId: getTabId(),
+        reason: expired ? "expired-or-empty" : "already-leader",
+      });
       return true;
     }
 
     isLeaderRef.current = false;
+    logEnforcement("leader follower", {
+      tabId: getTabId(),
+      leaderTabId: current?.tabId,
+    });
     return false;
   }, [getTabId, readLeader, releaseLeader, writeLeader]);
 
   const forceCorrectTrack = useCallback(async () => {
+    logEnforcement("correction play requested", { trackId: streak.trackId });
     const playRes = await play(`spotify:track:${streak.trackId}`);
-    if (!playRes.ok) return false;
+    if (!playRes.ok) {
+      logEnforcement("correction play failed", {
+        trackId: streak.trackId,
+        status: playRes.status,
+      });
+      return false;
+    }
     correctionCooldownUntilRef.current =
       Date.now() + WRONG_SONG_CORRECTION_GRACE_MS;
     await setRepeat("track");
+    logEnforcement("correction applied", {
+      trackId: streak.trackId,
+      cooldownMs: WRONG_SONG_CORRECTION_GRACE_MS,
+    });
     return true;
   }, [play, setRepeat, streak.trackId]);
 
   const handleWrongSong = useCallback(
     async (detail?: string) => {
-      if (
-        correctionInFlightRef.current ||
-        brokenRef.current ||
-        Date.now() < correctionCooldownUntilRef.current
-      ) {
+      if (correctionInFlightRef.current) {
+        logEnforcement("wrong song ignored: correction in flight", { detail });
         return;
       }
+      if (brokenRef.current) {
+        logEnforcement("wrong song ignored: streak already broken", { detail });
+        return;
+      }
+      if (Date.now() < correctionCooldownUntilRef.current) {
+        logEnforcement("wrong song ignored: in correction grace window", {
+          detail,
+          remainingMs: correctionCooldownUntilRef.current - Date.now(),
+        });
+        return;
+      }
+      logEnforcement("wrong song detected", { detail, expectedTrackId: streak.trackId });
       correctionInFlightRef.current = true;
       prevState.current = "playing";
       cancelPauseTimer();
@@ -205,18 +247,34 @@ export function EnforcementEngine({
         correctionInFlightRef.current = false;
       }
     },
-    [cancelPauseTimer, forceCorrectTrack, handleWeakness],
+    [cancelPauseTimer, forceCorrectTrack, handleWeakness, streak.trackId],
   );
 
   const enforce = useCallback(async () => {
-    if (brokenRef.current || enforceInFlightRef.current) return;
+    if (brokenRef.current) {
+      logEnforcement("poll skipped: streak already broken");
+      return;
+    }
+    if (enforceInFlightRef.current) {
+      logEnforcement("poll skipped: previous run still in flight");
+      return;
+    }
     enforceInFlightRef.current = true;
 
     try {
       const { status, playback } = await getCurrentlyPlaying();
+      logEnforcement("poll result", {
+        status,
+        hasPlayback: !!playback,
+        trackId: playback?.item?.id ?? null,
+        isPlaying: playback?.is_playing ?? null,
+      });
 
       // Token expired — retry with fresh token next poll
-      if (status === 401) return;
+      if (status === 401) {
+        logEnforcement("poll deferred: spotify auth expired");
+        return;
+      }
 
       // No player / no content — Spotify is closed or inactive
       if (status === 204 || status === 202) {
@@ -270,6 +328,7 @@ export function EnforcementEngine({
         if (data.count !== countRef.current) {
           countRef.current = data.count;
           onCountUpdate(data.count);
+          logEnforcement("count updated", { count: data.count });
         }
       }
     } finally {
@@ -320,16 +379,23 @@ export function EnforcementEngine({
   useEffect(() => {
     brokenRef.current = false;
     if (tryBecomeLeader()) {
+      logEnforcement("initial enforcement run");
       enforceRef.current();
     }
     intervalRef.current = setInterval(() => {
-      if (document.visibilityState !== "visible") return;
+      if (document.visibilityState !== "visible") {
+        logEnforcement("interval skipped: hidden tab");
+        return;
+      }
       if (isLeaderRef.current || tryBecomeLeader()) {
         enforceRef.current();
+      } else {
+        logEnforcement("interval skipped: follower tab");
       }
     }, POLL_INTERVAL);
     leaderHeartbeatRef.current = setInterval(() => {
       if (document.visibilityState !== "visible") {
+        logEnforcement("heartbeat skipped: hidden tab");
         releaseLeader();
         return;
       }
@@ -343,10 +409,12 @@ export function EnforcementEngine({
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
+        logEnforcement("visibility: visible");
         if (tryBecomeLeader()) {
           enforceRef.current();
         }
       } else {
+        logEnforcement("visibility: hidden");
         releaseLeader();
       }
     };
@@ -354,6 +422,11 @@ export function EnforcementEngine({
       if (event.key !== LEADER_KEY) return;
       const current = readLeader();
       isLeaderRef.current = current?.tabId === tabIdRef.current;
+      logEnforcement("storage leader update", {
+        leaderTabId: current?.tabId ?? null,
+        tabId: tabIdRef.current,
+        isLeader: isLeaderRef.current,
+      });
       if (!current && document.visibilityState === "visible") {
         tryBecomeLeader();
       }

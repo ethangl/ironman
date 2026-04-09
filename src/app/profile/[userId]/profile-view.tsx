@@ -1,5 +1,6 @@
 import { Avatar } from "@/components/avatar";
 import { List, ListLink } from "@/components/list";
+import { LogoutButton } from "@/components/logout-button";
 import { getCurrentMilestone } from "@/lib/milestones";
 
 export interface ProfileData {
@@ -66,6 +67,7 @@ export function ProfileView({ data }: { data: ProfileData }) {
               : "No milestones yet"}
           </p>
         </div>
+        <LogoutButton />
       </header>
 
       {/* Stats */}

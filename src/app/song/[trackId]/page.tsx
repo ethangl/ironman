@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 
 import { Leaderboard } from "@/components/leaderboard";
 import { List, ListItem } from "@/components/list";
-import { Navbar } from "@/components/navbar";
 import { difficultyLabel } from "@/lib/difficulty";
 import { getCurrentMilestone } from "@/lib/milestones";
 import { getSongStats } from "./get-song-stats";
@@ -20,7 +19,6 @@ export default async function SongPage({
   if (!stats) {
     return (
       <div className="min-h-screen bg-mist-950">
-        <Navbar />
         <div className="py-32 text-center text-muted-foreground">
           No one has attempted this song yet.
         </div>

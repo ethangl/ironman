@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { getSessionOrUnauth, getSpotifyToken } from "@/lib/auth-helpers";
+import { spotifyCacheTtl } from "@/lib/spotify-cache-ttl";
 import { getCachedSpotifyResult } from "@/lib/spotify-request-cache";
 import { getPlaylistTracks, SpotifyApiError } from "@/lib/spotify";
 import { createSpotifyRouteErrorResponse } from "@/lib/spotify-route-errors";
 
-const PLAYLIST_TRACKS_TTL_MS = 5 * 60_000;
+const PLAYLIST_TRACKS_TTL_MS = spotifyCacheTtl(5 * 60_000);
 
 export async function GET(
   _req: Request,

@@ -12,6 +12,45 @@ export interface SpotifyTrack extends PlayableTrack {
   difficulty?: number;
 }
 
+export interface SpotifyArtist {
+  id: string;
+  name: string;
+  image: string | null;
+  followerCount: number;
+  genres: string[];
+}
+
+export interface SpotifyAlbumRelease {
+  id: string;
+  name: string;
+  image: string | null;
+  releaseDate: string | null;
+  totalTracks: number;
+  albumType: string | null;
+}
+
+export interface SpotifyPlaylist {
+  id: string;
+  name: string;
+  description: string | null;
+  image: string | null;
+  owner: string | null;
+  public: boolean;
+  trackCount: number;
+}
+
+export interface SpotifySearchResults {
+  tracks: SpotifyTrack[];
+  artists: SpotifyArtist[];
+  playlists: SpotifyPlaylist[];
+}
+
+export interface SpotifyArtistPageData {
+  artist: SpotifyArtist;
+  topTracks: SpotifyTrack[];
+  releases: SpotifyAlbumRelease[];
+}
+
 /** Track info as stored in the DB (track-prefixed fields). */
 export interface TrackInfo {
   trackId: string;

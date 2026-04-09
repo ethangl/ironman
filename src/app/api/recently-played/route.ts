@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { getSessionOrUnauth, getSpotifyToken } from "@/lib/auth-helpers";
+import { spotifyCacheTtl } from "@/lib/spotify-cache-ttl";
 import {
   getCachedSpotifyResult,
   setCachedSpotifyResult,
 } from "@/lib/spotify-request-cache";
 import { getRecentlyPlayed, SpotifyApiError } from "@/lib/spotify";
 
-const RECENTLY_PLAYED_TTL_MS = 15_000;
+const RECENTLY_PLAYED_TTL_MS = spotifyCacheTtl(15_000);
 const RECENTLY_PLAYED_RATE_LIMIT_FALLBACK_MS = 30_000;
 
 export async function GET() {

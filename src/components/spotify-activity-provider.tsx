@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  FavoriteArtist,
   Playlist,
   RecentTrack,
   SpotifyActivityContext,
@@ -14,6 +15,7 @@ const RECENT_POLL_MS = 30_000;
 const ACTIVITY_BOOTSTRAP_TTL_MS = 10_000;
 
 type ActivityBootstrap = {
+  favoriteArtists: FavoriteArtist[];
   playlists: Playlist[];
   playlistsTotal: number;
   recentTracks: RecentTrack[];
@@ -22,6 +24,31 @@ type ActivityBootstrap = {
 let activityBootstrapCache: ActivityBootstrap | null = null;
 let activityBootstrapExpiresAt = 0;
 let activityBootstrapInFlight: Promise<ActivityBootstrap> | null = null;
+
+function getRouteErrorMessage(data: unknown, fallback: string) {
+  if (
+    data &&
+    typeof data === "object" &&
+    "error" in data &&
+    data.error &&
+    typeof data.error === "object" &&
+    "message" in data.error &&
+    typeof data.error.message === "string"
+  ) {
+    return data.error.message;
+  }
+
+  if (
+    data &&
+    typeof data === "object" &&
+    "error" in data &&
+    typeof data.error === "string"
+  ) {
+    return data.error;
+  }
+
+  return fallback;
+}
 
 async function loadActivityBootstrap(): Promise<ActivityBootstrap> {
   const now = Date.now();
@@ -36,9 +63,10 @@ async function loadActivityBootstrap(): Promise<ActivityBootstrap> {
   activityBootstrapInFlight = Promise.all([
     fetch("/api/recently-played"),
     fetch(`/api/playlists?limit=${PLAYLIST_PAGE_SIZE}&offset=0`),
+    fetch("/api/top-artists?limit=10"),
   ])
-    .then(async ([recentRes, playlistRes]) => {
-      const [recentTracks, playlistData] = await Promise.all([
+    .then(async ([recentRes, playlistRes, artistsRes]) => {
+      const [recentTracks, playlistData, artistData] = await Promise.all([
         recentRes.ok && recentRes.headers.get("x-spotify-rate-limited") !== "1"
           ? recentRes.json()
           : Promise.resolve(activityBootstrapCache?.recentTracks ?? []),
@@ -48,9 +76,13 @@ async function loadActivityBootstrap(): Promise<ActivityBootstrap> {
               items: activityBootstrapCache?.playlists ?? [],
               total: activityBootstrapCache?.playlistsTotal ?? 0,
             }),
+        artistsRes.ok
+          ? artistsRes.json()
+          : Promise.resolve(activityBootstrapCache?.favoriteArtists ?? []),
       ]);
 
       const bootstrap = {
+        favoriteArtists: artistData as FavoriteArtist[],
         recentTracks: recentTracks as RecentTrack[],
         playlists: playlistData.items as Playlist[],
         playlistsTotal: playlistData.total as number,
@@ -78,6 +110,7 @@ export function SpotifyActivityProvider({
   const [recentTracks, setRecentTracks] = useState<RecentTrack[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [playlistsTotal, setPlaylistsTotal] = useState(0);
+  const [favoriteArtists, setFavoriteArtists] = useState<FavoriteArtist[]>([]);
   const [loading, setLoading] = useState(false);
   const offsetRef = useRef(0);
   const playlistTracksRef = useRef(new Map<string, Playlist["tracks"]>());
@@ -107,6 +140,7 @@ export function SpotifyActivityProvider({
     setLoading(true);
     try {
       const data = await loadActivityBootstrap();
+      setFavoriteArtists(data.favoriteArtists);
       setRecentTracks(dedupeRecent(data.recentTracks));
       setPlaylists(data.playlists);
       setPlaylistsTotal(data.playlistsTotal);
@@ -171,7 +205,9 @@ export function SpotifyActivityProvider({
         const data = await res
           .json()
           .catch(() => ({ error: "Could not load playlist tracks." }));
-        throw new Error(data.error ?? "Could not load playlist tracks.");
+        throw new Error(
+          getRouteErrorMessage(data, "Could not load playlist tracks."),
+        );
       }
 
       const data = await res.json();
@@ -193,6 +229,7 @@ export function SpotifyActivityProvider({
         recentTracks,
         playlists,
         playlistsTotal,
+        favoriteArtists,
         loading,
         refresh: fetchAll,
         loadMorePlaylists,

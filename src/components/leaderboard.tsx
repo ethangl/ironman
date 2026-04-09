@@ -72,7 +72,7 @@ function EntryRow({
         sizeClassName="size-8 text-3xl"
       />
 
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 truncate">
         <div className="flex items-center gap-2">
           {entry.userId && !entry.isMe ? (
             <Link
@@ -84,17 +84,6 @@ function EntryRow({
           ) : (
             <span className="truncate font-medium text-sm">
               {entry.isMe ? "You" : (entry.userName ?? "Anonymous")}
-            </span>
-          )}
-          {entry.rank === 1 && (
-            <span className="shrink-0 rounded-full bg-yellow-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-yellow-400">
-              Iron Man
-            </span>
-          )}
-          {entry.active && (
-            <span className="shrink-0 flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-[10px] text-red-400">LIVE</span>
             </span>
           )}
         </div>

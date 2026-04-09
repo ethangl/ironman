@@ -15,7 +15,7 @@ export const NextTrackButton: FC<ButtonProps> = ({ ...props }) => {
       onClick={nextTrack}
       {...props}
     >
-      <FastForwardIcon />
+      <FastForwardIcon fill="currentColor" strokeWidth={0} />
     </Button>
   );
 };

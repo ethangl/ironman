@@ -46,6 +46,7 @@ export const auth = betterAuth({
       scope: [
         "user-read-email",
         "user-read-private",
+        "user-top-read",
         "user-read-playback-state",
         "user-modify-playback-state",
         "user-read-recently-played",

@@ -1,40 +1,39 @@
-import Link from "next/link";
+import { FC } from "react";
 
-import { TrackInfo } from "@/types";
+import { useWebPlayer } from "@/hooks/use-web-player";
+import { toPlayable, TrackInfo } from "@/types";
+import { AlbumArt } from "./album-art";
+import { PlayButton } from "./play-button";
 
-export function TrackCell({
-  track,
-  subtitle,
-}: {
+export type TrackCellProps = {
+  count?: number;
   track: TrackInfo;
-  subtitle?: React.ReactNode;
-}) {
+};
+
+export const TrackCell: FC<TrackCellProps> = ({ count, track }) => {
+  const { playTrack } = useWebPlayer();
+
   return (
     <>
-      {track.trackImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={track.trackImage}
-          alt=""
-          className="h-10 w-10 rounded-lg object-cover"
-        />
-      ) : (
-        <div className="h-10 w-10 rounded-lg bg-white/10" />
+      {count && (
+        <div className="bg-accent/25 font-bold flex items-center justify-center rounded-3xl text-xs text-muted-foreground size-8">
+          {count}
+        </div>
       )}
-      <div className="flex-1 min-w-0">
-        <p className="truncate text-sm font-medium">
-          <Link
-            href={`/song/${track.trackId}`}
-            className="hover:text-foreground transition"
-          >
-            {track.trackName}
-          </Link>
-        </p>
-        <p className="truncate text-xs text-muted-foreground">
+      {track.trackImage && (
+        <AlbumArt src={track.trackImage} className="size-10" />
+      )}
+      <div className="space-y-0.5">
+        <h3 className="font-medium text-sm truncate">{track.trackName}</h3>
+        <h5 className="text-muted-foreground text-xs truncate">
           {track.trackArtist}
-        </p>
-        {subtitle}
+        </h5>
       </div>
+      <PlayButton
+        size="icon-lg"
+        pausable={false}
+        onClick={() => playTrack(toPlayable(track))}
+      />
     </>
   );
-}
+};

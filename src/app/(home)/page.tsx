@@ -1,14 +1,12 @@
 "use client";
 
 import { Leaderboard } from "@/components/leaderboard";
-import { SearchInput } from "@/components/search/search-input";
-import { SearchProvider } from "@/components/search/search-provider";
-import { SearchResults } from "@/components/search/search-results";
 import { SpotifyActivityProvider } from "@/components/spotify-activity-provider";
 import { Separator } from "@/components/ui/separator";
 import { useSession } from "@/lib/auth-client";
 import { BangersBoard } from "./bangers-board";
 import { BrutalityBoard } from "./brutality-board";
+import { FavoriteArtists } from "./favorite-artists";
 import { HomeHero } from "./home-hero";
 import { IronmenBoard } from "./ironmen-board";
 import { Playlists } from "./playlists";
@@ -21,16 +19,11 @@ export default function HomePage() {
   return (
     <main className="max-w-full space-y-12">
       {isLoggedIn ? (
-        <>
-          <SearchProvider>
-            <SearchInput />
-            <SearchResults />
-          </SearchProvider>
-          <SpotifyActivityProvider>
-            <RecentTracks />
-            <Playlists />
-          </SpotifyActivityProvider>
-        </>
+        <SpotifyActivityProvider>
+          <RecentTracks />
+          <Playlists />
+          <FavoriteArtists />
+        </SpotifyActivityProvider>
       ) : (
         <HomeHero />
       )}

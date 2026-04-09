@@ -11,7 +11,7 @@ export type ListProps = PropsWithChildren & {
 };
 
 const listItemClassName =
-  "bg-accent/15 flex gap-3 items-center justify-center p-3 rounded-xl";
+  "bg-accent/15 gap-4 grid grid-cols-[max-content_max-content_minmax(0,1fr)_max-content] items-center px-3 py-2.5 rounded-xl";
 
 const List: FC<ListProps> = ({
   children,

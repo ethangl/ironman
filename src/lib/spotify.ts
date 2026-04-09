@@ -1,4 +1,12 @@
-import { SpotifyTrack, PlaybackState } from "@/types";
+import {
+  SpotifyArtist,
+  SpotifyAlbumRelease,
+  SpotifyArtistPageData,
+  SpotifyPlaylist,
+  SpotifySearchResults,
+  SpotifyTrack,
+  PlaybackState,
+} from "@/types";
 
 const SPOTIFY_API = "https://api.spotify.com/v1";
 
@@ -38,26 +46,55 @@ interface SpotifyImage {
   url: string;
 }
 
-interface SpotifyArtist {
+interface SpotifyApiArtist {
+  id?: string;
   name: string;
+  genres?: string[];
+  images?: SpotifyImage[];
+  followers?: { total?: number };
 }
 
 interface SpotifyAlbum {
+  id?: string;
   name?: string;
+  album_type?: string;
   images?: SpotifyImage[];
+  release_date?: string;
+  total_tracks?: number;
+  artists?: SpotifyApiArtist[];
 }
 
 interface SpotifyApiTrack {
   id: string;
   name: string;
-  artists?: SpotifyArtist[];
+  artists?: SpotifyApiArtist[];
   album?: SpotifyAlbum;
   duration_ms: number;
 }
 
-interface SearchTracksResponse {
+interface SpotifyApiPlaylist {
+  id: string;
+  name: string;
+  description: string | null;
+  images?: SpotifyImage[];
+  owner?: { display_name?: string | null };
+  public?: boolean;
+  items?: { total?: number };
+  tracks?: { total?: number };
+}
+
+interface SearchResponse {
+  albums?: {
+    items?: Array<SpotifyAlbum | null>;
+  };
   tracks?: {
-    items?: SpotifyApiTrack[];
+    items?: Array<SpotifyApiTrack | null>;
+  };
+  artists?: {
+    items?: Array<SpotifyApiArtist | null>;
+  };
+  playlists?: {
+    items?: Array<SpotifyApiPlaylist | null>;
   };
 }
 
@@ -74,6 +111,7 @@ interface PlaylistSummaryResponse {
     name: string;
     description: string | null;
     images?: SpotifyImage[];
+    items?: { total?: number };
     tracks?: { total?: number };
     owner?: { display_name?: string | null };
     public: boolean;
@@ -88,10 +126,138 @@ interface PlaylistTracksResponse {
   }[];
 }
 
+interface TopArtistsResponse {
+  items?: SpotifyApiArtist[];
+}
+
+type ArtistResponse = SpotifyApiArtist;
+
+interface SpotifyProfileResponse {
+  country?: string;
+}
+
+interface ArtistAlbumsResponse {
+  items?: Array<SpotifyAlbum | null>;
+}
+
+function mapTrack(track: SpotifyApiTrack): SpotifyTrack {
+  return {
+    id: track.id,
+    name: track.name,
+    artist: track.artists?.map((artist) => artist.name).join(", ") ?? "",
+    albumName: track.album?.name ?? "",
+    albumImage: track.album?.images?.[0]?.url ?? null,
+    durationMs: track.duration_ms,
+  };
+}
+
+function mapArtist(artist: SpotifyApiArtist): SpotifyArtist {
+  return {
+    id: artist.id ?? artist.name,
+    name: artist.name,
+    image: artist.images?.[0]?.url ?? null,
+    followerCount: artist.followers?.total ?? 0,
+    genres: artist.genres ?? [],
+  };
+}
+
+function mapPlaylist(playlist: SpotifyApiPlaylist): SpotifyPlaylist {
+  return {
+    id: playlist.id,
+    name: playlist.name,
+    description: playlist.description,
+    image: playlist.images?.[0]?.url ?? null,
+    owner: playlist.owner?.display_name ?? null,
+    public: playlist.public ?? true,
+    trackCount: playlist.items?.total ?? playlist.tracks?.total ?? 0,
+  };
+}
+
+function mapAlbumRelease(album: SpotifyAlbum): SpotifyAlbumRelease {
+  return {
+    id: album.id ?? album.name ?? "",
+    name: album.name ?? "Untitled release",
+    image: album.images?.[0]?.url ?? null,
+    releaseDate: album.release_date ?? null,
+    totalTracks: album.total_tracks ?? 0,
+    albumType: album.album_type ?? null,
+  };
+}
+
 function isSpotifyTrack(
   track: SpotifyApiTrack | null | undefined,
 ): track is SpotifyApiTrack {
   return !!track;
+}
+
+function isSpotifyArtist(
+  artist: SpotifyApiArtist | null | undefined,
+): artist is SpotifyApiArtist {
+  return !!artist;
+}
+
+function isSpotifyPlaylist(
+  playlist: SpotifyApiPlaylist | null | undefined,
+): playlist is SpotifyApiPlaylist {
+  return !!playlist;
+}
+
+function isSpotifyAlbum(
+  album: SpotifyAlbum | null | undefined,
+): album is SpotifyAlbum {
+  return !!album;
+}
+
+async function spotifyFetchOptional<T>(
+  path: string,
+  token: string,
+  fallback: T,
+): Promise<T> {
+  try {
+    return (await spotifyFetch<T>(path, token)) ?? fallback;
+  } catch (error) {
+    if (process.env.NODE_ENV !== "test") {
+      console.warn(
+        `[spotify] optional request failed path=${path} error=${error instanceof Error ? error.message : "unknown"}`,
+      );
+    }
+    return fallback;
+  }
+}
+
+async function searchArtistTracks(
+  token: string,
+  artistId: string,
+  artistName: string,
+  market?: string,
+): Promise<SpotifyTrack[]> {
+  const query = `artist:"${artistName}"`;
+  const params = new URLSearchParams({
+    q: query,
+    type: "track",
+    limit: "10",
+    ...(market ? { market } : {}),
+  });
+
+  const data = await spotifyFetchOptional<SearchResponse>(
+    `/search?${params.toString()}`,
+    token,
+    { tracks: { items: [] } },
+  );
+
+  const seen = new Set<string>();
+
+  return (data.tracks?.items ?? [])
+    .filter(isSpotifyTrack)
+    .filter((track) =>
+      track.artists?.some((artist) => artist.id === artistId),
+    )
+    .filter((track) => {
+      if (seen.has(track.id)) return false;
+      seen.add(track.id);
+      return true;
+    })
+    .map(mapTrack);
 }
 
 async function spotifyFetch<T>(
@@ -140,19 +306,30 @@ export async function searchTracks(
   query: string,
   token: string
 ): Promise<SpotifyTrack[]> {
-  const data = await spotifyFetch<SearchTracksResponse>(
+  const data = await spotifyFetch<SearchResponse>(
     `/search?q=${encodeURIComponent(query)}&type=track&limit=10`,
     token
   );
 
-  return (data?.tracks?.items ?? []).map((track) => ({
-    id: track.id,
-    name: track.name,
-    artist: track.artists?.map((artist) => artist.name).join(", ") ?? "",
-    albumName: track.album?.name ?? "",
-    albumImage: track.album?.images?.[0]?.url ?? null,
-    durationMs: track.duration_ms,
-  }));
+  return (data?.tracks?.items ?? []).filter(isSpotifyTrack).map(mapTrack);
+}
+
+export async function searchSpotify(
+  query: string,
+  token: string,
+): Promise<SpotifySearchResults> {
+  const data = await spotifyFetch<SearchResponse>(
+    `/search?q=${encodeURIComponent(query)}&type=track,artist,playlist&limit=6`,
+    token,
+  );
+
+  return {
+    tracks: (data?.tracks?.items ?? []).filter(isSpotifyTrack).map(mapTrack),
+    artists: (data?.artists?.items ?? []).filter(isSpotifyArtist).map(mapArtist),
+    playlists: (data?.playlists?.items ?? [])
+      .filter(isSpotifyPlaylist)
+      .map(mapPlaylist),
+  };
 }
 
 export async function getCurrentlyPlaying(
@@ -188,7 +365,7 @@ export async function getProfile(token: string) {
   return spotifyFetch("/me", token);
 }
 
-export async function getRecentlyPlayed(token: string, limit = 20) {
+export async function getRecentlyPlayed(token: string, limit = 50) {
   const data = await spotifyFetch<RecentlyPlayedResponse>(
     `/me/player/recently-played?limit=${limit}`,
     token
@@ -196,14 +373,7 @@ export async function getRecentlyPlayed(token: string, limit = 20) {
   if (!data?.items) return [];
   return data.items.map((item) => ({
     playedAt: item.played_at,
-    track: {
-      id: item.track.id,
-      name: item.track.name,
-      artist: item.track.artists?.map((artist) => artist.name).join(", ") ?? "",
-      albumName: item.track.album?.name ?? "",
-      albumImage: item.track.album?.images?.[0]?.url ?? null,
-      durationMs: item.track.duration_ms,
-    },
+    track: mapTrack(item.track),
   }));
 }
 
@@ -215,14 +385,9 @@ export async function getUserPlaylists(token: string, limit = 50, offset = 0) {
   if (!data?.items) return { items: [], total: 0 };
 
   const items = data.items.map((playlist) => ({
-    id: playlist.id,
-    name: playlist.name,
-    description: playlist.description,
-    image: playlist.images?.[0]?.url ?? null,
-    trackCount: playlist.tracks?.total ?? 0,
+    ...mapPlaylist(playlist),
+    trackCount: playlist.items?.total ?? playlist.tracks?.total ?? 0,
     tracks: null,
-    owner: playlist.owner?.display_name ?? null,
-    public: playlist.public,
   }));
 
   if (process.env.NODE_ENV !== "test") {
@@ -236,7 +401,7 @@ export async function getUserPlaylists(token: string, limit = 50, offset = 0) {
 
 export async function getPlaylistTracks(token: string, playlistId: string) {
   const data = await spotifyFetch<PlaylistTracksResponse>(
-    `/playlists/${playlistId}/tracks?limit=100`,
+    `/playlists/${playlistId}/items?limit=100`,
     token
   );
   if (!data?.items) return [];
@@ -244,14 +409,7 @@ export async function getPlaylistTracks(token: string, playlistId: string) {
   const tracks = data.items
     .map((entry) => entry.track ?? entry.item)
     .filter(isSpotifyTrack)
-    .map((track) => ({
-      id: track.id,
-      name: track.name,
-      artist: track.artists?.map((artist) => artist.name).join(", ") ?? "",
-      albumName: track.album?.name ?? "",
-      albumImage: track.album?.images?.[0]?.url ?? null,
-      durationMs: track.duration_ms,
-    }));
+    .map(mapTrack);
 
   if (process.env.NODE_ENV !== "test") {
     console.info(
@@ -260,4 +418,59 @@ export async function getPlaylistTracks(token: string, playlistId: string) {
   }
 
   return tracks;
+}
+
+export async function getTopArtists(token: string, limit = 20) {
+  const data = await spotifyFetch<TopArtistsResponse>(
+    `/me/top/artists?limit=${limit}`,
+    token,
+  );
+  const artists = (data?.items ?? []).map(mapArtist);
+
+  if (process.env.NODE_ENV !== "test") {
+    console.info(`[spotify] top artists limit=${limit} items=${artists.length}`);
+  }
+
+  return artists;
+}
+
+export async function getArtistPageData(
+  token: string,
+  artistId: string,
+): Promise<SpotifyArtistPageData> {
+  const [artistData, profileData] = await Promise.all([
+    spotifyFetch<ArtistResponse>(`/artists/${artistId}`, token),
+    spotifyFetch<SpotifyProfileResponse>("/me", token),
+  ]);
+  const market = profileData?.country;
+  const albumsQuery = new URLSearchParams({
+    include_groups: "album,single",
+    limit: "10",
+    ...(market ? { market } : {}),
+  }).toString();
+  if (!artistData) {
+    throw new SpotifyApiError(404, `Artist ${artistId} not found`);
+  }
+  const [topTracksData, albumsData] = await Promise.all([
+    searchArtistTracks(
+      token,
+      artistId,
+      artistData.name,
+      market,
+    ),
+    spotifyFetchOptional<ArtistAlbumsResponse>(
+      `/artists/${artistId}/albums?${albumsQuery}`,
+      token,
+      { items: [] },
+    ),
+  ]);
+
+  return {
+    artist: mapArtist(artistData),
+    topTracks: topTracksData,
+    releases: (albumsData?.items ?? [])
+      .filter(isSpotifyAlbum)
+      .map(mapAlbumRelease)
+      .filter((album) => album.id !== ""),
+  };
 }

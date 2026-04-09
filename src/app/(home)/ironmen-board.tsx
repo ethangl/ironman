@@ -78,17 +78,6 @@ export function IronmenBoard() {
                 >
                   {entry.userName ?? "Anonymous"}
                 </Link>
-                {entry.hardcore && (
-                  <span className="shrink-0 rounded-full bg-red-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-300">
-                    HC
-                  </span>
-                )}
-                {entry.active && (
-                  <span className="shrink-0 flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                    <span className="text-[10px] text-red-400">LIVE</span>
-                  </span>
-                )}
               </div>
               <Link
                 href={`/song/${entry.trackId}`}

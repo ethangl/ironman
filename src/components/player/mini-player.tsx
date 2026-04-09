@@ -1,10 +1,11 @@
 "use client";
 
 import { ChevronUpIcon } from "lucide-react";
-import { AlbumArt } from "./album-art";
+
+import { AlbumArt } from "../album-art";
+import { PlayButton } from "../play-button";
 import { LockInButton } from "./lock-in-button";
 import { NextTrackButton } from "./next-track-button";
-import { PlayButton } from "./play-button";
 import { PlayerWrapper } from "./player-wrapper";
 import { useNowPlaying } from "./use-now-playing";
 
@@ -15,14 +16,13 @@ export function MiniPlayer() {
     displayImage,
     displayName,
     hasQueue,
-    nextTrack,
     palette,
     setExpanded,
   } = useNowPlaying();
 
   return (
     <PlayerWrapper
-      className="max-w-sm p-0.5"
+      className="p-0.5"
       shaderProps={{
         colorA: palette[0],
         colorB: palette[2],

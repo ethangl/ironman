@@ -6,8 +6,6 @@ export interface Track {
   durationMs: number;
 }
 
-export type PlayableTrack = Track;
-
 export interface SpotifyTrack extends Track {
   albumName: string;
   topStreak?: { count: number; userName: string | null } | null;
@@ -64,7 +62,7 @@ export interface TrackInfo {
 
 export type TrackLike = Track | TrackInfo;
 
-export function isTrackInfo(track: TrackLike): track is TrackInfo {
+function isTrackInfo(track: TrackLike): track is TrackInfo {
   return "trackId" in track;
 }
 
@@ -94,21 +92,6 @@ export function toTrackInfo(track: TrackLike): TrackInfo {
     trackImage: track.albumImage,
     trackDuration: track.durationMs,
   };
-}
-
-export interface PlaybackState {
-  is_playing: boolean;
-  progress_ms: number;
-  item: {
-    id: string;
-    name: string;
-    duration_ms: number;
-    artists: { name: string }[];
-    album: {
-      name: string;
-      images: { url: string; width: number; height: number }[];
-    };
-  } | null;
 }
 
 export interface StreakData extends TrackInfo {

@@ -1,0 +1,134 @@
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { defaultSpotifyClient } from "@/features/spotify/client";
+import { AppRuntimeProvider } from "@/app";
+import { LoginButton } from "./login-button";
+
+const mockUseSession = vi.fn();
+const mockUseBrowserSearchParams = vi.fn();
+const mockReplaceBrowserUrl = vi.fn();
+const mockSignInSocial = vi.fn();
+const mockSignOut = vi.fn();
+const mockToastError = vi.fn();
+
+vi.mock("@/hooks/use-browser-search-params", () => ({
+  useBrowserSearchParams: () => mockUseBrowserSearchParams(),
+  replaceBrowserUrl: (...args: unknown[]) => mockReplaceBrowserUrl(...args),
+}));
+
+vi.mock("@/lib/convex-auth-client", () => ({
+  useConvexSession: () => mockUseSession(),
+  convexSignIn: {
+    social: (...args: unknown[]) => mockSignInSocial(...args),
+  },
+  convexSignOut: () => mockSignOut(),
+}));
+
+vi.mock("sonner", () => ({
+  toast: {
+    error: (...args: unknown[]) => mockToastError(...args),
+  },
+}));
+
+function setSearchParams(params: Record<string, string>) {
+  const searchParams = new URLSearchParams(params);
+  mockUseBrowserSearchParams.mockReturnValue(searchParams);
+}
+
+function renderLoginButton() {
+  return render(
+    <AppRuntimeProvider spotifyClient={defaultSpotifyClient}>
+      <LoginButton />
+    </AppRuntimeProvider>,
+  );
+}
+
+async function settleSignedOutAuth() {
+  await act(async () => {
+    vi.advanceTimersByTime(400);
+  });
+}
+
+describe("LoginButton", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-07T17:40:00.000Z"));
+    localStorage.clear();
+    vi.clearAllMocks();
+    mockUseSession.mockReturnValue({
+      data: null,
+      isPending: false,
+    });
+    setSearchParams({});
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("starts Spotify sign-in when clicked outside cooldown", async () => {
+    renderLoginButton();
+    await settleSignedOutAuth();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Sign in with Spotify" }),
+    );
+
+    expect(mockSignInSocial).toHaveBeenCalledWith({
+      provider: "spotify",
+      callbackURL: "/",
+      errorCallbackURL: "/?authProvider=spotify",
+    });
+  });
+
+  it("enters cooldown on unable_to_get_user_info and clears the auth query", async () => {
+    setSearchParams({
+      authProvider: "spotify",
+      error: "unable_to_get_user_info",
+      foo: "bar",
+    });
+    const cooldownStartedAt = Date.now();
+
+    await act(async () => {
+      renderLoginButton();
+      await Promise.resolve();
+    });
+    await settleSignedOutAuth();
+
+    expect(mockToastError).toHaveBeenCalledWith(
+      "Spotify is cooling down. Try reconnecting in about a minute.",
+    );
+    const button = screen.getByRole("button", {
+      name: /Spotify cooling down/i,
+    });
+    expect(button).toBeDisabled();
+    expect(localStorage.getItem("spotify-auth-cooldown-until")).toBe(
+      String(cooldownStartedAt + 60_000),
+    );
+    expect(mockReplaceBrowserUrl).toHaveBeenCalledWith("/?foo=bar");
+    expect(
+      screen.getByText(
+        "Spotify asked us to slow down. Try reconnecting in about a minute.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("renders from persisted cooldown state and counts down", async () => {
+    localStorage.setItem(
+      "spotify-auth-cooldown-until",
+      String(Date.now() + 15_000),
+    );
+
+    renderLoginButton();
+    await settleSignedOutAuth();
+
+    expect(screen.getByRole("button", { name: "Retry in 15s" })).toBeDisabled();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(screen.getByRole("button", { name: "Retry in 14s" })).toBeDisabled();
+  });
+});

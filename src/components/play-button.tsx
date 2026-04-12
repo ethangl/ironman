@@ -3,27 +3,27 @@ import { FC } from "react";
 
 import { Button, ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useNowPlaying } from "./player/use-now-playing";
 
-export type PlayButtonProps = ButtonProps & { pausable?: boolean };
+export type PlayButtonProps = ButtonProps & {
+  pausable?: boolean;
+  playing?: boolean;
+};
 
 export const PlayButton: FC<PlayButtonProps> = ({
   className,
   pausable = true,
+  playing = false,
   size = "icon-sm",
   ...props
 }) => {
-  const { paused, togglePlay } = useNowPlaying();
-
   return (
     <Button
       variant="ghost"
       size={size}
-      onClick={togglePlay}
       className={cn("bg-white/10 hover:bg-white/5 border-0", className)}
       {...props}
     >
-      {pausable && !paused ? (
+      {pausable && playing ? (
         <PauseIcon fill="currentColor" strokeWidth={0} />
       ) : (
         <PlayIcon fill="currentColor" strokeWidth={0} />

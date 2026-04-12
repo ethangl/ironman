@@ -1,10 +1,3 @@
-import {
-  computeSongDifficulty,
-  computeStreakScore,
-} from "@shared/difficulty";
-
-export { computeSongDifficulty, computeStreakScore };
-
 const LABELS = [
   { threshold: 4, label: "Brutal", color: "text-red-400" },
   { threshold: 2.5, label: "Hard", color: "text-orange-400" },

@@ -7,3 +7,4 @@ export {
   EnforcementEngine,
   type WeaknessEvent,
 } from "./enforcement-engine";
+export { useIronmanPlayerActions } from "./use-ironman-player-actions";

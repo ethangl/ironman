@@ -17,6 +17,7 @@ const mockGetAccessToken = vi.fn();
 const mockUseBrowserSearchParams = vi.fn();
 const mockUseSpotify = vi.fn();
 const mockSignOut = vi.fn();
+const mockToastError = vi.fn();
 
 vi.mock("@/hooks/use-browser-search-params", () => ({
   useBrowserSearchParams: () => mockUseBrowserSearchParams(),
@@ -33,7 +34,13 @@ vi.mock("@/lib/convex-auth-client", () => ({
   convexSignOut: (...args: unknown[]) => ({ data: mockSignOut(...args) }),
 }));
 
-vi.mock("./use-spotify", () => ({
+vi.mock("sonner", () => ({
+  toast: {
+    error: (...args: unknown[]) => mockToastError(...args),
+  },
+}));
+
+vi.mock("../sdk/use-spotify", () => ({
   useSpotify: (...args: unknown[]) => mockUseSpotify(...args),
 }));
 
@@ -216,6 +223,7 @@ describe("WebPlayerProvider", () => {
   beforeEach(() => {
     FakeBroadcastChannel.reset();
     vi.restoreAllMocks();
+    mockToastError.mockReset();
 
     Object.defineProperty(window, "BroadcastChannel", {
       configurable: true,
@@ -422,5 +430,88 @@ describe("WebPlayerProvider", () => {
     });
 
     repeatDeferred.resolve(undefined);
+  });
+
+  it("refreshes the cached Spotify token after the signed-in user changes", async () => {
+    const { rerender } = renderProvider();
+
+    const initialSpotifyArgs = mockUseSpotify.mock.calls.at(-1)?.[0] as {
+      getAccessToken: () => Promise<string | null>;
+      tokenRef: { current: string | null };
+    };
+    expect(initialSpotifyArgs).toBeDefined();
+
+    await expect(initialSpotifyArgs.getAccessToken()).resolves.toBe("token");
+    expect(initialSpotifyArgs.tokenRef.current).toBe("token");
+    mockGetAccessToken.mockReset();
+    mockGetAccessToken.mockResolvedValue({
+      data: { accessToken: "token-2" },
+    });
+
+    mockUseSession.mockReturnValue({
+      data: { user: { id: "user-2" } },
+    });
+
+    await act(async () => {
+      rerender(
+        <AppRuntimeProvider spotifyClient={defaultSpotifyClient}>
+          <WebPlayerProvider>
+            <PlayerProbe />
+          </WebPlayerProvider>
+        </AppRuntimeProvider>,
+      );
+      await Promise.resolve();
+    });
+
+    const nextSpotifyArgs = mockUseSpotify.mock.calls.at(-1)?.[0] as {
+      getAccessToken: () => Promise<string | null>;
+      tokenRef: { current: string | null };
+    };
+    expect(nextSpotifyArgs.tokenRef.current).toBeNull();
+
+    await expect(nextSpotifyArgs.getAccessToken()).resolves.toBe("token-2");
+    expect(nextSpotifyArgs.tokenRef.current).toBe("token-2");
+    expect(mockGetAccessToken).toHaveBeenCalled();
+  });
+
+  it("shows an error when resume fallback playback fails on the SDK device", async () => {
+    const ironman = createMockIronmanClient();
+    ironman.getStatus.mockResolvedValue(buildStreak());
+
+    mockUseSpotify.mockReturnValue({
+      ...baseSpotifyMock,
+      sdkState: { paused: true, position: 0, duration: 123000, trackId: "track-1" },
+      resume: vi.fn().mockResolvedValue({ ok: false, status: 404 }),
+      waitForReady: vi.fn().mockResolvedValue("device-1"),
+      play: vi.fn().mockResolvedValue({ ok: false, status: 429 }),
+    });
+
+    function TogglePlayProbe() {
+      const { togglePlay } = useWebPlayerActions();
+      return <button onClick={() => void togglePlay()}>toggle-play</button>;
+    }
+
+    renderProviderWithClient(
+      { ironmanClient: ironman },
+      <>
+        <TogglePlayProbe />
+        <PlayerProbe />
+      </>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("track")).toHaveTextContent("Test Track");
+    });
+
+    await act(async () => {
+      screen.getByRole("button", { name: "toggle-play" }).click();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith(
+        "Spotify is rate limiting playback right now. Please wait a bit and try again.",
+      );
+    });
   });
 });

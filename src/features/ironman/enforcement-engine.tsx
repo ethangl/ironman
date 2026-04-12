@@ -32,6 +32,12 @@ function logEnforcement(message: string, details?: Record<string, unknown>) {
   console.info("[enforcement]", message);
 }
 
+function logEnforcementError(context: string, error: unknown) {
+  if (process.env.NODE_ENV === "test") return;
+
+  console.error("[enforcement]", context, error);
+}
+
 export function EnforcementEngine({
   streak,
   getCurrentlyPlaying,
@@ -70,6 +76,7 @@ export function EnforcementEngine({
   const enforceInFlightRef = useRef(false);
   const correctionInFlightRef = useRef(false);
   const correctionCooldownUntilRef = useRef(0);
+  const wrongSongIncidentRef = useRef<string | null>(null);
 
   useEffect(() => {
     countRef.current = streak.count;
@@ -96,19 +103,6 @@ export function EnforcementEngine({
       }
     },
     [ironmanClient, onWeakness, onBroken],
-  );
-
-  const debouncedPauseWeakness = useCallback(
-    (type: "paused" | "quit") => {
-      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
-      pauseTimerRef.current = setTimeout(() => {
-        if (prevState.current === type) {
-          handleWeakness(type);
-        }
-        pauseTimerRef.current = null;
-      }, 800);
-    },
-    [handleWeakness],
   );
 
   const cancelPauseTimer = useCallback(() => {
@@ -185,6 +179,29 @@ export function EnforcementEngine({
     return false;
   }, [getTabId, readLeader, releaseLeader, writeLeader]);
 
+  const canEnforceNow = useCallback(() => {
+    if (document.visibilityState !== "visible") {
+      return false;
+    }
+
+    return isLeaderRef.current || tryBecomeLeader();
+  }, [tryBecomeLeader]);
+
+  const debouncedPauseWeakness = useCallback(
+    (type: "paused" | "quit") => {
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+      pauseTimerRef.current = setTimeout(() => {
+        if (prevState.current === type && canEnforceNow()) {
+          void handleWeakness(type).catch((error) => {
+            logEnforcementError(`${type} weakness handling failed`, error);
+          });
+        }
+        pauseTimerRef.current = null;
+      }, 800);
+    },
+    [canEnforceNow, handleWeakness],
+  );
+
   const forceCorrectTrack = useCallback(async () => {
     logEnforcement("correction play requested", { trackId: streak.trackId });
     const playRes = await play(`spotify:track:${streak.trackId}`);
@@ -206,7 +223,14 @@ export function EnforcementEngine({
   }, [play, setRepeat, streak.trackId]);
 
   const handleWrongSong = useCallback(
-    async (detail?: string) => {
+    async (options?: { detail?: string; signature?: string | null }) => {
+      const detail = options?.detail;
+      const incidentKey = options?.signature ?? detail ?? "__unknown__";
+
+      if (!canEnforceNow()) {
+        logEnforcement("wrong song ignored: follower tab", { detail });
+        return;
+      }
       if (correctionInFlightRef.current) {
         logEnforcement("wrong song ignored: correction in flight", { detail });
         return;
@@ -231,15 +255,32 @@ export function EnforcementEngine({
       cancelPauseTimer();
 
       try {
-        await handleWeakness("wrong_song", detail);
+        if (wrongSongIncidentRef.current !== incidentKey) {
+          wrongSongIncidentRef.current = incidentKey;
+          await handleWeakness("wrong_song", detail);
+        } else {
+          logEnforcement("wrong song incident already recorded", {
+            detail,
+            incidentKey,
+          });
+        }
+
         if (!brokenRef.current) {
           await forceCorrectTrack();
         }
+      } catch (error) {
+        logEnforcementError("wrong song handling failed", error);
       } finally {
         correctionInFlightRef.current = false;
       }
     },
-    [cancelPauseTimer, forceCorrectTrack, handleWeakness, streak.trackId],
+    [
+      cancelPauseTimer,
+      canEnforceNow,
+      forceCorrectTrack,
+      handleWeakness,
+      streak.trackId,
+    ],
   );
 
   const enforce = useCallback(async () => {
@@ -293,13 +334,17 @@ export function EnforcementEngine({
           ? `${playback.item.name} — ${playback.item.artists?.map((a: { name: string }) => a.name).join(", ")}`
           : null;
 
-        await handleWrongSong(wrongSong ?? undefined);
+        await handleWrongSong({
+          detail: wrongSong ?? undefined,
+          signature: playback.item?.id ?? null,
+        });
         return;
       }
 
       // Correct song playing — back to normal
       prevState.current = "playing";
       cancelPauseTimer();
+      wrongSongIncidentRef.current = null;
       correctionCooldownUntilRef.current = 0;
       onProgress?.(playback.progress_ms, playback.item.duration_ms);
 
@@ -316,6 +361,8 @@ export function EnforcementEngine({
         onCountUpdate(data.count);
         logEnforcement("count updated", { count: data.count });
       }
+    } catch (error) {
+      logEnforcementError("enforcement poll failed", error);
     } finally {
       enforceInFlightRef.current = false;
     }
@@ -333,6 +380,7 @@ export function EnforcementEngine({
   // Fast weakness detection via SDK events (instant, before next poll)
   useEffect(() => {
     if (!sdkState || brokenRef.current) return;
+    if (!canEnforceNow()) return;
 
     if (sdkState.paused && prevState.current !== "paused") {
       prevState.current = "paused";
@@ -341,15 +389,20 @@ export function EnforcementEngine({
     }
 
     if (sdkState.trackId && sdkState.trackId !== streak.trackId) {
-      void handleWrongSong();
+      void handleWrongSong({
+        signature: sdkState.trackId,
+      });
       return;
     }
 
     if (!sdkState.paused) {
       prevState.current = "playing";
       cancelPauseTimer();
+      wrongSongIncidentRef.current = null;
+      correctionCooldownUntilRef.current = 0;
     }
   }, [
+    canEnforceNow,
     sdkState,
     streak.trackId,
     handleWrongSong,
@@ -366,7 +419,7 @@ export function EnforcementEngine({
     brokenRef.current = false;
     if (tryBecomeLeader()) {
       logEnforcement("initial enforcement run");
-      enforceRef.current();
+      void enforceRef.current();
     }
     intervalRef.current = setInterval(() => {
       if (document.visibilityState !== "visible") {
@@ -374,7 +427,7 @@ export function EnforcementEngine({
         return;
       }
       if (isLeaderRef.current || tryBecomeLeader()) {
-        enforceRef.current();
+        void enforceRef.current();
       } else {
         logEnforcement("interval skipped: follower tab");
       }
@@ -397,7 +450,7 @@ export function EnforcementEngine({
       if (document.visibilityState === "visible") {
         logEnforcement("visibility: visible");
         if (tryBecomeLeader()) {
-          enforceRef.current();
+          void enforceRef.current();
         }
       } else {
         logEnforcement("visibility: hidden");
@@ -425,6 +478,7 @@ export function EnforcementEngine({
       brokenRef.current = true; // prevents in-flight enforce() calls from continuing
       enforceInFlightRef.current = false;
       correctionInFlightRef.current = false;
+      wrongSongIncidentRef.current = null;
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (leaderHeartbeatRef.current) clearInterval(leaderHeartbeatRef.current);
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);

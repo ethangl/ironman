@@ -11,10 +11,10 @@ export const FavoriteArtists: FC = () => {
   if (favoriteArtists.length === 0) return null;
 
   return (
-    <section className="space-y-4">
-      <h3 className="text-lg font-bold">Favorite Artists</h3>
+    <section className="-mx-6 space-y-4">
+      <h3 className="mx-6 text-lg font-bold">Favorite Artists</h3>
       <ScrollArea>
-        <ol className="flex w-max gap-2">
+        <ol className="flex gap-2 px-3 w-max">
           {favoriteArtists.map((artist) => (
             <li key={artist.id}>
               <AppLink href={`/artist/${artist.id}`}>

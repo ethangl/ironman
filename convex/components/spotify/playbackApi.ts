@@ -2,6 +2,51 @@ import { PlaybackState } from "./types";
 
 const SPOTIFY_API = "https://api.spotify.com/v1";
 
+function normalizePlaybackState(raw: unknown): PlaybackState | null {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+
+  const playback = raw as {
+    is_playing?: unknown;
+    progress_ms?: unknown;
+    item?: {
+      id?: unknown;
+      name?: unknown;
+      duration_ms?: unknown;
+      artists?: { name?: unknown }[];
+    } | null;
+  };
+
+  const item = playback.item;
+
+  return {
+    is_playing: playback.is_playing === true,
+    progress_ms:
+      typeof playback.progress_ms === "number" ? playback.progress_ms : 0,
+    item:
+      item &&
+      typeof item.id === "string" &&
+      typeof item.name === "string" &&
+      typeof item.duration_ms === "number"
+        ? {
+            id: item.id,
+            name: item.name,
+            duration_ms: item.duration_ms,
+            artists: Array.isArray(item.artists)
+              ? item.artists
+                  .map((artist) =>
+                    typeof artist?.name === "string"
+                      ? { name: artist.name }
+                      : null,
+                  )
+                  .filter((artist): artist is { name: string } => !!artist)
+              : [],
+          }
+        : null,
+  };
+}
+
 export async function getCurrentlyPlaying(
   token: string,
 ): Promise<{ status: number; playback: PlaybackState | null }> {
@@ -18,7 +63,7 @@ export async function getCurrentlyPlaying(
     const text = await res.text();
     return {
       status: res.status,
-      playback: text ? (JSON.parse(text) as PlaybackState) : null,
+      playback: text ? normalizePlaybackState(JSON.parse(text)) : null,
     };
   } catch {
     return { status: 0, playback: null };

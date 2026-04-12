@@ -13,8 +13,12 @@ import type * as feed from "../feed.js";
 import type * as http from "../http.js";
 import type * as ironman from "../ironman.js";
 import type * as leaderboards from "../leaderboards.js";
+import type * as lib_palette from "../lib/palette.js";
+import type * as lib_songSummaries from "../lib/songSummaries.js";
+import type * as lib_streak from "../lib/streak.js";
 import type * as palette from "../palette.js";
 import type * as profile from "../profile.js";
+import type * as songSummaries from "../songSummaries.js";
 import type * as songs from "../songs.js";
 import type * as spotify from "../spotify.js";
 import type * as streaks from "../streaks.js";
@@ -32,8 +36,12 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   ironman: typeof ironman;
   leaderboards: typeof leaderboards;
+  "lib/palette": typeof lib_palette;
+  "lib/songSummaries": typeof lib_songSummaries;
+  "lib/streak": typeof lib_streak;
   palette: typeof palette;
   profile: typeof profile;
+  songSummaries: typeof songSummaries;
   songs: typeof songs;
   spotify: typeof spotify;
   streaks: typeof streaks;
@@ -21286,6 +21294,18 @@ export declare const components: {
           }>;
         }
       >;
+      favoriteArtists: FunctionReference<
+        "action",
+        "internal",
+        { accessToken: string; cacheScope?: string; limit?: number },
+        Array<{
+          followerCount: number;
+          genres: Array<string>;
+          id: string;
+          image: string | null;
+          name: string;
+        }>
+      >;
       playlistsPage: FunctionReference<
         "action",
         "internal",
@@ -21358,6 +21378,7 @@ export declare const components: {
       >;
     };
     cache: {
+      clear: FunctionReference<"mutation", "internal", {}, number>;
       get: FunctionReference<
         "query",
         "internal",

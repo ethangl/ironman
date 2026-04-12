@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "./_generated/server";
+import { internalMutation, query } from "./_generated/server";
 
 export const list = query({
   args: {},
@@ -24,7 +24,7 @@ export const list = query({
   },
 });
 
-export const logEvent = mutation({
+export const logEvent = internalMutation({
   args: {
     sourceId: v.string(),
     streakId: v.string(),

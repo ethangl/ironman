@@ -1,22 +1,22 @@
-import { FC } from "react";
+import { FC, PropsWithChildren } from "react";
 
 import { useWebPlayer } from "@/hooks/use-web-player";
 import { TrackLike, toTrack } from "@/types";
 import { AlbumArt } from "./album-art";
 import { PlayButton } from "./play-button";
 
-export type TrackCellProps = {
+export type TrackCellProps = PropsWithChildren & {
   count?: number;
   track: TrackLike;
 };
 
-export const TrackCell: FC<TrackCellProps> = ({ count, track }) => {
+export const TrackCell: FC<TrackCellProps> = ({ children, count, track }) => {
   const { playTrack } = useWebPlayer();
   const normalizedTrack = toTrack(track);
 
   return (
     <>
-      {count !== undefined && (
+      {count && (
         <div className="bg-accent/25 font-bold flex items-center justify-center rounded-3xl text-xs text-muted-foreground size-8">
           {count}
         </div>
@@ -30,11 +30,14 @@ export const TrackCell: FC<TrackCellProps> = ({ count, track }) => {
           {normalizedTrack.artist}
         </h5>
       </div>
-      <PlayButton
-        size="icon-lg"
-        pausable={false}
-        onClick={() => playTrack(normalizedTrack)}
-      />
+      <div className="flex gap-2 items-center">
+        {children}
+        <PlayButton
+          size="icon-lg"
+          pausable={false}
+          onClick={() => playTrack(normalizedTrack)}
+        />
+      </div>
     </>
   );
 };

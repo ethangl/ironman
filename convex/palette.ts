@@ -2,7 +2,7 @@
 
 import { v } from "convex/values";
 
-import { extractPalette } from "../src/lib/palette";
+import { extractPalette } from "./lib/palette";
 import { action } from "./_generated/server";
 
 export const extract = action({

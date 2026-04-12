@@ -1,4 +1,4 @@
-import { ChevronUpIcon } from "lucide-react";
+import { ChevronsUpIcon } from "lucide-react";
 
 import { AlbumArt } from "../album-art";
 import { PlayButton } from "../play-button";
@@ -37,7 +37,7 @@ export function MiniPlayer() {
           <div className="relative size-8">
             <AlbumArt src={displayImage} />
             <div className="absolute backdrop-blur-none group-hover:backdrop-blur-md duration-444 inset-0 opacity-0 group-hover:opacity-100 pointer-events-none rounded-2xl transition-all">
-              <ChevronUpIcon className="absolute inset-0 m-auto size-5 text-white" />
+              <ChevronsUpIcon className="absolute inset-0 m-auto size-5 text-white" />
             </div>
           </div>
           <div className="min-w-0 mix-blend-plus-lighter space-y-1.5 text-left truncate">

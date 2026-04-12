@@ -39,12 +39,12 @@ export const PlayerWrapper: FC<PlayerWrapperProps> = ({
             <img
               src={displayImage}
               alt=""
-              className="absolute blur-md object-cover opacity-60 scale-200 size-full -translate-y-[25%]"
+              className="absolute blur-sm object-cover opacity-60 scale-200 size-full -translate-y-[25%]"
             />
           )}
           <Shader className="relative size-full">
             <FilmGrain strength={0.07}>
-              <Swirl colorSpace="oklch" opacity={0.6} {...shaderProps} />
+              <Swirl colorSpace="oklch" opacity={0.5} {...shaderProps} />
             </FilmGrain>
           </Shader>
         </div>

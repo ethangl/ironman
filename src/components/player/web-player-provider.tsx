@@ -90,6 +90,10 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   const artworkUrl = streak?.trackImage ?? currentTrack?.albumImage ?? null;
 
   const getAccessToken = useCallback(async () => {
+    if (tokenRef.current) {
+      return tokenRef.current;
+    }
+
     tokenRef.current = await getSpotifyAccessToken();
     return tokenRef.current;
   }, [getSpotifyAccessToken]);
@@ -474,6 +478,14 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
       // No active device — init SDK and play
       if (res.status === 404 && trackId) {
+        const token = await getAccessToken();
+        if (!token) {
+          toast.error(
+            "Your Spotify session expired. Reconnect Spotify and try again.",
+          );
+          return;
+        }
+
         initSpotify();
         const deviceId = await waitForReady();
         if (deviceId) {
@@ -507,6 +519,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     waitForReady,
     play,
     setRepeat,
+    getAccessToken,
     canControlPlayback,
     pause,
   ]);
@@ -525,18 +538,18 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     if (!canUseIronman) return;
     const token = await getAccessToken();
     if (!token || !currentTrack) return;
-      try {
-        const data = await client.ironman.start({
-          ...toTrackInfo(currentTrack),
-          playbackStarted: true,
-        });
-        applyStreakState(data);
-        broadcastStreakState(data);
-        setCurrentTrack(null);
-        await setRepeat("track");
-      } catch {
-        // Leave playback untouched when lock-in fails.
-      }
+    try {
+      const data = await client.ironman.start({
+        ...toTrackInfo(currentTrack),
+        playbackStarted: true,
+      });
+      applyStreakState(data);
+      broadcastStreakState(data);
+      setCurrentTrack(null);
+      await setRepeat("track");
+    } catch {
+      // Leave playback untouched when lock-in fails.
+    }
   }, [
     applyStreakState,
     broadcastStreakState,
@@ -549,22 +562,22 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
   const activateHardcore = useCallback(async () => {
     if (!canUseIronman || !streak?.active || streak.hardcore) return;
-      try {
-        await client.ironman.activateHardcore();
-        const nextStreak = { ...streak, hardcore: true };
-        applyStreakState(nextStreak);
-        broadcastStreakState(nextStreak);
-      } catch {
-        // Keep the current streak state when hardcore activation fails.
-      }
+    try {
+      await client.ironman.activateHardcore();
+      const nextStreak = { ...streak, hardcore: true };
+      applyStreakState(nextStreak);
+      broadcastStreakState(nextStreak);
+    } catch {
+      // Keep the current streak state when hardcore activation fails.
+    }
   }, [applyStreakState, broadcastStreakState, canUseIronman, client, streak]);
 
   const surrender = useCallback(async () => {
     if (!canUseIronman) return;
-      try {
-        await client.ironman.surrender();
-        if (streak) {
-          setCurrentTrack(toTrack(streak));
+    try {
+      await client.ironman.surrender();
+      if (streak) {
+        setCurrentTrack(toTrack(streak));
         // Resume queue position if there was a queue
         if (queue.length > 1) {
           const idx = queue.findIndex((t) => t.id === streak.trackId);
@@ -575,13 +588,17 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
             if (effectiveQueueIdx !== -1) setQueueIndex(effectiveQueueIdx);
           }
         }
-        await setRepeat("off");
-        }
-        applyStreakState(null);
-        broadcastStreakState(null);
-      } catch {
-        // Ignore surrender failures and preserve the active streak locally.
       }
+      applyStreakState(null);
+      broadcastStreakState(null);
+      if (streak) {
+        void setRepeat("off").catch(() => {
+          // Keep the local surrender state even if Spotify repeat cleanup fails.
+        });
+      }
+    } catch {
+      // Ignore surrender failures and preserve the active streak locally.
+    }
   }, [
     applyStreakState,
     broadcastStreakState,

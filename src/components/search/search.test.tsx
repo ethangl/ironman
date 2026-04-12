@@ -193,6 +193,7 @@ describe("search", () => {
         searchTracks: vi.fn().mockResolvedValue([]),
       },
       spotifyActivity: {
+        getFavoriteArtists: vi.fn().mockResolvedValue([]),
         getRecentlyPlayed: vi
           .fn()
           .mockResolvedValue({ items: [], rateLimited: false }),

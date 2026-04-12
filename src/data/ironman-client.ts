@@ -1,13 +1,26 @@
 import { ConvexHttpClient } from "convex/browser";
 
-import { convexAuthClient as authClient } from "@/lib/convex-auth-client";
-import type { StreakData, TrackInfo } from "@/types";
-import { api } from "../../convex/_generated/api";
 import {
-  type PollIronmanInput,
-  type PollIronmanResult,
-  type ReportWeaknessResult,
-} from "./ironman";
+  clearCachedConvexAuthToken,
+  getCachedConvexAuthToken,
+} from "@/data/convex-auth-token";
+import { getConvexUrl } from "@/lib/convex-env";
+import type { StreakData, TrackInfo } from "@/types";
+import { api } from "@api";
+
+interface PollIronmanInput {
+  progressMs: number;
+  trackId: string;
+  isPlaying: boolean;
+}
+
+interface PollIronmanResult {
+  count: number;
+}
+
+interface ReportWeaknessResult {
+  broken: boolean;
+}
 
 export interface IronmanClient {
   getStatus: () => Promise<StreakData | null>;
@@ -26,21 +39,8 @@ export interface IronmanClient {
 let cachedIronmanClient: ConvexHttpClient | null = null;
 let cachedIronmanUrl: string | null = null;
 
-function getConvexIronmanUrl() {
-  const url =
-    typeof window === "undefined"
-      ? process.env.CONVEX_URL
-      : import.meta.env.CONVEX_URL;
-
-  if (!url) {
-    throw new Error("Missing CONVEX_URL for Convex ironman access.");
-  }
-
-  return url;
-}
-
 function getDefaultConvexIronmanClient() {
-  const convexUrl = getConvexIronmanUrl();
+  const convexUrl = getConvexUrl("Convex ironman access");
   if (!cachedIronmanClient || cachedIronmanUrl !== convexUrl) {
     cachedIronmanClient = new ConvexHttpClient(convexUrl);
     cachedIronmanUrl = convexUrl;
@@ -51,13 +51,11 @@ function getDefaultConvexIronmanClient() {
 
 async function getAuthenticatedConvexIronmanClient() {
   const client = getDefaultConvexIronmanClient();
-  const response = await authClient.convex.token({
-    fetchOptions: { throw: false },
-  });
-  const token = response.data?.token ?? null;
+  const token = await getCachedConvexAuthToken();
 
   if (!token) {
     client.clearAuth();
+    clearCachedConvexAuthToken();
     throw new Error("Unauthorized");
   }
 

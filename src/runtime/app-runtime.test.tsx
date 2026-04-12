@@ -47,13 +47,20 @@ describe("AppRuntimeProvider", () => {
     vi.clearAllMocks();
   });
 
-  it("reports a signed out status when there is no session", () => {
+  it("reports a signed out status after the session settle delay when there is no session", async () => {
+    vi.useFakeTimers();
     mockUseSession.mockReturnValue({
       data: null,
       isPending: false,
     });
 
     const { result } = renderHook(() => useAppRuntime(), { wrapper });
+
+    expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
+
+    await act(async () => {
+      vi.advanceTimersByTime(400);
+    });
 
     expect(result.current.auth.isAuthenticated).toBe(false);
     expect(result.current.capabilities.hasSession).toBe(false);
@@ -62,6 +69,7 @@ describe("AppRuntimeProvider", () => {
     expect(result.current.capabilities.canControlPlayback).toBe(false);
     expect(result.current.capabilities.canUseIronman).toBe(false);
     expect(mockGetAccessToken).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it("stays in a checking state while spotify access is still being verified", () => {
@@ -192,12 +200,93 @@ describe("AppRuntimeProvider", () => {
 
     sessionState.data = null;
     sessionState.isPending = true;
-    rerender();
+    await act(async () => {
+      rerender();
+    });
 
     expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
     expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(true);
     expect(result.current.capabilities.canControlPlayback).toBe(true);
     expect(result.current.capabilities.canUseIronman).toBe(true);
+  });
+
+  it("does not flash signed_out if a session appears during the settle window", async () => {
+    vi.useFakeTimers();
+    const sessionState: {
+      data: { user: { id: string } } | null;
+      isPending: boolean;
+    } = {
+      data: null,
+      isPending: true,
+    };
+
+    mockUseSession.mockImplementation(() => sessionState);
+    mockGetAccessToken.mockResolvedValue({
+      data: { accessToken: "spotify-token" },
+    });
+
+    const { result, rerender } = renderHook(() => useAppRuntime(), { wrapper });
+
+    expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
+
+    sessionState.isPending = false;
+    sessionState.data = null;
+    await act(async () => {
+      rerender();
+    });
+
+    expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
+
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+
+    sessionState.data = { user: { id: "user-1" } };
+    await act(async () => {
+      rerender();
+      await Promise.resolve();
+    });
+
+    expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
+    vi.useRealTimers();
+  });
+
+  it("does not flash reconnect_required while a new session's spotify check is still pending", async () => {
+    const sessionState: {
+      data: { user: { id: string } } | null;
+      isPending: boolean;
+    } = {
+      data: null,
+      isPending: false,
+    };
+
+    const deferred = createDeferred<{
+      data?: { accessToken: string | null };
+    }>();
+
+    mockUseSession.mockImplementation(() => sessionState);
+    mockGetAccessToken.mockImplementation(() => deferred.promise);
+
+    const { result, rerender } = renderHook(() => useAppRuntime(), { wrapper });
+
+    await act(async () => {
+      vi.useFakeTimers();
+      vi.advanceTimersByTime(400);
+      vi.useRealTimers();
+    });
+
+    sessionState.data = { user: { id: "user-1" } };
+    await act(async () => {
+      rerender();
+    });
+
+    expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
+
+    deferred.resolve({ data: { accessToken: "spotify-token" } });
+
+    await waitFor(() => {
+      expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
+    });
   });
 
   it("throws when used outside the runtime provider", () => {

@@ -1,7 +1,8 @@
 import { ConvexHttpClient } from "convex/browser";
 
-import { api } from "../../convex/_generated/api";
-import type { ProfileData } from "@/lib/profile-data";
+import { api } from "@api";
+import { getConvexUrl } from "@/lib/convex-env";
+import type { ProfileData } from "@shared/profile-data";
 
 export interface ProfileClient {
   getCurrent: (
@@ -16,19 +17,6 @@ export interface ProfileClient {
 
 let cachedProfileClient: ProfileClient | null = null;
 let cachedProfileUrl: string | null = null;
-
-function getConvexProfileUrl() {
-  const url =
-    typeof window === "undefined"
-      ? process.env.CONVEX_URL
-      : import.meta.env.CONVEX_URL;
-
-  if (!url) {
-    throw new Error("Missing CONVEX_URL for Convex profile access.");
-  }
-
-  return url;
-}
 
 export function createConvexProfileClient(convexUrl: string): ProfileClient {
   const convex = new ConvexHttpClient(convexUrl);
@@ -51,7 +39,7 @@ export function createConvexProfileClient(convexUrl: string): ProfileClient {
 }
 
 function getDefaultConvexProfileClient() {
-  const convexUrl = getConvexProfileUrl();
+  const convexUrl = getConvexUrl("Convex profile access");
 
   if (!cachedProfileClient || cachedProfileUrl !== convexUrl) {
     cachedProfileClient = createConvexProfileClient(convexUrl);

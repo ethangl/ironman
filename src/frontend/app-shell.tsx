@@ -7,14 +7,12 @@ import { WebPlayerProvider } from "@/components/player/web-player-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { defaultAppDataClient } from "@/data/client";
 import { convexAuthClient as authClient } from "@/lib/convex-auth-client";
+import { getConvexUrl } from "@/lib/convex-env";
 import { getConvexReactClient } from "@/lib/convex-react";
 import { AppRuntimeProvider } from "@/runtime/app-runtime";
 
 export function AppShell() {
-  const convexUrl = import.meta.env.CONVEX_URL;
-  if (!convexUrl) {
-    throw new Error("Missing CONVEX_URL for the Vite app shell.");
-  }
+  const convexUrl = getConvexUrl("the Vite app shell");
 
   const convexClient = useMemo(
     () => getConvexReactClient(convexUrl),

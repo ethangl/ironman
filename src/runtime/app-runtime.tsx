@@ -18,6 +18,7 @@ import {
 
 type SessionState = ReturnType<typeof useSession>;
 type SessionData = SessionState["data"];
+const SESSION_SETTLE_DELAY_MS = 400;
 
 export interface AppAuthRuntime {
   session: SessionData;
@@ -113,11 +114,12 @@ function useAuthRuntimeValue(dataClient: AppDataClient): AppRuntime {
   const { data: session, isPending } = useSession();
   const [lastResolvedSession, setLastResolvedSession] =
     useState<SessionData>(session);
+  const [isSessionSettled, setIsSessionSettled] = useState(() => !!session);
   const [lastSpotifyReadyUserId, setLastSpotifyReadyUserId] = useState<
     string | null
   >(null);
   const effectiveSession =
-    session ?? (isPending ? lastResolvedSession : null);
+    session ?? (!isSessionSettled ? lastResolvedSession : null);
   const sessionUserId = effectiveSession?.user.id ?? null;
   const [spotifyConnection, setSpotifyConnection] = useState<
     "unknown" | "connected" | "disconnected"
@@ -125,17 +127,24 @@ function useAuthRuntimeValue(dataClient: AppDataClient): AppRuntime {
 
   useEffect(() => {
     if (session) {
-      queueMicrotask(() => {
-        setLastResolvedSession(session);
-      });
+      setIsSessionSettled(true);
+      setLastResolvedSession(session);
       return;
     }
 
-    if (!isPending) {
-      queueMicrotask(() => {
-        setLastResolvedSession(null);
-      });
+    if (isPending) {
+      setIsSessionSettled(false);
+      return;
     }
+
+    const timeout = window.setTimeout(() => {
+      setLastResolvedSession(null);
+      setIsSessionSettled(true);
+    }, SESSION_SETTLE_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
   }, [isPending, session]);
 
   const getSpotifyAccessToken = useCallback(async () => {
@@ -147,11 +156,13 @@ function useAuthRuntimeValue(dataClient: AppDataClient): AppRuntime {
 
   useEffect(() => {
     if (!sessionUserId) {
-      queueMicrotask(() => {
-        setSpotifyConnection("disconnected");
-      });
+      setSpotifyConnection("disconnected");
       return;
     }
+
+    setSpotifyConnection((current) =>
+      current === "connected" ? current : "unknown",
+    );
 
     let cancelled = false;
     void authClient
@@ -174,21 +185,17 @@ function useAuthRuntimeValue(dataClient: AppDataClient): AppRuntime {
 
   useEffect(() => {
     if (!sessionUserId) {
-      queueMicrotask(() => {
-        setLastSpotifyReadyUserId(null);
-      });
+      setLastSpotifyReadyUserId(null);
       return;
     }
 
     if (spotifyConnection === "connected") {
-      queueMicrotask(() => {
-        setLastSpotifyReadyUserId(sessionUserId);
-      });
+      setLastSpotifyReadyUserId(sessionUserId);
     }
   }, [sessionUserId, spotifyConnection]);
 
   const spotifyStatus = getSpotifyStatus({
-    isPending,
+    isPending: isPending || !isSessionSettled,
     session: effectiveSession,
     spotifyConnection: effectiveSession ? spotifyConnection : "disconnected",
   });
@@ -201,7 +208,7 @@ function useAuthRuntimeValue(dataClient: AppDataClient): AppRuntime {
     () => ({
       auth: {
         session: effectiveSession,
-        isPending,
+        isPending: isPending || !isSessionSettled,
         isAuthenticated: !!effectiveSession,
         signIn,
         signOut,
@@ -225,6 +232,7 @@ function useAuthRuntimeValue(dataClient: AppDataClient): AppRuntime {
       effectiveSession,
       getSpotifyAccessToken,
       isPending,
+      isSessionSettled,
       spotifyStatus,
       spotifyConnection,
     ],

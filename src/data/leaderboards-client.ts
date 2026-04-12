@@ -1,16 +1,19 @@
 import { ConvexHttpClient } from "convex/browser";
 
-import { api } from "../../convex/_generated/api";
 import {
   type BangerSong,
   type HellscapeSong,
+  type HomeLeaderboardsResponse,
   type IronmenEntry,
   type LeaderboardEntry,
   type TrackLeaderboardResponse,
-} from "./leaderboards";
+} from "@shared/leaderboards";
+import { api } from "@api";
+import { getConvexUrl } from "@/lib/convex-env";
 
 export interface LeaderboardsClient {
   getGlobal: () => Promise<LeaderboardEntry[]>;
+  getHome: () => Promise<HomeLeaderboardsResponse>;
   getTrack: (
     trackId: string,
     currentUserId?: string | null,
@@ -23,21 +26,8 @@ export interface LeaderboardsClient {
 let cachedLeaderboardsClient: LeaderboardsClient | null = null;
 let cachedLeaderboardsUrl: string | null = null;
 
-function getConvexLeaderboardsUrl() {
-  const url =
-    typeof window === "undefined"
-      ? process.env.CONVEX_URL
-      : import.meta.env.CONVEX_URL;
-
-  if (!url) {
-    throw new Error("Missing CONVEX_URL for Convex leaderboard access.");
-  }
-
-  return url;
-}
-
 function getDefaultConvexLeaderboardsClient() {
-  const convexUrl = getConvexLeaderboardsUrl();
+  const convexUrl = getConvexUrl("Convex leaderboard access");
 
   if (!cachedLeaderboardsClient || cachedLeaderboardsUrl !== convexUrl) {
     cachedLeaderboardsClient = createConvexLeaderboardsClient(convexUrl);
@@ -49,6 +39,7 @@ function getDefaultConvexLeaderboardsClient() {
 
 export const convexLeaderboardsClient: LeaderboardsClient = {
   getGlobal: () => getDefaultConvexLeaderboardsClient().getGlobal(),
+  getHome: () => getDefaultConvexLeaderboardsClient().getHome(),
   getTrack: (trackId, currentUserId) =>
     getDefaultConvexLeaderboardsClient().getTrack(trackId, currentUserId),
   getIronmen: () => getDefaultConvexLeaderboardsClient().getIronmen(),
@@ -63,6 +54,7 @@ export function createConvexLeaderboardsClient(
 
   return {
     getGlobal: () => convex.query(api.leaderboards.global, {}),
+    getHome: () => convex.query(api.leaderboards.home, {}),
     getTrack: (trackId, currentUserId) =>
       convex.query(api.leaderboards.track, {
         trackId,

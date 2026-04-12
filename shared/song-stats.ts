@@ -22,6 +22,32 @@ export interface SongStats {
   }>;
 }
 
+export interface SongStatsSummaryRecord {
+  trackName: string;
+  trackArtist: string;
+  trackImage: string | null;
+  trackDuration: number;
+  totalPlays: number;
+  totalAttempts: number;
+  uniqueUsers: number;
+  activeCount: number;
+  avgStreak: number;
+  weaknessCount: number;
+  difficulty: number;
+}
+
+export interface SongStatsIronManRecord {
+  userName: string | null;
+  count: number;
+}
+
+export interface SongStatsShameRecord {
+  userName: string | null;
+  count: number;
+  startedAtMs: number;
+  endedAtMs: number;
+}
+
 export function buildSongStats(
   streaks: Array<
     LeaderboardStreakRecord & {
@@ -36,8 +62,7 @@ export function buildSongStats(
   const totalAttempts = streaks.length;
   const uniqueUsers = new Set(streaks.map((s) => s.userId)).size;
   const activeCount = streaks.filter((s) => s.active).length;
-  const avgStreak =
-    totalAttempts > 0 ? Math.round(totalPlays / totalAttempts) : 0;
+  const avgStreak = totalAttempts > 0 ? Math.round(totalPlays / totalAttempts) : 0;
 
   const best = streaks.reduce(
     (max, s) => (s.count > max.count ? s : max),
@@ -80,8 +105,48 @@ export function buildSongStats(
     avgStreak,
     weaknessCount,
     difficulty,
-    ironMan:
-      best.count > 0 ? { name: best.userName, count: best.count } : null,
+    ironMan: best.count > 0 ? { name: best.userName, count: best.count } : null,
     shameList,
+  };
+}
+
+export function buildSongStatsFromSummary(
+  summary: SongStatsSummaryRecord,
+  ironMan: SongStatsIronManRecord | null,
+  shameList: SongStatsShameRecord[],
+): SongStats {
+  const difficulty = computeSongDifficulty(
+    summary.trackDuration,
+    summary.totalAttempts >= 3
+      ? {
+          weaknessRate: summary.weaknessCount / Math.max(summary.totalPlays, 1),
+          avgCount: summary.totalPlays / Math.max(summary.totalAttempts, 1),
+          totalAttempts: summary.totalAttempts,
+        }
+      : undefined,
+  );
+
+  return {
+    trackName: summary.trackName,
+    trackArtist: summary.trackArtist,
+    trackImage: summary.trackImage,
+    trackDuration: summary.trackDuration,
+    totalPlays: summary.totalPlays,
+    totalAttempts: summary.totalAttempts,
+    uniqueUsers: summary.uniqueUsers,
+    activeCount: summary.activeCount,
+    avgStreak: summary.avgStreak,
+    weaknessCount: summary.weaknessCount,
+    difficulty,
+    ironMan:
+      ironMan && ironMan.count > 0
+        ? { name: ironMan.userName, count: ironMan.count }
+        : null,
+    shameList: shameList.map((entry) => ({
+      userName: entry.userName,
+      count: entry.count,
+      startedAt: new Date(entry.startedAtMs).toISOString(),
+      endedAt: new Date(entry.endedAtMs).toISOString(),
+    })),
   };
 }

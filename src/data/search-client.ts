@@ -1,5 +1,5 @@
 import type { SpotifySearchResults, SpotifyTrack } from "@/types";
-import { api } from "../../convex/_generated/api";
+import { api } from "@api";
 import { getAuthenticatedSpotifyConvexClient } from "./spotify-convex-client";
 
 export interface SearchClient {

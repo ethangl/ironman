@@ -1,7 +1,7 @@
 import { AppLink } from "@/components/app-link";
 import { Avatar } from "@/components/avatar";
 import { List, ListItem } from "@/components/list";
-import type { LeaderboardEntry } from "@/data/leaderboards";
+import type { LeaderboardEntry } from "@shared/leaderboards";
 import { useLeaderboardData } from "@/hooks/use-leaderboard-data";
 
 function EntryRow({
@@ -111,6 +111,33 @@ export function Leaderboard({
 }) {
   const { entries, myEntry, loading } = useLeaderboardData(trackId);
 
+  return (
+    <LeaderboardList
+      entries={entries}
+      myEntry={myEntry}
+      loading={loading}
+      trackId={trackId}
+      liveCount={liveCount}
+      title={title}
+    />
+  );
+}
+
+export function LeaderboardList({
+  entries,
+  myEntry,
+  loading,
+  trackId,
+  liveCount,
+  title = "Longest Streaks",
+}: {
+  entries: LeaderboardEntry[];
+  myEntry: LeaderboardEntry | null;
+  loading: boolean;
+  trackId?: string;
+  liveCount?: number;
+  title?: string;
+}) {
   return (
     <List title={title} loading={loading} count={liveCount}>
       {entries.map((entry) => (

@@ -1,7 +1,8 @@
 import { ConvexHttpClient } from "convex/browser";
 
-import { api } from "../../convex/_generated/api";
-import type { SongStats } from "@/lib/song-stats";
+import { api } from "@api";
+import { getConvexUrl } from "@/lib/convex-env";
+import type { SongStats } from "@shared/song-stats";
 
 export interface SongsClient {
   getStats: (trackId: string) => Promise<SongStats | null>;
@@ -9,19 +10,6 @@ export interface SongsClient {
 
 let cachedSongsClient: SongsClient | null = null;
 let cachedSongsUrl: string | null = null;
-
-function getConvexSongsUrl() {
-  const url =
-    typeof window === "undefined"
-      ? process.env.CONVEX_URL
-      : import.meta.env.CONVEX_URL;
-
-  if (!url) {
-    throw new Error("Missing CONVEX_URL for Convex song stats access.");
-  }
-
-  return url;
-}
 
 export function createConvexSongsClient(convexUrl: string): SongsClient {
   const convex = new ConvexHttpClient(convexUrl);
@@ -32,7 +20,7 @@ export function createConvexSongsClient(convexUrl: string): SongsClient {
 }
 
 function getDefaultConvexSongsClient() {
-  const convexUrl = getConvexSongsUrl();
+  const convexUrl = getConvexUrl("Convex song stats access");
 
   if (!cachedSongsClient || cachedSongsUrl !== convexUrl) {
     cachedSongsClient = createConvexSongsClient(convexUrl);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { useAppDataClient } from "@/data/client";
-import type { SongStats } from "@/lib/song-stats";
+import type { SongStats } from "@shared/song-stats";
 
 export function useSongStats(trackId: string) {
   const client = useAppDataClient();

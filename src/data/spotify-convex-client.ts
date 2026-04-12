@@ -1,25 +1,17 @@
 import { ConvexHttpClient } from "convex/browser";
 
-import { convexAuthClient as authClient } from "@/lib/convex-auth-client";
+import {
+  clearCachedConvexAuthToken,
+  getCachedConvexAuthToken,
+} from "@/data/convex-auth-token";
+import { getConvexUrl } from "@/lib/convex-env";
+import { api } from "@api";
 
 let cachedClient: ConvexHttpClient | null = null;
 let cachedUrl: string | null = null;
 
-export function getSpotifyConvexUrl() {
-  const url =
-    typeof window === "undefined"
-      ? process.env.CONVEX_URL
-      : import.meta.env.CONVEX_URL;
-
-  if (!url) {
-    throw new Error("Missing CONVEX_URL for Convex Spotify access.");
-  }
-
-  return url;
-}
-
 export function getDefaultSpotifyConvexClient() {
-  const convexUrl = getSpotifyConvexUrl();
+  const convexUrl = getConvexUrl("Convex Spotify access");
 
   if (!cachedClient || cachedUrl !== convexUrl) {
     cachedClient = new ConvexHttpClient(convexUrl);
@@ -31,16 +23,19 @@ export function getDefaultSpotifyConvexClient() {
 
 export async function getAuthenticatedSpotifyConvexClient() {
   const client = getDefaultSpotifyConvexClient();
-  const response = await authClient.convex.token({
-    fetchOptions: { throw: false },
-  });
-  const token = response.data?.token ?? null;
+  const token = await getCachedConvexAuthToken();
 
   if (!token) {
     client.clearAuth();
+    clearCachedConvexAuthToken();
     throw new Error("Unauthorized");
   }
 
   client.setAuth(token);
   return client;
+}
+
+export async function clearSpotifyDevCache() {
+  const client = await getAuthenticatedSpotifyConvexClient();
+  return client.action(api.spotify.clearCache, {});
 }

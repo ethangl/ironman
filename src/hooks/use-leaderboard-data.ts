@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { useAppDataClient } from "@/data/client";
-import { type LeaderboardEntry } from "@/data/leaderboards";
+import { type LeaderboardEntry } from "@shared/leaderboards";
 import { useAppAuth } from "@/runtime/app-runtime";
 
 export function useLeaderboardData(trackId?: string) {

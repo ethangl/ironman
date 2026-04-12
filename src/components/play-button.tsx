@@ -17,9 +17,10 @@ export const PlayButton: FC<PlayButtonProps> = ({
 
   return (
     <Button
+      variant="ghost"
       size={size}
       onClick={togglePlay}
-      className={cn("bg-white/10 hover:bg-white/5", className)}
+      className={cn("bg-white/10 hover:bg-white/5 border-0", className)}
       {...props}
     >
       {pausable && !paused ? (

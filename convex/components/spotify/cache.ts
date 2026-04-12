@@ -58,3 +58,15 @@ export const set = mutation({
     return null;
   },
 });
+
+export const clear = mutation({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const entries = await ctx.db.query("spotifyCache").collect();
+
+    await Promise.all(entries.map((entry) => ctx.db.delete(entry._id)));
+
+    return entries.length;
+  },
+});

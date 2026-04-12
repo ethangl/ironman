@@ -10,10 +10,10 @@ export const RecentTracks: FC = () => {
   const { playTrack } = useWebPlayerActions();
 
   return (
-    <section className="space-y-4">
-      <h3 className="text-lg font-bold">Recents</h3>
+    <section className="-mx-6 space-y-4">
+      <h3 className="mx-6 text-lg font-bold">Recents</h3>
       <ScrollArea>
-        <ol className="flex w-max gap-2">
+        <ol className="flex gap-2 px-3 w-max">
           {recentTracks.map(({ track }) => (
             <li key={track.id}>
               <Thumbnail

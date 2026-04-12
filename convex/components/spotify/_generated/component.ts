@@ -69,6 +69,19 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         },
         Name
       >;
+      favoriteArtists: FunctionReference<
+        "action",
+        "internal",
+        { accessToken: string; cacheScope?: string; limit?: number },
+        Array<{
+          followerCount: number;
+          genres: Array<string>;
+          id: string;
+          image: string | null;
+          name: string;
+        }>,
+        Name
+      >;
       playlistsPage: FunctionReference<
         "action",
         "internal",
@@ -145,6 +158,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
       >;
     };
     cache: {
+      clear: FunctionReference<"mutation", "internal", {}, number, Name>;
       get: FunctionReference<
         "query",
         "internal",

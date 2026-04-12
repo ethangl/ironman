@@ -15,11 +15,11 @@ export function SearchInput() {
   return (
     <div
       className={cn(
-        "absolute duration-1000 ease-elastic flex h-full inset-0 items-center justify-center mx-auto transition-all",
-        expanded ? "w-md" : "w-12",
+        "absolute duration-1000 ease-elastic flex h-full inset-0 items-center justify-center mx-auto transition-all z-7",
+        expanded ? "w-full sm:w-md" : "w-16",
       )}
     >
-      <div className="absolute flex items-center inset-4 justify-center m-auto pointer-events-none right-auto text-muted-foreground size-4">
+      <div className="absolute flex items-center left-6 justify-center m-auto pointer-events-none text-muted-foreground size-4 top-6">
         {loading ? <Spinner /> : <SearchIcon className="size-4" />}
       </div>
       <Input
@@ -31,15 +31,15 @@ export function SearchInput() {
         onValueChange={(v) => setQuery(v)}
         placeholder="Search songs, artists, or playlists..."
         className={cn(
-          "bg-transparent duration-333 ease-out h-12 pl-10.5 text-lg! transition-all w-full",
+          "bg-transparent duration-333 ease-out h-12 mx-2 pl-12 text-lg! transition-all w-full",
           expanded
-            ? "cursor-auto bg-input/50 placeholder:opacity-100"
-            : "bg-transparent hover:bg-input/25 cursor-pointer placeholder:opacity-0",
+            ? "cursor-auto bg-muted placeholder:opacity-100"
+            : "bg-transparent hover:bg-muted cursor-pointer placeholder:opacity-0",
         )}
       />
       {query && (
         <button
-          className="absolute flex inset-4 items-center justify-center m-auto size-4 text-muted-foreground left-auto"
+          className="absolute bg-background/25 flex right-5 items-center justify-center m-auto size-6 rounded-full text-muted-foreground top-5"
           onClick={() => setQuery("")}
         >
           <XIcon className="size-4" />

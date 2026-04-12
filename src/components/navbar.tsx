@@ -1,12 +1,15 @@
 import { HomeIcon } from "lucide-react";
+
 import { useAppAuth, useAppCapabilities } from "@/runtime/app-runtime";
 import { AppLink } from "./app-link";
 import { Avatar } from "./avatar";
+import { ClearSpotifyCacheButton } from "./clear-cache-button";
 import { LoginButton } from "./login-button";
 import { SearchInput } from "./search/search-input";
 import { SearchProvider } from "./search/search-provider";
 import { SearchResults } from "./search/search-results";
 import { Button } from "./ui/button";
+import { Spinner } from "./ui/spinner";
 
 export function Navbar() {
   const { session, isAuthenticated } = useAppAuth();
@@ -15,29 +18,33 @@ export function Navbar() {
   if (isAuthenticated && session && canBrowsePersonalSpotify) {
     return (
       <SearchProvider>
-        <header className="backdrop-blur-lg backdrop-brightness-25 bottom-auto fixed flex inset-0 items-center h-16 justify-between pl-2 pr-4 top-0 z-20">
-          <SearchInput />
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            nativeButton={false}
-            render={
-              <AppLink href="/">
-                <HomeIcon />
-              </AppLink>
-            }
-          />
-          <AppLink
-            href="/profile"
-            className="inline-flex gap-2 text-sm text-muted-foreground hover:text-foreground transition"
-          >
-            <Avatar
-              id={session.user.id}
-              image={session.user.image || null}
-              name={session.user.name}
-              sizeClassName="size-8 text-xl"
+        <header className="backdrop-blur-lg backdrop-brightness-25 bottom-auto fixed inset-0 px-3 top-0 z-20">
+          <div className="flex gap-2 h-16 items-center relative -z-1">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              nativeButton={false}
+              render={
+                <AppLink href="/">
+                  <HomeIcon />
+                </AppLink>
+              }
+              className="mr-auto"
             />
-          </AppLink>
+            <ClearSpotifyCacheButton />
+            <AppLink
+              href="/profile"
+              className="inline-flex gap-2 text-sm text-muted-foreground hover:text-foreground transition"
+            >
+              <Avatar
+                id={session.user.id}
+                image={session.user.image || null}
+                name={session.user.name}
+                sizeClassName="size-8 text-xl"
+              />
+            </AppLink>
+          </div>
+          <SearchInput />
         </header>
         <SearchResults />
       </SearchProvider>
@@ -61,6 +68,15 @@ export function Navbar() {
               {spotifyStatus.description}
             </p>
           </div>
+          <ClearSpotifyCacheButton />
+          {spotifyStatus.code === "checking" ? (
+            <div
+              aria-label="Checking Spotify connection"
+              className="flex h-9 w-9 items-center justify-center"
+            >
+              <Spinner />
+            </div>
+          ) : null}
           <AppLink
             href="/profile"
             className="inline-flex gap-2 text-sm text-muted-foreground transition hover:text-foreground"
@@ -72,7 +88,7 @@ export function Navbar() {
               sizeClassName="size-8 text-xl"
             />
           </AppLink>
-          <LoginButton />
+          {spotifyStatus.code === "reconnect_required" ? <LoginButton /> : null}
         </div>
       </header>
     );

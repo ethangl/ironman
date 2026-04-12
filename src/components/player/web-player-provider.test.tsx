@@ -104,6 +104,18 @@ const baseSpotifyMock = {
     .mockResolvedValue({ status: 204, playback: null }),
 };
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
+}
+
 function PlayerProbe() {
   const { streak, count, paused } = useWebPlayerState();
   return (
@@ -128,6 +140,11 @@ function PlayActionProbe({
 }) {
   const { playTrack } = useWebPlayerActions();
   return <button onClick={() => void playTrack(track)}>play-track</button>;
+}
+
+function SurrenderActionProbe() {
+  const { surrender } = useWebPlayerActions();
+  return <button onClick={() => void surrender()}>surrender</button>;
 }
 
 function renderProvider(children?: ReactNode) {
@@ -349,5 +366,42 @@ describe("WebPlayerProvider", () => {
     });
 
     expect(playMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears the local streak immediately after surrender without waiting for repeat cleanup", async () => {
+    const ironman = createMockIronmanClient();
+    ironman.getStatus.mockResolvedValue(buildStreak());
+    ironman.surrender.mockResolvedValue(undefined);
+
+    const repeatDeferred = createDeferred<void>();
+    mockUseSpotify.mockReturnValue({
+      ...baseSpotifyMock,
+      setRepeat: vi.fn().mockImplementation(
+        () => repeatDeferred.promise,
+      ),
+    });
+
+    renderProviderWithClient(
+      { ironman },
+      <>
+        <PlayerProbe />
+        <SurrenderActionProbe />
+      </>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("track")).toHaveTextContent("Test Track");
+    });
+
+    act(() => {
+      screen.getByRole("button", { name: "surrender" }).click();
+    });
+
+    await waitFor(() => {
+      expect(ironman.surrender).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId("track")).toHaveTextContent("none");
+    });
+
+    repeatDeferred.resolve(undefined);
   });
 });

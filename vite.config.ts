@@ -8,7 +8,9 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      "@api": path.resolve(__dirname, "convex/_generated/api"),
       "@": path.resolve(__dirname, "src"),
+      "@shared": path.resolve(__dirname, "shared"),
     },
   },
   server: {

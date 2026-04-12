@@ -1,6 +1,11 @@
 import { v } from "convex/values";
 
 import { mutation } from "./_generated/server";
+import {
+  applySongSummaryDeltaForTrack,
+  hasTrackAttemptForUser,
+  rebuildSongSummaryForTrack,
+} from "./songSummaries";
 
 export const upsert = mutation({
   args: {
@@ -46,9 +51,37 @@ export const upsert = mutation({
 
     if (existing) {
       await ctx.db.patch(existing._id, payload);
+      await rebuildSongSummaryForTrack(ctx, existing.trackId);
+      if (existing.trackId !== args.trackId) {
+        await rebuildSongSummaryForTrack(ctx, args.trackId);
+      }
       return existing._id;
     }
 
-    return await ctx.db.insert("streaks", payload);
+    const isFirstTrackAttempt = !(await hasTrackAttemptForUser(
+      ctx,
+      args.trackId,
+      args.userId,
+    ));
+    const insertedId = await ctx.db.insert("streaks", payload);
+    await applySongSummaryDeltaForTrack(
+      ctx,
+      {
+        trackId: args.trackId,
+        trackName: args.trackName,
+        trackArtist: args.trackArtist,
+        trackImage: args.trackImage ?? null,
+        trackDuration: args.trackDuration,
+      },
+      {
+        totalAttempts: 1,
+        totalPlays: args.count,
+        totalWeaknesses: args.weaknessCount,
+        uniqueUsers: isFirstTrackAttempt ? 1 : 0,
+        activeCount: args.active ? 1 : 0,
+      },
+    );
+
+    return insertedId;
   },
 });

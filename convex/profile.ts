@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-import { buildProfileData } from "../src/lib/profile-data";
+import { buildProfileDataFromVisibleSortedStreaks } from "../shared/profile-data";
 import type { Doc } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 
@@ -54,11 +54,17 @@ export const get = query({
       return null;
     }
 
-    const streaks = await ctx.db
+    const visibleStreaks = await ctx.db
       .query("streaks")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId_and_count", (q) =>
+        q.eq("userId", args.userId).gte("count", 2),
+      )
+      .order("desc")
       .collect();
 
-    return buildProfileData(profileUser, streaks.map(toProfileStreak));
+    return buildProfileDataFromVisibleSortedStreaks(
+      profileUser,
+      visibleStreaks.map(toProfileStreak),
+    );
   },
 });

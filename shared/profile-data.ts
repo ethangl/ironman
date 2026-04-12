@@ -49,15 +49,19 @@ export function buildProfileData(
     .filter((streak) => streak.count > 1)
     .sort((a, b) => b.count - a.count);
 
-  const totalPlays = visibleStreaks.reduce(
-    (sum, streak) => sum + streak.count,
-    0,
-  );
+  return buildProfileDataFromVisibleSortedStreaks(user, visibleStreaks);
+}
+
+export function buildProfileDataFromVisibleSortedStreaks(
+  user: ProfileUserRecord,
+  visibleStreaks: LeaderboardStreakRecord[],
+): ProfileData {
+
+  const totalPlays = visibleStreaks.reduce((sum, streak) => sum + streak.count, 0);
   const totalStreaks = visibleStreaks.length;
   const bestStreak = visibleStreaks[0] ?? null;
   const activeStreak = visibleStreaks.find((streak) => streak.active) ?? null;
-  const uniqueSongs = new Set(visibleStreaks.map((streak) => streak.trackId))
-    .size;
+  const uniqueSongs = new Set(visibleStreaks.map((streak) => streak.trackId)).size;
   const weaknessCount = visibleStreaks.reduce(
     (sum, streak) => sum + streak.weaknessCount,
     0,

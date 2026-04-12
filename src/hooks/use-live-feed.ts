@@ -1,7 +1,7 @@
 import { useQuery } from "convex/react";
 
 import { FeedItem } from "@/types/feed";
-import { api } from "../../convex/_generated/api";
+import { api } from "@api";
 
 export function useLiveFeed() {
   const items = useQuery(api.feed.list) as FeedItem[] | undefined;

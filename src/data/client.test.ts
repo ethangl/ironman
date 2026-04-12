@@ -56,6 +56,12 @@ describe("createAppDataClient", () => {
     };
     const leaderboardOverride: LeaderboardsClient = {
       getGlobal: vi.fn().mockResolvedValue([]),
+      getHome: vi.fn().mockResolvedValue({
+        global: [],
+        ironmen: [],
+        bangers: [],
+        hellscape: [],
+      }),
       getTrack: vi.fn().mockResolvedValue({ leaderboard: [], myEntry: null }),
       getIronmen: vi.fn().mockResolvedValue([]),
       getBangers: vi.fn().mockResolvedValue([]),
@@ -69,6 +75,7 @@ describe("createAppDataClient", () => {
       searchTracks: vi.fn().mockResolvedValue([]),
     };
     const spotifyActivityOverride: SpotifyActivityClient = {
+      getFavoriteArtists: vi.fn().mockResolvedValue([]),
       getRecentlyPlayed: vi
         .fn()
         .mockResolvedValue({ items: [], rateLimited: false }),

@@ -1,20 +1,13 @@
+import {
+  convexClient,
+  crossDomainClient,
+} from "@convex-dev/better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
-import { convexClient, crossDomainClient } from "@convex-dev/better-auth/client/plugins";
 
-function getConvexAuthBaseUrl() {
-  const url =
-    import.meta.env.CONVEX_SITE_URL ??
-    process.env.CONVEX_SITE_URL ??
-    (process.env.NODE_ENV === "test" ? "http://127.0.0.1:3210" : undefined);
-  if (!url) {
-    throw new Error("Missing CONVEX_SITE_URL for Convex Better Auth.");
-  }
-
-  return url;
-}
+import { getConvexSiteUrl } from "@/lib/convex-env";
 
 export const convexAuthClient = createAuthClient({
-  baseURL: getConvexAuthBaseUrl(),
+  baseURL: getConvexSiteUrl("Convex Better Auth"),
   plugins: [convexClient(), crossDomainClient()],
 });
 

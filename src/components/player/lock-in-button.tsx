@@ -18,18 +18,14 @@ export const LockInButton: FC<ButtonProps> = ({ ...props }) => {
     >
       {streak?.active ? (
         <>
-          <LockIcon className="group-hover:hidden" />
-          <LockOpenIcon className="hidden group-hover:block" />
+          <LockIcon />
           <span className="font-bold text-sm tracking-tighter">
             <span className="tabular-nums">{count}</span>
             <span className="ml-px opacity-50">x</span>
           </span>
         </>
       ) : (
-        <>
-          <LockOpenIcon className="group-hover:hidden" />
-          <LockIcon className="hidden group-hover:block" />
-        </>
+        <LockOpenIcon />
       )}
     </Button>
   );

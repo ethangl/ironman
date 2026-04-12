@@ -3,12 +3,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { SpotifyApiError } from "./errors";
 import {
   bootstrap,
+  favoriteArtists,
   playlistTracks,
   playlistsPage,
   recentlyPlayed,
   topArtists,
 } from "./activity";
 import {
+  getFavoriteArtists,
   getPlaylistTracks,
   getRecentlyPlayed,
   getTopArtists,
@@ -17,6 +19,7 @@ import {
 import { getCachedValue, setCachedValue } from "./cacheHelpers";
 
 vi.mock("./activityApi", () => ({
+  getFavoriteArtists: vi.fn(),
   getPlaylistTracks: vi.fn(),
   getRecentlyPlayed: vi.fn(),
   getTopArtists: vi.fn(),
@@ -30,6 +33,7 @@ vi.mock("./cacheHelpers", () => ({
 
 const mockedGetCachedValue = vi.mocked(getCachedValue);
 const mockedSetCachedValue = vi.mocked(setCachedValue);
+const mockedGetFavoriteArtists = vi.mocked(getFavoriteArtists);
 const mockedGetPlaylistTracks = vi.mocked(getPlaylistTracks);
 const mockedGetRecentlyPlayed = vi.mocked(getRecentlyPlayed);
 const mockedGetTopArtists = vi.mocked(getTopArtists);
@@ -122,7 +126,6 @@ describe("spotify activity caching", () => {
           owner: "User One",
           public: true,
           trackCount: 20,
-          tracks: null,
         },
       ],
       total: 1,
@@ -217,6 +220,38 @@ describe("spotify activity caching", () => {
     );
   });
 
+  it("caches favorite artists per user", async () => {
+    const artists = [
+      {
+        id: "artist-2",
+        name: "Artist Two",
+        image: "artist-2.jpg",
+        followerCount: 4321,
+        genres: ["doom"],
+      },
+    ];
+    mockedGetCachedValue.mockResolvedValueOnce(null);
+    mockedGetFavoriteArtists.mockResolvedValueOnce(artists);
+
+    const result = await runAction<
+      { accessToken: string; limit?: number; cacheScope?: string },
+      typeof artists
+    >(favoriteArtists as unknown as RegisteredAction, {
+      accessToken: "spotify-token",
+      limit: 25,
+      cacheScope: "user-1",
+    });
+
+    expect(result).toEqual(artists);
+    expect(mockedGetFavoriteArtists).toHaveBeenCalledWith("spotify-token", 25);
+    expect(mockedSetCachedValue).toHaveBeenCalledWith(
+      expect.anything(),
+      "favoriteArtists:user-1:25",
+      artists,
+      15 * 60 * 1000,
+    );
+  });
+
   it("caches bootstrap responses with a scoped aggregate key", async () => {
     const recentTracks = [
       {
@@ -241,7 +276,6 @@ describe("spotify activity caching", () => {
           owner: "User One",
           public: true,
           trackCount: 20,
-          tracks: null,
         },
       ],
       total: 1,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useAppDataClient } from "@/data/client";
-import type { ProfileData } from "@/lib/profile-data";
+import type { ProfileData } from "@shared/profile-data";
 import { useAppAuth } from "@/runtime/app-runtime";
 
 interface UseProfileDataResult {

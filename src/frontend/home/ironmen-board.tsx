@@ -1,12 +1,17 @@
 import { AppLink } from "@/components/app-link";
 import { Avatar } from "@/components/avatar";
 import { List, ListItem } from "@/components/list";
+import type { IronmenEntry } from "@shared/leaderboards";
 import { useIronmenBoardData } from "@/hooks/use-home-boards";
 import { difficultyLabel } from "@/lib/difficulty";
 
-export function IronmenBoard() {
-  const { items: entries, loading } = useIronmenBoardData();
-
+export function IronmenBoardList({
+  entries,
+  loading,
+}: {
+  entries: IronmenEntry[];
+  loading: boolean;
+}) {
   return (
     <List title="True Iron Men" loading={loading} count={entries.length}>
       {entries.map((entry) => {
@@ -77,4 +82,9 @@ export function IronmenBoard() {
       })}
     </List>
   );
+}
+
+export function IronmenBoard() {
+  const { items: entries, loading } = useIronmenBoardData();
+  return <IronmenBoardList entries={entries} loading={loading} />;
 }

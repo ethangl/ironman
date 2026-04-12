@@ -41,6 +41,12 @@ interface TopArtistsResponse {
   items?: SpotifyApiArtist[];
 }
 
+interface FollowedArtistsResponse {
+  artists?: {
+    items?: SpotifyApiArtist[];
+  };
+}
+
 export async function getRecentlyPlayed(token: string, limit = 50) {
   const data = await spotifyFetch<RecentlyPlayedResponse>(
     `/me/player/recently-played?limit=${limit}`,
@@ -63,7 +69,6 @@ export async function getUserPlaylists(token: string, limit = 50, offset = 0) {
   const items = data.items.map((playlist) => ({
     ...mapPlaylist(playlist as SpotifyApiPlaylist),
     trackCount: playlist.items?.total ?? playlist.tracks?.total ?? 0,
-    tracks: null,
   }));
 
   if (process.env.NODE_ENV !== "test") {
@@ -105,6 +110,22 @@ export async function getTopArtists(token: string, limit = 20) {
 
   if (process.env.NODE_ENV !== "test") {
     console.info(`[spotify] top artists limit=${limit} items=${artists.length}`);
+  }
+
+  return artists;
+}
+
+export async function getFavoriteArtists(token: string, limit = 50) {
+  const data = await spotifyFetch<FollowedArtistsResponse>(
+    `/me/following?type=artist&limit=${limit}`,
+    token,
+  );
+  const artists = (data?.artists?.items ?? []).map(mapArtist);
+
+  if (process.env.NODE_ENV !== "test") {
+    console.info(
+      `[spotify] followed artists limit=${limit} items=${artists.length}`,
+    );
   }
 
   return artists;

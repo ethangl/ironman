@@ -1,8 +1,17 @@
 import { ConvexError, v } from "convex/values";
 
-import { detectCompletion } from "../src/lib/streak";
-import { api } from "./_generated/api";
-import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { detectCompletion, isNearTrackEnd } from "./lib/streak";
+import {
+  applySongSummaryDeltaForTrack,
+  hasTrackAttemptForUser,
+} from "./songSummaries";
+import { internal } from "./_generated/api";
+import {
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from "./_generated/server";
 import { authComponent } from "./betterAuth";
 import type { Doc } from "./_generated/dataModel";
 
@@ -23,16 +32,32 @@ function toStreakData(streak: Doc<"streaks">) {
   };
 }
 
+function toSongSummarySource(streak: {
+  trackId: string;
+  trackName: string;
+  trackArtist: string;
+  trackImage?: string | null;
+  trackDuration: number;
+}) {
+  return {
+    trackId: streak.trackId,
+    trackName: streak.trackName,
+    trackArtist: streak.trackArtist,
+    trackImage: streak.trackImage ?? null,
+    trackDuration: streak.trackDuration,
+  };
+}
+
 async function getActiveStreakForUser(
   ctx: QueryCtx | MutationCtx,
   userId: string,
 ) {
-  const streaks = await ctx.db
+  return await ctx.db
     .query("streaks")
-    .withIndex("by_userId", (q) => q.eq("userId", userId))
-    .collect();
-
-  return streaks.find((streak) => streak.active) ?? null;
+    .withIndex("by_userId_and_active", (q) =>
+      q.eq("userId", userId).eq("active", true),
+    )
+    .unique();
 }
 
 export const status = query({
@@ -67,8 +92,13 @@ export const start = mutation({
 
     const startedAt = Date.now();
     const streakId = `streak:${user._id}:${startedAt}`;
+    const isFirstTrackAttempt = !(await hasTrackAttemptForUser(
+      ctx,
+      args.trackId,
+      user._id,
+    ));
 
-    const docId = await ctx.db.insert("streaks", {
+    await ctx.db.insert("streaks", {
       streakId,
       userId: user._id,
       userName: user.name ?? undefined,
@@ -83,11 +113,25 @@ export const start = mutation({
       hardcore: !!args.hardcore,
       startedAt,
       weaknessCount: 0,
-      lastProgressMs: 0,
-      lastCheckedAt: startedAt,
+      lastCompletionArmed: false,
     });
+    await applySongSummaryDeltaForTrack(
+      ctx,
+      toSongSummarySource({
+        trackId: args.trackId,
+        trackName: args.trackName,
+        trackArtist: args.trackArtist,
+        trackImage: args.trackImage,
+        trackDuration: args.trackDuration,
+      }),
+      {
+        totalAttempts: 1,
+        uniqueUsers: isFirstTrackAttempt ? 1 : 0,
+        activeCount: 1,
+      },
+    );
 
-    await ctx.runMutation(api.feed.logEvent, {
+    await ctx.scheduler.runAfter(0, internal.feed.logEvent, {
       sourceId: `ironman:${streakId}:lock_in`,
       streakId,
       userId: user._id,
@@ -100,12 +144,20 @@ export const start = mutation({
       createdAt: startedAt,
     });
 
-    const streak = await ctx.db.get(docId);
-    if (!streak) {
-      throw new ConvexError("Could not start ironman mode.");
-    }
-
-    return toStreakData(streak);
+    return {
+      id: streakId,
+      trackId: args.trackId,
+      trackName: args.trackName,
+      trackArtist: args.trackArtist,
+      trackImage: args.trackImage ?? null,
+      trackDuration: args.trackDuration,
+      count: 0,
+      active: true,
+      hardcore: !!args.hardcore,
+      startedAt: new Date(startedAt).toISOString(),
+      userName: user.name ?? undefined,
+      userImage: user.image ?? undefined,
+    };
   },
 });
 
@@ -152,10 +204,14 @@ export const surrender = mutation({
     await ctx.db.patch(streak._id, {
       active: false,
       endedAt,
-      lastCheckedAt: endedAt,
     });
+    await applySongSummaryDeltaForTrack(
+      ctx,
+      toSongSummarySource(streak),
+      { activeCount: -1 },
+    );
 
-    await ctx.runMutation(api.feed.logEvent, {
+    await ctx.scheduler.runAfter(0, internal.feed.logEvent, {
       sourceId: `ironman:${streak.streakId}:surrender`,
       streakId: streak.streakId,
       userId: user._id,
@@ -199,10 +255,14 @@ export const reportWeakness = mutation({
         active: false,
         endedAt,
         weaknessCount: nextWeaknessCount,
-        lastCheckedAt: endedAt,
       });
+      await applySongSummaryDeltaForTrack(
+        ctx,
+        toSongSummarySource(streak),
+        { totalWeaknesses: 1, activeCount: -1 },
+      );
 
-      await ctx.runMutation(api.feed.logEvent, {
+      await ctx.scheduler.runAfter(0, internal.feed.logEvent, {
         sourceId: `ironman:${streak.streakId}:hardcore-break`,
         streakId: streak.streakId,
         userId: user._id,
@@ -220,8 +280,12 @@ export const reportWeakness = mutation({
 
     await ctx.db.patch(streak._id, {
       weaknessCount: nextWeaknessCount,
-      lastCheckedAt: Date.now(),
     });
+    await applySongSummaryDeltaForTrack(
+      ctx,
+      toSongSummarySource(streak),
+      { totalWeaknesses: 1 },
+    );
 
     return { broken: false };
   },
@@ -251,8 +315,16 @@ export const poll = mutation({
       };
     }
 
+    const wasNearTrackEnd =
+      streak.lastCompletionArmed ??
+      isNearTrackEnd(streak.lastProgressMs ?? 0, streak.trackDuration);
+    const isCurrentlyNearTrackEnd = isNearTrackEnd(
+      args.progressMs,
+      streak.trackDuration,
+    );
+
     const newCount = detectCompletion(
-      streak.lastProgressMs ?? 0,
+      wasNearTrackEnd,
       args.progressMs,
       streak.trackDuration,
       args.isPlaying,
@@ -260,11 +332,24 @@ export const poll = mutation({
       ? streak.count + 1
       : streak.count;
 
-    await ctx.db.patch(streak._id, {
-      count: newCount,
-      lastProgressMs: args.progressMs,
-      lastCheckedAt: Date.now(),
-    });
+    if (
+      newCount !== streak.count ||
+      isCurrentlyNearTrackEnd !== wasNearTrackEnd
+    ) {
+      await ctx.db.patch(streak._id, {
+        ...(newCount !== streak.count ? { count: newCount } : {}),
+        ...(isCurrentlyNearTrackEnd !== wasNearTrackEnd
+          ? { lastCompletionArmed: isCurrentlyNearTrackEnd }
+          : {}),
+      });
+      if (newCount !== streak.count) {
+        await applySongSummaryDeltaForTrack(
+          ctx,
+          toSongSummarySource(streak),
+          { totalPlays: newCount - streak.count },
+        );
+      }
+    }
 
     return {
       count: newCount,

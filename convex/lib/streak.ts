@@ -5,15 +5,21 @@
  * near the end back to near the start. We detect this transition.
  */
 export function detectCompletion(
-  prevProgressMs: number,
+  wasNearTrackEnd: boolean,
   currProgressMs: number,
   durationMs: number,
-  isPlaying: boolean
+  isPlaying: boolean,
 ): boolean {
   if (!isPlaying) return false;
 
-  const completionThreshold = durationMs * 0.85;
   const restartThreshold = durationMs * 0.15;
 
-  return prevProgressMs > completionThreshold && currProgressMs < restartThreshold;
+  return wasNearTrackEnd && currProgressMs < restartThreshold;
+}
+
+export function isNearTrackEnd(
+  progressMs: number,
+  durationMs: number,
+): boolean {
+  return progressMs > durationMs * 0.85;
 }

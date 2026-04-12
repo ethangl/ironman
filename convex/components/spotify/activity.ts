@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import {
+  getFavoriteArtists,
   getPlaylistTracks,
   getRecentlyPlayed,
   getTopArtists,
@@ -40,6 +41,7 @@ const activityBootstrapValidator = v.object({
 const RECENTLY_PLAYED_CACHE_TTL_MS = 30 * 1000;
 const PLAYLISTS_PAGE_CACHE_TTL_MS = 5 * 60 * 1000;
 const PLAYLIST_TRACKS_CACHE_TTL_MS = 10 * 60 * 1000;
+const FAVORITE_ARTISTS_CACHE_TTL_MS = 15 * 60 * 1000;
 const TOP_ARTISTS_CACHE_TTL_MS = 15 * 60 * 1000;
 const ACTIVITY_BOOTSTRAP_CACHE_TTL_MS = 30 * 1000;
 
@@ -54,6 +56,7 @@ type RecentlyPlayedCacheValue = {
 };
 type PlaylistsPageCacheValue = Awaited<ReturnType<typeof getUserPlaylists>>;
 type PlaylistTracksCacheValue = Awaited<ReturnType<typeof getPlaylistTracks>>;
+type FavoriteArtistsCacheValue = Awaited<ReturnType<typeof getFavoriteArtists>>;
 type TopArtistsCacheValue = Awaited<ReturnType<typeof getTopArtists>>;
 type ActivityBootstrapCacheValue = {
   favoriteArtists: TopArtistsCacheValue;
@@ -195,6 +198,35 @@ export const topArtists = action({
     try {
       const result = await getTopArtists(args.accessToken, args.limit ?? 10);
       await setCachedValue(ctx, cacheKey, result, TOP_ARTISTS_CACHE_TTL_MS);
+      return result;
+    } catch {
+      return [];
+    }
+  },
+});
+
+export const favoriteArtists = action({
+  args: {
+    accessToken: v.string(),
+    limit: v.optional(v.number()),
+    cacheScope: v.optional(v.string()),
+  },
+  returns: v.array(spotifyArtistValidator),
+  handler: async (ctx, args) => {
+    const cacheKey = `favoriteArtists:${resolveCacheScope(args.cacheScope)}:${args.limit ?? 50}`;
+    const cached = await getCachedValue<FavoriteArtistsCacheValue>(ctx, cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const result = await getFavoriteArtists(args.accessToken, args.limit ?? 50);
+      await setCachedValue(
+        ctx,
+        cacheKey,
+        result,
+        FAVORITE_ARTISTS_CACHE_TTL_MS,
+      );
       return result;
     } catch {
       return [];

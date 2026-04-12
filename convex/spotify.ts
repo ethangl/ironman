@@ -212,6 +212,23 @@ export const topArtists = action({
   },
 });
 
+export const favoriteArtists = action({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  returns: v.array(spotifyArtistValidator),
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    const accessToken = await requireSpotifyAccessToken(ctx);
+
+    return ctx.runAction(components.spotify.activity.favoriteArtists, {
+      ...args,
+      accessToken,
+      cacheScope: String(user._id),
+    });
+  },
+});
+
 export const activityBootstrap = action({
   args: {
     playlistLimit: v.optional(v.number()),
@@ -229,6 +246,15 @@ export const activityBootstrap = action({
       accessToken,
       cacheScope: String(user._id),
     });
+  },
+});
+
+export const clearCache = action({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    await requireAuthUser(ctx);
+    return ctx.runMutation(components.spotify.cache.clear, {});
   },
 });
 

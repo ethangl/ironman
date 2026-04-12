@@ -1,4 +1,4 @@
-import { api } from "../../convex/_generated/api";
+import { api } from "@api";
 import type { SpotifyArtistPageData } from "@/types";
 import { getAuthenticatedSpotifyConvexClient } from "./spotify-convex-client";
 

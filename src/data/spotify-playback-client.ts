@@ -1,5 +1,5 @@
 import type { PlayResult, SpotifyPlayback } from "@/hooks/use-spotify";
-import { api } from "../../convex/_generated/api";
+import { api } from "@api";
 import { getAuthenticatedSpotifyConvexClient } from "./spotify-convex-client";
 
 export interface SpotifyPlaybackClient {

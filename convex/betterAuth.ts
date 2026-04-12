@@ -66,6 +66,7 @@ export const createAuth = (ctx: Parameters<typeof authComponent.adapter>[0]) =>
         scope: [
           "user-read-email",
           "user-read-private",
+          "user-follow-read",
           "user-top-read",
           "user-read-playback-state",
           "user-modify-playback-state",

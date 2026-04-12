@@ -4,7 +4,7 @@ import {
   BangerSong,
   HellscapeSong,
   IronmenEntry,
-} from "@/data/leaderboards";
+} from "@shared/leaderboards";
 import { useAppDataClient } from "@/data/client";
 
 function useBoardData<T>(loader: () => Promise<T[]>) {

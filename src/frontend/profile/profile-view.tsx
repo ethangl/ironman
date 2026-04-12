@@ -1,7 +1,7 @@
 import { Avatar } from "@/components/avatar";
 import { List, ListLink } from "@/components/list";
 import { LogoutButton } from "@/components/logout-button";
-import type { ProfileData } from "@/lib/profile-data";
+import type { ProfileData } from "@shared/profile-data";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {

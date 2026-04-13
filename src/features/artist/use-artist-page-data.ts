@@ -1,33 +1,55 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useSpotifyClient } from "@/features/spotify/client";
-import { useCachedQuery } from "@/hooks/use-cached-query";
-import { SPOTIFY_ARTIST_PAGE_STORAGE_KEY_PREFIX } from "@/lib/spotify-client-cache";
-import { useAppAuth } from "@/app";
 import { SpotifyArtistPageData } from "@/types";
-
-const ARTIST_PAGE_CACHE_TTL_MS = 30 * 60_000;
-
-function getArtistPageCacheKey(userId: string | null, artistId: string) {
-  return `${SPOTIFY_ARTIST_PAGE_STORAGE_KEY_PREFIX}${userId ?? "anon"}:${artistId}`;
-}
 
 export function useArtistPageData(artistId: string) {
   const client = useSpotifyClient();
-  const { session } = useAppAuth();
-  const sessionUserId = session?.user.id ?? null;
   const enabled = !!artistId;
+  const [data, setData] = useState<SpotifyArtistPageData | null>(null);
+  const [loading, setLoading] = useState(enabled);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const queryFn = useCallback(
     () => client.artists.getPageData(artistId),
     [artistId, client],
   );
-  const { data, loading, refreshing, error, refresh } =
-    useCachedQuery<SpotifyArtistPageData | null>({
-      cacheKey: enabled ? getArtistPageCacheKey(sessionUserId, artistId) : null,
-      queryFn,
-      ttlMs: ARTIST_PAGE_CACHE_TTL_MS,
-      enabled,
-    });
+
+  const refresh = useCallback(async () => {
+    if (!enabled) {
+      return;
+    }
+
+    setRefreshing(data !== null);
+    setLoading(data === null);
+
+    try {
+      const nextData = await queryFn();
+      setData(nextData);
+      setError(null);
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : "Could not load artist details.",
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [data, enabled, queryFn]);
+
+  useEffect(() => {
+    if (!enabled) {
+      setData(null);
+      setLoading(false);
+      setRefreshing(false);
+      setError(null);
+      return;
+    }
+
+    void refresh();
+  }, [enabled, refresh]);
 
   if (!artistId) {
     return {

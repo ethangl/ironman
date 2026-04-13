@@ -9,7 +9,6 @@ export {
 } from "./spotify-client-context";
 export {
   PLAYLIST_PAGE_SIZE,
-  type ActivityBootstrap,
   type PlaylistsPage,
   type RecentlyPlayedResult,
 } from "./spotify-activity";

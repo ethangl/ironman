@@ -315,9 +315,7 @@ export const poll = mutation({
       };
     }
 
-    const wasNearTrackEnd =
-      streak.lastCompletionArmed ??
-      isNearTrackEnd(streak.lastProgressMs ?? 0, streak.trackDuration);
+    const wasNearTrackEnd = streak.lastCompletionArmed;
     const isCurrentlyNearTrackEnd = isNearTrackEnd(
       args.progressMs,
       streak.trackDuration,

@@ -5,7 +5,7 @@ import {
   getCachedConvexAuthToken,
 } from "@/lib/convex-auth-token";
 import { getConvexUrl } from "@/lib/convex-env";
-import type { StreakData, TrackInfo } from "@/types";
+import type { StreakData, Track } from "@/types";
 import { api } from "@api";
 
 interface PollIronmanInput {
@@ -24,9 +24,7 @@ interface ReportWeaknessResult {
 
 export interface IronmanClient {
   getStatus: () => Promise<StreakData | null>;
-  start: (
-    track: TrackInfo & { playbackStarted: boolean },
-  ) => Promise<StreakData>;
+  start: (track: Track) => Promise<StreakData>;
   activateHardcore: () => Promise<unknown>;
   surrender: () => Promise<unknown>;
   reportWeakness: (
@@ -76,11 +74,11 @@ export function createConvexIronmanClient(): IronmanClient {
     async start(track) {
       const client = await getAuthenticatedConvexIronmanClient();
       return client.mutation(api.ironman.start, {
-        trackId: track.trackId,
-        trackName: track.trackName,
-        trackArtist: track.trackArtist,
-        trackImage: track.trackImage ?? undefined,
-        trackDuration: track.trackDuration,
+        trackId: track.id,
+        trackName: track.name,
+        trackArtist: track.artist,
+        trackImage: track.albumImage ?? undefined,
+        trackDuration: track.durationMs,
       });
     },
     async activateHardcore() {

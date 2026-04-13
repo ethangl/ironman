@@ -61,13 +61,6 @@ const playlistsPageValidator = v.object({
   total: v.number(),
 });
 
-const activityBootstrapValidator = v.object({
-  favoriteArtists: v.array(spotifyArtistValidator),
-  playlists: v.array(spotifyPlaylistValidator),
-  playlistsTotal: v.number(),
-  recentTracks: v.array(recentlyPlayedItemValidator),
-});
-
 const playbackArtistValidator = v.object({
   name: v.string(),
 });
@@ -222,26 +215,6 @@ export const favoriteArtists = action({
     const accessToken = await requireSpotifyAccessToken(ctx);
 
     return ctx.runAction(components.spotify.activity.favoriteArtists, {
-      ...args,
-      accessToken,
-      cacheScope: String(user._id),
-    });
-  },
-});
-
-export const activityBootstrap = action({
-  args: {
-    playlistLimit: v.optional(v.number()),
-    playlistOffset: v.optional(v.number()),
-    topArtistsLimit: v.optional(v.number()),
-    recentlyPlayedLimit: v.optional(v.number()),
-  },
-  returns: activityBootstrapValidator,
-  handler: async (ctx, args) => {
-    const user = await requireAuthUser(ctx);
-    const accessToken = await requireSpotifyAccessToken(ctx);
-
-    return ctx.runAction(components.spotify.activity.bootstrap, {
       ...args,
       accessToken,
       cacheScope: String(user._id),

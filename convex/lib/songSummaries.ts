@@ -1,8 +1,6 @@
 import { computeSongDifficulty } from "../../shared/difficulty";
 import type { SongSummaryRecord } from "../../shared/leaderboards";
 
-export const SONG_SUMMARY_BACKFILL_NAME = "songSummaries";
-
 export interface SongSummarySource {
   trackId: string;
   trackName: string;

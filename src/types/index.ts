@@ -1,3 +1,5 @@
+import type { TrackSnapshot } from "@shared/track";
+
 export interface Track {
   id: string;
   name: string;
@@ -51,50 +53,9 @@ export interface SpotifyArtistPageData {
   releases: SpotifyAlbumRelease[];
 }
 
-/** Track info as stored in the DB (track-prefixed fields). */
-export interface TrackInfo {
-  trackId: string;
-  trackName: string;
-  trackArtist: string;
-  trackImage: string | null;
-  trackDuration: number;
-}
+export type { TrackSnapshot };
 
-export type TrackLike = Track | TrackInfo;
-
-function isTrackInfo(track: TrackLike): track is TrackInfo {
-  return "trackId" in track;
-}
-
-export function toTrack(track: TrackLike): Track {
-  if (!isTrackInfo(track)) {
-    return track;
-  }
-
-  return {
-    id: track.trackId,
-    name: track.trackName,
-    artist: track.trackArtist,
-    albumImage: track.trackImage,
-    durationMs: track.trackDuration,
-  };
-}
-
-export function toTrackInfo(track: TrackLike): TrackInfo {
-  if (isTrackInfo(track)) {
-    return track;
-  }
-
-  return {
-    trackId: track.id,
-    trackName: track.name,
-    trackArtist: track.artist,
-    trackImage: track.albumImage,
-    trackDuration: track.durationMs,
-  };
-}
-
-export interface StreakData extends TrackInfo {
+export interface StreakData extends TrackSnapshot {
   id: string;
   count: number;
   active: boolean;

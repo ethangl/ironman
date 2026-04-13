@@ -103,21 +103,13 @@ export function ArtistRoute() {
 
       <List title="Top Tracks" loading={loading} count={topTracks.length}>
         {topTracks.map((song, i) => {
-          const track = {
-            trackId: song.id,
-            trackArtist: song.artist,
-            trackDuration: song.durationMs,
-            trackImage: song.albumImage,
-            trackName: song.name,
-          };
-
           return (
-            <ListItem key={track.trackId}>
+            <ListItem key={song.id}>
               <span className="w-6 text-center text-sm font-bold text-muted-foreground">
                 {i + 1}
               </span>
               <TrackCell
-                track={track}
+                track={song}
                 onPlay={(nextTrack) => void playTrack(nextTrack)}
               />
             </ListItem>

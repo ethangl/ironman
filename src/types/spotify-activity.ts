@@ -1,14 +1,10 @@
-import type { SpotifyArtist, SpotifyPlaylist, SpotifyTrack } from "@/types";
+import type { SpotifyPlaylist, SpotifyTrack } from "@/types";
 
 export interface RecentTrack {
   playedAt: string;
   track: SpotifyTrack;
 }
 
-export type PlaylistTrack = SpotifyTrack;
-
 export type Playlist = SpotifyPlaylist & {
-  tracks?: PlaylistTrack[] | null;
+  tracks?: SpotifyTrack[] | null;
 };
-
-export type FavoriteArtist = SpotifyArtist;

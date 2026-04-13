@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SpotifyApiError } from "./errors";
 import {
-  bootstrap,
   favoriteArtists,
   playlistTracks,
   playlistsPage,
@@ -252,87 +251,4 @@ describe("spotify activity caching", () => {
     );
   });
 
-  it("caches bootstrap responses with a scoped aggregate key", async () => {
-    const recentTracks = [
-      {
-        playedAt: "2026-04-09T12:00:00.000Z",
-        track: {
-          id: "track-1",
-          name: "Track One",
-          artist: "Artist One",
-          albumName: "Album One",
-          albumImage: "cover.jpg",
-          durationMs: 180000,
-        },
-      },
-    ];
-    const playlists = {
-      items: [
-        {
-          id: "playlist-1",
-          name: "Playlist One",
-          description: null,
-          image: "playlist.jpg",
-          owner: "User One",
-          public: true,
-          trackCount: 20,
-        },
-      ],
-      total: 1,
-    };
-    const favoriteArtists = [
-      {
-        id: "artist-1",
-        name: "Artist One",
-        image: "artist.jpg",
-        followerCount: 1234,
-        genres: ["metal"],
-      },
-    ];
-    mockedGetCachedValue.mockResolvedValueOnce(null);
-    mockedGetRecentlyPlayed.mockResolvedValueOnce(recentTracks);
-    mockedGetUserPlaylists.mockResolvedValueOnce(playlists);
-    mockedGetTopArtists.mockResolvedValueOnce(favoriteArtists);
-
-    const result = await runAction<
-      {
-        accessToken: string;
-        playlistLimit?: number;
-        playlistOffset?: number;
-        topArtistsLimit?: number;
-        recentlyPlayedLimit?: number;
-        cacheScope?: string;
-      },
-      {
-        favoriteArtists: typeof favoriteArtists;
-        playlists: typeof playlists.items;
-        playlistsTotal: number;
-        recentTracks: typeof recentTracks;
-      }
-    >(bootstrap as unknown as RegisteredAction, {
-      accessToken: "spotify-token",
-      playlistLimit: 25,
-      topArtistsLimit: 5,
-      recentlyPlayedLimit: 12,
-      cacheScope: "user-1",
-    });
-
-    expect(result).toEqual({
-      favoriteArtists,
-      playlists: playlists.items,
-      playlistsTotal: 1,
-      recentTracks,
-    });
-    expect(mockedSetCachedValue).toHaveBeenCalledWith(
-      expect.anything(),
-      "activityBootstrap:user-1:25:0:5:12",
-      {
-        favoriteArtists,
-        playlists: playlists.items,
-        playlistsTotal: 1,
-        recentTracks,
-      },
-      30 * 1000,
-    );
-  });
 });

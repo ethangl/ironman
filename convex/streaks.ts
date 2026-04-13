@@ -47,6 +47,7 @@ export const upsert = mutation({
       startedAt: args.startedAt,
       endedAt: args.endedAt,
       weaknessCount: args.weaknessCount,
+      lastCompletionArmed: false,
     };
 
     if (existing) {

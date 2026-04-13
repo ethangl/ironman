@@ -211,12 +211,6 @@ describe("search", () => {
           },
         ]),
         getTopArtists: vi.fn().mockResolvedValue([]),
-        loadBootstrap: vi.fn().mockResolvedValue({
-          favoriteArtists: [],
-          playlists: [],
-          playlistsTotal: 0,
-          recentTracks: [],
-        }),
       },
     });
     await searchFor("heavy");

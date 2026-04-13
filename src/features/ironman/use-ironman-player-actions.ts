@@ -1,9 +1,18 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 
 import type { Track, StreakData } from "@/types";
-import { toTrack, toTrackInfo } from "@/types";
 
 import type { IronmanClient } from "./ironman-client";
+
+function trackFromStreak(streak: StreakData): Track {
+  return {
+    id: streak.trackId,
+    name: streak.trackName,
+    artist: streak.trackArtist,
+    albumImage: streak.trackImage,
+    durationMs: streak.trackDuration,
+  };
+}
 
 export function useIronmanPlayerActions({
   applyStreakState,
@@ -44,10 +53,7 @@ export function useIronmanPlayerActions({
     if (!token || !currentTrack) return;
 
     try {
-      const data = await ironmanClient.start({
-        ...toTrackInfo(currentTrack),
-        playbackStarted: true,
-      });
+      const data = await ironmanClient.start(currentTrack);
       applyStreakState(data);
       broadcastStreakState(data);
       setCurrentTrack(null);
@@ -91,7 +97,7 @@ export function useIronmanPlayerActions({
     try {
       await ironmanClient.surrender();
       if (streak) {
-        restoreTrackAfterSurrender(toTrack(streak));
+        restoreTrackAfterSurrender(trackFromStreak(streak));
       }
       applyStreakState(null);
       broadcastStreakState(null);

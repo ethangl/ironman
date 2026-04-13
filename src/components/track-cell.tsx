@@ -1,13 +1,31 @@
 import { FC, PropsWithChildren } from "react";
 
-import { Track, TrackLike, toTrack } from "@/types";
+import type { Track, TrackSnapshot } from "@/types";
 import { AlbumArt } from "./album-art";
 import { PlayButton } from "./play-button";
+
+function isTrackSnapshot(track: Track | TrackSnapshot): track is TrackSnapshot {
+  return "trackId" in track;
+}
+
+function toDisplayTrack(track: Track | TrackSnapshot): Track {
+  if (!isTrackSnapshot(track)) {
+    return track;
+  }
+
+  return {
+    id: track.trackId,
+    name: track.trackName,
+    artist: track.trackArtist,
+    albumImage: track.trackImage,
+    durationMs: track.trackDuration,
+  };
+}
 
 export type TrackCellProps = PropsWithChildren & {
   count?: number;
   onPlay?: (track: Track) => void;
-  track: TrackLike;
+  track: Track | TrackSnapshot;
 };
 
 export const TrackCell: FC<TrackCellProps> = ({
@@ -16,7 +34,7 @@ export const TrackCell: FC<TrackCellProps> = ({
   onPlay,
   track,
 }) => {
-  const normalizedTrack = toTrack(track);
+  const normalizedTrack = toDisplayTrack(track);
 
   return (
     <>

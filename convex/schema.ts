@@ -2,13 +2,6 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
-  backfills: defineTable({
-    name: v.string(),
-    status: v.union(v.literal("running"), v.literal("complete")),
-    cursor: v.optional(v.string()),
-    updatedAt: v.float64(),
-    completedAt: v.optional(v.float64()),
-  }).index("by_name", ["name"]),
   feedEvents: defineTable({
     sourceId: v.string(),
     streakId: v.string(),
@@ -39,9 +32,7 @@ export default defineSchema({
     startedAt: v.float64(),
     endedAt: v.optional(v.float64()),
     weaknessCount: v.float64(),
-    lastProgressMs: v.optional(v.float64()),
-    lastCompletionArmed: v.optional(v.boolean()),
-    lastCheckedAt: v.optional(v.float64()),
+    lastCompletionArmed: v.boolean(),
   })
     .index("by_streakId", ["streakId"])
     .index("by_trackId", ["trackId"])
@@ -66,8 +57,8 @@ export default defineSchema({
     weaknessRate: v.float64(),
     weaknessFavorability: v.float64(),
     difficulty: v.float64(),
-    uniqueUsers: v.optional(v.float64()),
-    activeCount: v.optional(v.float64()),
+    uniqueUsers: v.float64(),
+    activeCount: v.float64(),
   })
     .index("by_trackId", ["trackId"])
     .index("by_avgCountRounded_and_weaknessFavorability", [

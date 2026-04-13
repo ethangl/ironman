@@ -1,12 +1,6 @@
-import { computeSongDifficulty, computeStreakScore } from "./difficulty";
+import type { TrackSnapshot } from "./track";
 
-export interface TrackInfo {
-  trackId: string;
-  trackName: string;
-  trackArtist: string;
-  trackImage: string | null;
-  trackDuration: number;
-}
+import { computeSongDifficulty, computeStreakScore } from "./difficulty";
 
 export interface LeaderboardEntry {
   rank: number;
@@ -38,7 +32,7 @@ export interface HomeLeaderboardsResponse {
   hellscape: HellscapeSong[];
 }
 
-export interface IronmenEntry extends TrackInfo {
+export interface IronmenEntry extends TrackSnapshot {
   rank: number;
   id: string;
   userId: string;
@@ -51,13 +45,13 @@ export interface IronmenEntry extends TrackInfo {
   songDifficulty: number;
 }
 
-export interface BangerSong extends TrackInfo {
+export interface BangerSong extends TrackSnapshot {
   totalAttempts: number;
   avgCount: number;
   weaknessRate: number;
 }
 
-export interface HellscapeSong extends TrackInfo {
+export interface HellscapeSong extends TrackSnapshot {
   difficulty: number;
   totalAttempts: number;
   avgCount: number;
@@ -82,7 +76,7 @@ export interface LeaderboardStreakRecord {
   weaknessCount: number;
 }
 
-export interface SongSummaryRecord extends TrackInfo {
+export interface SongSummaryRecord extends TrackSnapshot {
   totalPlays: number;
   totalAttempts: number;
   totalWeaknesses: number;

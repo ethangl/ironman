@@ -30,12 +30,6 @@ describe("createSpotifyClient", () => {
       getPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
       getPlaylistTracks: vi.fn().mockResolvedValue([]),
       getTopArtists: vi.fn().mockResolvedValue([]),
-      loadBootstrap: vi.fn().mockResolvedValue({
-        favoriteArtists: [],
-        playlists: [],
-        playlistsTotal: 0,
-        recentTracks: [],
-      }),
     };
 
     const client = createSpotifyClient({

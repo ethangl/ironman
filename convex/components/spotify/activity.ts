@@ -31,19 +31,11 @@ const playlistsPageValidator = v.object({
   total: v.number(),
 });
 
-const activityBootstrapValidator = v.object({
-  favoriteArtists: v.array(spotifyArtistValidator),
-  playlists: v.array(spotifyPlaylistValidator),
-  playlistsTotal: v.number(),
-  recentTracks: v.array(recentlyPlayedItemValidator),
-});
-
 const RECENTLY_PLAYED_CACHE_TTL_MS = 30 * 1000;
 const PLAYLISTS_PAGE_CACHE_TTL_MS = 5 * 60 * 1000;
 const PLAYLIST_TRACKS_CACHE_TTL_MS = 10 * 60 * 1000;
 const FAVORITE_ARTISTS_CACHE_TTL_MS = 15 * 60 * 1000;
 const TOP_ARTISTS_CACHE_TTL_MS = 15 * 60 * 1000;
-const ACTIVITY_BOOTSTRAP_CACHE_TTL_MS = 30 * 1000;
 
 function resolveCacheScope(cacheScope?: string) {
   return cacheScope ?? "global";
@@ -58,12 +50,6 @@ type PlaylistsPageCacheValue = Awaited<ReturnType<typeof getUserPlaylists>>;
 type PlaylistTracksCacheValue = Awaited<ReturnType<typeof getPlaylistTracks>>;
 type FavoriteArtistsCacheValue = Awaited<ReturnType<typeof getFavoriteArtists>>;
 type TopArtistsCacheValue = Awaited<ReturnType<typeof getTopArtists>>;
-type ActivityBootstrapCacheValue = {
-  favoriteArtists: TopArtistsCacheValue;
-  playlists: PlaylistsPageCacheValue["items"];
-  playlistsTotal: number;
-  recentTracks: RecentlyPlayedItems;
-};
 
 function toActivityError(error: unknown, fallback: string) {
   if (!(error instanceof SpotifyApiError)) {
@@ -231,62 +217,5 @@ export const favoriteArtists = action({
     } catch {
       return [];
     }
-  },
-});
-
-export const bootstrap = action({
-  args: {
-    accessToken: v.string(),
-    playlistLimit: v.optional(v.number()),
-    playlistOffset: v.optional(v.number()),
-    topArtistsLimit: v.optional(v.number()),
-    recentlyPlayedLimit: v.optional(v.number()),
-    cacheScope: v.optional(v.string()),
-  },
-  returns: activityBootstrapValidator,
-  handler: async (ctx, args) => {
-    const cacheKey = `activityBootstrap:${resolveCacheScope(args.cacheScope)}:${args.playlistLimit ?? 50}:${args.playlistOffset ?? 0}:${args.topArtistsLimit ?? 10}:${args.recentlyPlayedLimit ?? 50}`;
-    const cached = await getCachedValue<ActivityBootstrapCacheValue>(ctx, cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    const [recentResult, playlistData, artistData] = await Promise.all([
-      getRecentlyPlayed(args.accessToken, args.recentlyPlayedLimit ?? 50).then(
-        (items) => ({ items, rateLimited: false }),
-        (error: unknown) => {
-          if (error instanceof SpotifyApiError && error.status === 429) {
-            return { items: [], rateLimited: true };
-          }
-
-          throw toActivityError(
-            error,
-            "Could not load your recent tracks right now.",
-          );
-        },
-      ),
-      getUserPlaylists(
-        args.accessToken,
-        args.playlistLimit ?? 50,
-        args.playlistOffset ?? 0,
-      ).catch(() => ({ items: [], total: 0 })),
-      getTopArtists(args.accessToken, args.topArtistsLimit ?? 10).catch(
-        () => [],
-      ),
-    ]);
-
-    const result = {
-      favoriteArtists: artistData,
-      playlists: playlistData.items,
-      playlistsTotal: playlistData.total,
-      recentTracks: recentResult.items,
-    };
-    await setCachedValue(
-      ctx,
-      cacheKey,
-      result,
-      ACTIVITY_BOOTSTRAP_CACHE_TTL_MS,
-    );
-    return result;
   },
 });

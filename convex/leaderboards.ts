@@ -1,12 +1,9 @@
 import { v } from "convex/values";
 
 import {
-  buildBangersBoard,
   buildBangersBoardFromSongSummaries,
   buildGlobalLeaderboard,
-  buildHellscapeBoard,
   buildHellscapeBoardFromSongSummaries,
-  buildIronmenBoard,
   buildIronmenBoardFromSongSummaries,
   buildTrackLeaderboardFromSortedBestStreaks,
   type HomeLeaderboardsResponse,
@@ -15,7 +12,6 @@ import {
 } from "../shared/leaderboards";
 import type { Doc } from "./_generated/dataModel";
 import { query, type QueryCtx } from "./_generated/server";
-import { isSongSummaryBackfillComplete } from "./songSummaries";
 
 function toLeaderboardStreak(
   streak: Doc<"streaks">,
@@ -55,14 +51,9 @@ function toSongSummary(
     weaknessRate: summary.weaknessRate,
     weaknessFavorability: summary.weaknessFavorability,
     difficulty: summary.difficulty,
-    uniqueUsers: summary.uniqueUsers ?? 0,
-    activeCount: summary.activeCount ?? 0,
+    uniqueUsers: summary.uniqueUsers,
+    activeCount: summary.activeCount,
   };
-}
-
-async function listAllStreaks(ctx: QueryCtx) {
-  const streaks = await ctx.db.query("streaks").collect();
-  return streaks.map(toLeaderboardStreak);
 }
 
 async function getTopGlobalStreaks(ctx: QueryCtx) {
@@ -115,7 +106,7 @@ async function getIronmenFromSummaries(ctx: QueryCtx) {
       .unique();
 
     if (!summary) {
-      return null;
+      continue;
     }
 
     songSummariesByTrack.set(streak.trackId, toSongSummary(summary));
@@ -168,63 +159,26 @@ export const track = query({
 
 export const home = query({
   args: {},
-  handler: async (ctx) => {
-    if (await isSongSummaryBackfillComplete(ctx)) {
-      const ironmen = await getIronmenFromSummaries(ctx);
-
-      if (ironmen) {
-        return {
-          global: await getTopGlobalStreaks(ctx),
-          ironmen,
-          bangers: await getTopBangersFromSummaries(ctx),
-          hellscape: await getTopHellscapeFromSummaries(ctx),
-        } satisfies HomeLeaderboardsResponse;
-      }
-    }
-
-    const streaks = await listAllStreaks(ctx);
-
-    return {
-      global: buildGlobalLeaderboard(streaks),
-      ironmen: buildIronmenBoard(streaks),
-      bangers: buildBangersBoard(streaks),
-      hellscape: buildHellscapeBoard(streaks),
-    } satisfies HomeLeaderboardsResponse;
-  },
+  handler: async (ctx) =>
+    ({
+      global: await getTopGlobalStreaks(ctx),
+      ironmen: await getIronmenFromSummaries(ctx),
+      bangers: await getTopBangersFromSummaries(ctx),
+      hellscape: await getTopHellscapeFromSummaries(ctx),
+    }) satisfies HomeLeaderboardsResponse,
 });
 
 export const ironmen = query({
   args: {},
-  handler: async (ctx) => {
-    if (await isSongSummaryBackfillComplete(ctx)) {
-      const ironmen = await getIronmenFromSummaries(ctx);
-      if (ironmen) {
-        return ironmen;
-      }
-    }
-
-    return buildIronmenBoard(await listAllStreaks(ctx));
-  },
+  handler: async (ctx) => getIronmenFromSummaries(ctx),
 });
 
 export const bangers = query({
   args: {},
-  handler: async (ctx) => {
-    if (await isSongSummaryBackfillComplete(ctx)) {
-      return getTopBangersFromSummaries(ctx);
-    }
-
-    return buildBangersBoard(await listAllStreaks(ctx));
-  },
+  handler: async (ctx) => getTopBangersFromSummaries(ctx),
 });
 
 export const hellscape = query({
   args: {},
-  handler: async (ctx) => {
-    if (await isSongSummaryBackfillComplete(ctx)) {
-      return getTopHellscapeFromSummaries(ctx);
-    }
-
-    return buildHellscapeBoard(await listAllStreaks(ctx));
-  },
+  handler: async (ctx) => getTopHellscapeFromSummaries(ctx),
 });

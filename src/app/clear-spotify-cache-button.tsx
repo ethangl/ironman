@@ -4,7 +4,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { clearSpotifyDevCache } from "@/features/spotify/client";
-import { clearSpotifyClientCaches } from "@/lib/spotify-client-cache";
 
 export function ClearSpotifyCacheButton() {
   const [isClearing, setIsClearing] = useState(false);
@@ -17,18 +16,15 @@ export function ClearSpotifyCacheButton() {
     <Button
       variant="ghost"
       size="icon-sm"
-      aria-label="Clear Spotify cache"
-      title="Clear Spotify cache"
+      aria-label="Clear Spotify server cache"
+      title="Clear Spotify server cache"
       disabled={isClearing}
       onClick={async () => {
         setIsClearing(true);
         try {
-          const [serverCleared, clientCleared] = await Promise.all([
-            clearSpotifyDevCache(),
-            Promise.resolve(clearSpotifyClientCaches()),
-          ]);
+          const serverCleared = await clearSpotifyDevCache();
           toast.success(
-            `Cleared ${serverCleared + clientCleared} Spotify cache entr${serverCleared + clientCleared === 1 ? "y" : "ies"}. Reloading...`,
+            `Cleared ${serverCleared} Spotify server cache entr${serverCleared === 1 ? "y" : "ies"}. Reloading...`,
           );
           window.location.reload();
         } catch (error) {

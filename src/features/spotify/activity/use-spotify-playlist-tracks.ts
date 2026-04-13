@@ -2,7 +2,8 @@ import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useRef } from "react";
 
 import type { SpotifyClient } from "@/features/spotify/client";
-import type { Playlist, PlaylistTrack } from "@/types/spotify-activity";
+import type { Playlist } from "@/types/spotify-activity";
+import type { SpotifyTrack } from "@/types";
 
 export function useSpotifyPlaylistTracks({
   client,
@@ -18,7 +19,7 @@ export function useSpotifyPlaylistTracks({
   }, []);
 
   const getPlaylistTracks = useCallback(
-    async (playlistId: string): Promise<PlaylistTrack[]> => {
+    async (playlistId: string): Promise<SpotifyTrack[]> => {
       const cached = playlistTracksRef.current.get(playlistId);
       if (cached) {
         return cached;

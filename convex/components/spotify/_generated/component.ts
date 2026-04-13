@@ -24,51 +24,6 @@ import type { FunctionReference } from "convex/server";
 export type ComponentApi<Name extends string | undefined = string | undefined> =
   {
     activity: {
-      bootstrap: FunctionReference<
-        "action",
-        "internal",
-        {
-          accessToken: string;
-          cacheScope?: string;
-          playlistLimit?: number;
-          playlistOffset?: number;
-          recentlyPlayedLimit?: number;
-          topArtistsLimit?: number;
-        },
-        {
-          favoriteArtists: Array<{
-            followerCount: number;
-            genres: Array<string>;
-            id: string;
-            image: string | null;
-            name: string;
-          }>;
-          playlists: Array<{
-            description: string | null;
-            id: string;
-            image: string | null;
-            name: string;
-            owner: string | null;
-            public: boolean;
-            trackCount: number;
-          }>;
-          playlistsTotal: number;
-          recentTracks: Array<{
-            playedAt: string;
-            track: {
-              albumImage: string | null;
-              albumName: string;
-              artist: string;
-              difficulty?: number;
-              durationMs: number;
-              id: string;
-              name: string;
-              topStreak?: { count: number; userName: string | null } | null;
-            };
-          }>;
-        },
-        Name
-      >;
       favoriteArtists: FunctionReference<
         "action",
         "internal",

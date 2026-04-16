@@ -2,7 +2,7 @@ import { v } from "convex/values";
 
 import {
   getAlbumTracks,
-  getArtistPageData,
+  getArtistPageDataResult,
   getSpotifyProfileMarket,
   searchSpotify,
   searchTracks as searchTracksByName,
@@ -18,7 +18,7 @@ import {
 
 const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000;
 const ARTIST_PAGE_CACHE_TTL_MS = 30 * 60 * 1000;
-const ALBUM_TRACKS_CACHE_TTL_MS = 30 * 60 * 1000;
+const ALBUM_TRACKS_CACHE_TTL_MS = 10 * 365 * 24 * 60 * 60 * 1000;
 const SPOTIFY_MARKET_CACHE_TTL_MS = 30 * 60 * 1000;
 
 type SpotifyMarketCacheValue = {
@@ -135,7 +135,7 @@ export const artistPage = action({
     const cacheScope = args.cacheScope ?? "global";
     const cacheKey = `artistPage:${cacheScope}:${args.artistId}`;
     const cached = await getCachedValue<
-      Awaited<ReturnType<typeof getArtistPageData>> | null
+      Awaited<ReturnType<typeof getArtistPageDataResult>>["page"] | null
     >(ctx, cacheKey);
     if (cached) {
       return cached;
@@ -147,12 +147,14 @@ export const artistPage = action({
         args.accessToken,
         cacheScope,
       );
-      const page = await getArtistPageData(
+      const { page, usedReleaseFallback } = await getArtistPageDataResult(
         args.accessToken,
         args.artistId,
         market,
       );
-      await setCachedValue(ctx, cacheKey, page, ARTIST_PAGE_CACHE_TTL_MS);
+      if (!usedReleaseFallback) {
+        await setCachedValue(ctx, cacheKey, page, ARTIST_PAGE_CACHE_TTL_MS);
+      }
       return page;
     } catch (error) {
       if (error instanceof SpotifyApiError && error.status === 404) {
@@ -168,12 +170,10 @@ export const albumTracks = action({
   args: {
     albumId: v.string(),
     accessToken: v.string(),
-    cacheScope: v.optional(v.string()),
   },
   returns: v.array(spotifyTrackValidator),
   handler: async (ctx, args) => {
-    const cacheScope = args.cacheScope ?? "global";
-    const cacheKey = `albumTracks:${cacheScope}:${args.albumId}`;
+    const cacheKey = `albumTracks:${args.albumId}`;
     const cached = await getCachedValue<
       Awaited<ReturnType<typeof getAlbumTracks>>
     >(ctx, cacheKey);

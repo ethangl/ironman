@@ -227,11 +227,8 @@ describe("search", () => {
         searchTracks: vi.fn().mockResolvedValue([]),
       },
       spotifyActivity: {
-        getActivitySnapshot: vi.fn().mockResolvedValue({
-          recentlyPlayed: { items: [], rateLimited: false },
-          playlistsPage: { items: [], total: 0 },
-          favoriteArtists: [],
-        }),
+        getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
+        getCachedPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
         getFavoriteArtists: vi.fn().mockResolvedValue([]),
         getRecentlyPlayed: vi
           .fn()
@@ -255,7 +252,7 @@ describe("search", () => {
       expect(screen.getByText("Heavy Rotation")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    fireEvent.click(screen.getByRole("button", { name: "Play track" }));
 
     await waitFor(() => {
       expect(mockPlayTracks).toHaveBeenCalledWith([

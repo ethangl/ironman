@@ -2,9 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SpotifyApiError } from "./errors";
 import {
-  activitySnapshot,
   favoriteArtists,
+  favoriteArtistsCached,
   playlistTracks,
+  playlistsPageCached,
   playlistsPage,
   recentlyPlayed,
   topArtists,
@@ -182,6 +183,40 @@ describe("spotify activity caching", () => {
     );
   });
 
+  it("returns cached playlist pages without hitting Spotify", async () => {
+    const playlists = {
+      items: [
+        {
+          id: "playlist-1",
+          name: "Playlist One",
+          description: null,
+          image: "playlist.jpg",
+          owner: "User One",
+          public: true,
+          trackCount: 20,
+        },
+      ],
+      total: 1,
+    };
+    mockedGetCachedValue.mockResolvedValueOnce(playlists);
+
+    const result = await runAction<
+      { limit?: number; offset?: number; cacheScope?: string },
+      typeof playlists
+    >(playlistsPageCached as unknown as RegisteredAction, {
+      limit: 10,
+      offset: 20,
+      cacheScope: "user-1",
+    });
+
+    expect(result).toEqual(playlists);
+    expect(mockedGetCachedValue).toHaveBeenCalledWith(
+      expect.anything(),
+      "playlistsPage:user-1:10:20",
+    );
+    expect(mockedGetUserPlaylists).not.toHaveBeenCalled();
+  });
+
   it("returns cached playlist tracks without hitting Spotify", async () => {
     const tracks = [
       {
@@ -297,38 +332,8 @@ describe("spotify activity caching", () => {
     );
   });
 
-  it("builds the activity snapshot from cached resource values", async () => {
-    const cachedRecent = {
-      items: [
-        {
-          playedAt: "2026-04-09T12:00:00.000Z",
-          track: {
-            id: "track-1",
-            name: "Track One",
-            artist: "Artist One",
-            albumName: "Album One",
-            albumImage: "cover.jpg",
-            durationMs: 180000,
-          },
-        },
-      ],
-      rateLimited: false,
-    };
-    const cachedPlaylists = {
-      items: [
-        {
-          id: "playlist-1",
-          name: "Playlist One",
-          description: null,
-          image: "playlist.jpg",
-          owner: "User One",
-          public: true,
-          trackCount: 20,
-        },
-      ],
-      total: 1,
-    };
-    const cachedArtists = [
+  it("returns cached favorite artists without hitting Spotify", async () => {
+    const artists = [
       {
         id: "artist-2",
         name: "Artist Two",
@@ -337,32 +342,52 @@ describe("spotify activity caching", () => {
         genres: ["doom"],
       },
     ];
-    mockedGetCachedValue
-      .mockResolvedValueOnce(cachedRecent)
-      .mockResolvedValueOnce(cachedPlaylists)
-      .mockResolvedValueOnce(cachedArtists);
+    mockedGetCachedValue.mockResolvedValueOnce(artists);
 
     const result = await runAction<
-      { accessToken: string; cacheScope?: string },
-      {
-        recentlyPlayed: typeof cachedRecent;
-        playlistsPage: typeof cachedPlaylists;
-        favoriteArtists: typeof cachedArtists;
-      }
-    >(activitySnapshot as unknown as RegisteredAction, {
-      accessToken: "spotify-token",
+      { limit?: number; cacheScope?: string },
+      typeof artists
+    >(favoriteArtistsCached as unknown as RegisteredAction, {
+      limit: 25,
       cacheScope: "user-1",
     });
 
-    expect(result).toEqual({
-      recentlyPlayed: cachedRecent,
-      playlistsPage: cachedPlaylists,
-      favoriteArtists: cachedArtists,
-    });
-    expect(mockedGetRecentlyPlayed).not.toHaveBeenCalled();
-    expect(mockedGetUserPlaylists).not.toHaveBeenCalled();
+    expect(result).toEqual(artists);
     expect(mockedGetFavoriteArtists).not.toHaveBeenCalled();
     expect(mockedSetCachedValue).not.toHaveBeenCalled();
+  });
+
+  it("returns cached favorite artists when a forced refresh fails", async () => {
+    const artists = [
+      {
+        id: "artist-2",
+        name: "Artist Two",
+        image: "artist-2.jpg",
+        followerCount: 4321,
+        genres: ["doom"],
+      },
+    ];
+    mockedGetCachedValue.mockResolvedValueOnce(artists);
+    mockedGetFavoriteArtists.mockRejectedValueOnce(
+      new SpotifyApiError(429, "rate limited"),
+    );
+
+    const result = await runAction<
+      {
+        accessToken: string;
+        limit?: number;
+        cacheScope?: string;
+        forceRefresh?: boolean;
+      },
+      typeof artists
+    >(favoriteArtists as unknown as RegisteredAction, {
+      accessToken: "spotify-token",
+      limit: 25,
+      cacheScope: "user-1",
+      forceRefresh: true,
+    });
+
+    expect(result).toEqual(artists);
   });
 
 });

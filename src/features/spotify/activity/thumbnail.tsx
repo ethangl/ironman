@@ -50,7 +50,7 @@ export const Thumbnail: FC<ThumbnailProps> = ({
   return (
     <div
       className={cn(
-        "group flex-none relative select-none",
+        "group flex-none relative select-none w-48",
         isPlayable && "cursor-pointer",
         className,
       )}
@@ -68,35 +68,35 @@ export const Thumbnail: FC<ThumbnailProps> = ({
       <div className="relative">
         <AlbumArt
           src={src}
-          className="duration-555 size-40 group-hover:shadow-black/80"
+          className="duration-555 group-hover:shadow-black/80 size-full"
         />
-        <div className="absolute duration-555 inset-0 pointer-events-none rounded-xl transition-[backdrop-filter] group-hover:backdrop-brightness-15 group-hover:backdrop-invert-10 z-10">
-          {isPlayable ? (
-            <PlayIcon
-              fill="currentColor"
-              strokeWidth={0}
-              className="absolute inset-0 m-auto size-10 text-white"
-            />
-          ) : (
-            <div
-              style={{ fontSize: `${nameFontSize}px` }}
-              className="absolute duration-555 font-display font-extralight font-stretch-[25%] leading-[0.9] left-1/2 opacity-0 group-hover:opacity-100 text-center text-pretty top-1/2 -tracking-[0.015em] -translate-x-1/2 -translate-y-1/2 uppercase w-[90%]"
-            >
-              {name}
-            </div>
-          )}
+        <div className="absolute group-hover:backdrop-blur-2xl duration-333 ease-out inset-0 opacity-0 group-hover:opacity-100 pointer-events-none rounded-2xl transition-all z-10">
+          <div className="absolute flex items-center justify-center left-1/2 text-white top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%]">
+            {isPlayable ? (
+              <PlayIcon
+                fill="currentColor"
+                strokeWidth={0}
+                className="size-20"
+              />
+            ) : (
+              <span
+                style={{ fontSize: `${nameFontSize}px` }}
+                className="font-display font-extralight font-stretch-[25%] leading-[0.9] text-center text-pretty -tracking-[0.015em] uppercase"
+              >
+                {name}
+              </span>
+            )}
+          </div>
         </div>
       </div>
       {isPlayable && (
-        <div className="flex max-w-40 mix-blend-plus-lighter items-center gap-2 px-3 py-2">
-          <div className="min-w-0 space-y-px truncate text-white">
-            <h3 className="font-medium opacity-90 truncate text-sm">{name}</h3>
-            {description ? (
-              <h5 className="font-bold opacity-40 text-[11px] truncate">
-                {description}
-              </h5>
-            ) : null}
-          </div>
+        <div className="mix-blend-plus-lighter px-3 py-2.5 space-y-px truncate text-white w-full">
+          <h3 className="font-medium opacity-90 text-sm truncate">{name}</h3>
+          {description ? (
+            <h5 className="font-bold opacity-40 text-[11px] truncate">
+              {description}
+            </h5>
+          ) : null}
         </div>
       )}
     </div>

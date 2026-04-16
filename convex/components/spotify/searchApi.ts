@@ -1,4 +1,4 @@
-import { spotifyFetch, spotifyFetchOptional } from "./client";
+import { spotifyFetch } from "./client";
 import { SpotifyApiError } from "./errors";
 import {
   isSpotifyAlbum,
@@ -49,7 +49,7 @@ async function searchArtistTracks(
   artistName: string,
   market?: string | null,
 ): Promise<SpotifyTrack[]> {
-  const query = `artist:"${artistName}"`;
+  const query = `artist:${artistName}`;
   const params = new URLSearchParams({
     q: query,
     type: "track",
@@ -57,22 +57,31 @@ async function searchArtistTracks(
     ...(market ? { market } : {}),
   });
 
-  const data = await spotifyFetchOptional<SearchResponse>(
+  const data = await spotifyFetch<SearchResponse>(
     `/search?${params.toString()}`,
     token,
-    { tracks: { items: [] } },
   );
 
   const seen = new Set<string>();
 
-  return (data.tracks?.items ?? [])
+  return (data?.tracks?.items ?? [])
     .filter(isSpotifyTrack)
     .filter((track) => track.artists?.some((artist) => artist.id === artistId))
+    .sort((left, right) => {
+      const leftPrimaryArtist = left.artists?.[0]?.id === artistId ? 1 : 0;
+      const rightPrimaryArtist = right.artists?.[0]?.id === artistId ? 1 : 0;
+      if (leftPrimaryArtist !== rightPrimaryArtist) {
+        return rightPrimaryArtist - leftPrimaryArtist;
+      }
+
+      return (right.popularity ?? 0) - (left.popularity ?? 0);
+    })
     .filter((track) => {
       if (seen.has(track.id)) return false;
       seen.add(track.id);
       return true;
     })
+    .slice(0, 10)
     .map(mapTrack);
 }
 
@@ -140,35 +149,97 @@ export async function getAlbumTracks(
     .map((track) => mapTrack({ ...track, album }));
 }
 
+export interface ArtistPageDataResult {
+  page: SpotifyArtistPageData;
+  usedReleaseFallback: boolean;
+}
+
+async function getArtistReleasesResult(
+  token: string,
+  artistId: string,
+  includeGroups: "album" | "single",
+  market?: string | null,
+) {
+  const releasesQuery = new URLSearchParams({
+    include_groups: includeGroups,
+    limit: "10",
+    ...(market ? { market } : {}),
+  }).toString();
+
+  try {
+    const data = await spotifyFetch<ArtistAlbumsResponse>(
+      `/artists/${artistId}/albums?${releasesQuery}`,
+      token,
+    );
+
+    return {
+      releases: (data?.items ?? [])
+        .filter(isSpotifyAlbum)
+        .map(mapAlbumRelease)
+        .filter((album) => album.id !== ""),
+      usedFallback: false,
+    };
+  } catch (error) {
+    if (
+      error instanceof SpotifyApiError &&
+      error.status !== 401 &&
+      error.status !== 403
+    ) {
+      return {
+        releases: [],
+        usedFallback: true,
+      };
+    }
+
+    throw error;
+  }
+}
+
+export async function getArtistPageDataResult(
+  token: string,
+  artistId: string,
+  market?: string | null,
+): Promise<ArtistPageDataResult> {
+  const artistData = await spotifyFetch<ArtistResponse>(`/artists/${artistId}`, token);
+  if (!artistData) {
+    throw new SpotifyApiError(404, `Artist ${artistId} not found`);
+  }
+  const topTracksData = await searchArtistTracks(
+    token,
+    artistId,
+    artistData.name,
+    market,
+  );
+  const albumsResult = await getArtistReleasesResult(
+    token,
+    artistId,
+    "album",
+    market,
+  );
+  const singlesResult = await getArtistReleasesResult(
+    token,
+    artistId,
+    "single",
+    market,
+  );
+
+  return {
+    page: {
+      artist: mapArtist(artistData),
+      topTracks: topTracksData,
+      albums: albumsResult.releases,
+      singles: singlesResult.releases,
+    },
+    usedReleaseFallback:
+      albumsResult.usedFallback || singlesResult.usedFallback,
+  };
+}
+
 export async function getArtistPageData(
   token: string,
   artistId: string,
   market?: string | null,
 ): Promise<SpotifyArtistPageData> {
-  const artistData = await spotifyFetch<ArtistResponse>(`/artists/${artistId}`, token);
-  const albumsQuery = new URLSearchParams({
-    include_groups: "album",
-    limit: "10",
-    ...(market ? { market } : {}),
-  }).toString();
-  if (!artistData) {
-    throw new SpotifyApiError(404, `Artist ${artistId} not found`);
-  }
-  const [topTracksData, albumsData] = await Promise.all([
-    searchArtistTracks(token, artistId, artistData.name, market),
-    spotifyFetchOptional<ArtistAlbumsResponse>(
-      `/artists/${artistId}/albums?${albumsQuery}`,
-      token,
-      { items: [] },
-    ),
-  ]);
-
-  return {
-    artist: mapArtist(artistData),
-    topTracks: topTracksData,
-    releases: (albumsData?.items ?? [])
-      .filter(isSpotifyAlbum)
-      .map(mapAlbumRelease)
-      .filter((album) => album.id !== ""),
-  };
+  const result = await getArtistPageDataResult(token, artistId, market);
+  return result.page;
 }

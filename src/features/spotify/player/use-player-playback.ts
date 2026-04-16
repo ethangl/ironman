@@ -83,6 +83,8 @@ export function usePlayerPlayback({
 
   const playTrack = useCallback(
     async (track: Track) => {
+      if (!canControlPlayback || streakActive) return;
+
       const nextQueueState = createSingleTrackQueueState(track);
       await startPlayback({
         track,
@@ -92,12 +94,12 @@ export function usePlayerPlayback({
         },
       });
     },
-    [setCurrentTrack, startPlayback],
+    [canControlPlayback, setCurrentTrack, startPlayback, streakActive],
   );
 
   const playTracks = useCallback(
     async (tracks: Track[], startIndex = 0) => {
-      if (tracks.length === 0) return;
+      if (!canControlPlayback || streakActive || tracks.length === 0) return;
 
       const nextQueueState = createTrackListQueueState(
         tracks,
@@ -114,7 +116,7 @@ export function usePlayerPlayback({
         },
       });
     },
-    [setCurrentTrack, shuffled, startPlayback],
+    [canControlPlayback, setCurrentTrack, shuffled, startPlayback, streakActive],
   );
 
   const nextTrack = useCallback(async () => {

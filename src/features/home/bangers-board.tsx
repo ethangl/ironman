@@ -1,7 +1,7 @@
 import { List, ListItem } from "@/components/list";
 import { Section } from "@/components/section";
-import { TrackCell } from "@/features/spotify/player";
 import type { BangerSong } from "@shared/leaderboards";
+import { TrackCell } from "../spotify/activity/track-cell";
 import { Stat } from "./stat";
 
 export function BangersBoardList({
@@ -12,7 +12,7 @@ export function BangersBoardList({
   loading: boolean;
 }) {
   return (
-    <Section title="Absolute Bangers" color="--color-red-400" className="m-0">
+    <Section title="Certified Bangers" color="--color-red-400">
       <List loading={loading} count={songs.length} className="p-4">
         {songs.map((song, i) => (
           <ListItem key={song.trackId}>

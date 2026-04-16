@@ -24,11 +24,8 @@ describe("createSpotifyClient", () => {
       searchTracks: vi.fn().mockResolvedValue([]),
     };
     const spotifyActivityOverride: SpotifyActivityClient = {
-      getActivitySnapshot: vi.fn().mockResolvedValue({
-        recentlyPlayed: { items: [], rateLimited: false },
-        playlistsPage: { items: [], total: 0 },
-        favoriteArtists: [],
-      }),
+      getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
+      getCachedPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
       getFavoriteArtists: vi.fn().mockResolvedValue([]),
       getRecentlyPlayed: vi
         .fn()

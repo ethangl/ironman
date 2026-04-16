@@ -2,50 +2,77 @@ import type { SpotifyArtist, SpotifyTrack } from "@/types";
 import { api } from "@api";
 import {
   PLAYLIST_PAGE_SIZE,
+  RECENTLY_PLAYED_LIMIT,
   type PlaylistsPage,
   type RecentlyPlayedResult,
-  type SpotifyActivitySnapshot,
 } from "./spotify-activity";
 import { getAuthenticatedSpotifyConvexClient } from "./spotify-convex-client";
 
 const TOP_ARTISTS_LIMIT = 10;
 
 export interface SpotifyActivityClient {
-  getActivitySnapshot: () => Promise<SpotifyActivitySnapshot>;
-  getFavoriteArtists: (limit?: number) => Promise<SpotifyArtist[]>;
+  getCachedFavoriteArtists: (limit?: number) => Promise<SpotifyArtist[]>;
+  getCachedPlaylistsPage: (
+    limit?: number,
+    offset?: number,
+  ) => Promise<PlaylistsPage>;
+  getFavoriteArtists: (
+    limit?: number,
+    forceRefresh?: boolean,
+  ) => Promise<SpotifyArtist[]>;
   getRecentlyPlayed: () => Promise<RecentlyPlayedResult>;
-  getPlaylistsPage: (limit?: number, offset?: number) => Promise<PlaylistsPage>;
+  getPlaylistsPage: (
+    limit?: number,
+    offset?: number,
+    forceRefresh?: boolean,
+  ) => Promise<PlaylistsPage>;
   getPlaylistTracks: (playlistId: string) => Promise<SpotifyTrack[]>;
   getTopArtists: (limit?: number) => Promise<SpotifyArtist[]>;
 }
 
 export function createSpotifyActivityClient(): SpotifyActivityClient {
   return {
-    async getActivitySnapshot() {
+    async getCachedFavoriteArtists(limit = 50) {
       const client = await getAuthenticatedSpotifyConvexClient();
 
-      return client.action(api.spotify.activitySnapshot, {});
+      return client.action(api.spotify.favoriteArtistsCached, {
+        limit,
+      });
     },
-    async getFavoriteArtists(limit = 50) {
+    async getCachedPlaylistsPage(limit = PLAYLIST_PAGE_SIZE, offset = 0) {
+      const client = await getAuthenticatedSpotifyConvexClient();
+
+      return client.action(api.spotify.playlistsPageCached, {
+        limit,
+        offset,
+      });
+    },
+    async getFavoriteArtists(limit = 50, forceRefresh = false) {
       const client = await getAuthenticatedSpotifyConvexClient();
 
       return client.action(api.spotify.favoriteArtists, {
         limit,
+        forceRefresh,
       });
     },
     async getRecentlyPlayed() {
       const client = await getAuthenticatedSpotifyConvexClient();
 
       return client.action(api.spotify.recentlyPlayed, {
-        limit: 50,
+        limit: RECENTLY_PLAYED_LIMIT,
       });
     },
-    async getPlaylistsPage(limit = PLAYLIST_PAGE_SIZE, offset = 0) {
+    async getPlaylistsPage(
+      limit = PLAYLIST_PAGE_SIZE,
+      offset = 0,
+      forceRefresh = false,
+    ) {
       const client = await getAuthenticatedSpotifyConvexClient();
 
       return client.action(api.spotify.playlistsPage, {
         limit,
         offset,
+        forceRefresh,
       });
     },
     async getPlaylistTracks(playlistId) {

@@ -10,8 +10,13 @@ interface SpotifyActivityContextValue {
   recentTracks: RecentTrack[];
   playlists: Playlist[];
   playlistsTotal: number;
+  playlistsLoading: boolean;
   favoriteArtists: SpotifyArtist[];
+  favoriteArtistsLoading: boolean;
   loading: boolean;
+  appendRecentTrack: (track: SpotifyTrack) => void;
+  loadFavoriteArtists: (forceRefresh?: boolean) => Promise<void>;
+  loadPlaylists: (forceRefresh?: boolean) => Promise<void>;
   refresh: () => void;
   loadMorePlaylists: () => void;
   getPlaylistTracks: (playlistId: string) => Promise<SpotifyTrack[]>;

@@ -1,9 +1,9 @@
 import { FC, PropsWithChildren, useContext } from "react";
 
-import { WebPlayerActionsContext } from "@/features/spotify/player/use-web-player";
+import { AlbumArt } from "@/components/album-art";
+import { PlayButton } from "@/components/play-button";
 import type { Track, TrackSnapshot } from "@/types";
-import { AlbumArt } from "./album-art";
-import { PlayButton } from "./play-button";
+import { WebPlayerActionsContext } from "../player/use-web-player";
 
 function isTrackSnapshot(track: Track | TrackSnapshot): track is TrackSnapshot {
   return "trackId" in track;

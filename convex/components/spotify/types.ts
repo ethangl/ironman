@@ -43,7 +43,8 @@ export interface SpotifySearchResults {
 export interface SpotifyArtistPageData {
   artist: SpotifyArtist;
   topTracks: SpotifyTrack[];
-  releases: SpotifyAlbumRelease[];
+  albums: SpotifyAlbumRelease[];
+  singles: SpotifyAlbumRelease[];
 }
 
 export interface PlaybackState {

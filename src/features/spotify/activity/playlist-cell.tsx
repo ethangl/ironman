@@ -1,9 +1,9 @@
 import { FC, PropsWithChildren, ReactNode, useContext } from "react";
 
-import { WebPlayerActionsContext } from "@/features/spotify/player/use-web-player";
+import { AlbumArt } from "@/components/album-art";
+import { PlayButton } from "@/components/play-button";
 import type { Track } from "@/types";
-import { AlbumArt } from "./album-art";
-import { PlayButton } from "./play-button";
+import { WebPlayerActionsContext } from "../player/use-web-player";
 
 export type PlaylistCellProps = PropsWithChildren & {
   count?: number;

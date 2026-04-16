@@ -4,13 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppRuntimeProvider } from "@/app";
 import type { IronmanClient } from "@/features/ironman";
+import { SpotifyActivityProvider } from "@/features/spotify/activity";
 import {
   createSpotifyClient,
-  defaultSpotifyClient,
 } from "@/features/spotify/client";
 import { clearCachedSpotifyAccessToken } from "@/lib/spotify-access-token";
 import { clearCachedSpotifyAccountLink } from "@/lib/spotify-account-link";
 import { StreakData } from "@/types";
+import { usePlayerQueueListing } from "./use-player-queue-listing";
 import { useWebPlayerActions, useWebPlayerState } from "./use-web-player";
 import { WebPlayerProvider } from "./web-player-provider";
 
@@ -46,6 +47,10 @@ vi.mock("sonner", () => ({
 
 vi.mock("../sdk/use-spotify", () => ({
   useSpotify: (...args: unknown[]) => mockUseSpotify(...args),
+}));
+
+vi.mock("@/features/reccobeats", () => ({
+  useEnsureTrackAudioFeatures: vi.fn(),
 }));
 
 vi.mock("./mini-player", () => ({
@@ -169,10 +174,69 @@ function SurrenderActionProbe() {
   return <button onClick={() => void surrender()}>surrender</button>;
 }
 
+function PlayTracksActionProbe({
+  startIndex = 0,
+  tracks,
+}: {
+  startIndex?: number;
+  tracks: {
+    id: string;
+    name: string;
+    artist: string;
+    albumImage: string | null;
+    durationMs: number;
+  }[];
+}) {
+  const { playTracks } = useWebPlayerActions();
+  return (
+    <button onClick={() => void playTracks(tracks, startIndex)}>
+      play-tracks
+    </button>
+  );
+}
+
+function QueueListingProbe() {
+  const { activeIndex, activeTrackId, hasTracks, items, playbackIndex } =
+    usePlayerQueueListing();
+
+  return (
+    <div>
+      <div data-testid="queue-listing-length">{String(items.length)}</div>
+      <div data-testid="queue-listing-active-index">{String(activeIndex)}</div>
+      <div data-testid="queue-listing-playback-index">
+        {String(playbackIndex)}
+      </div>
+      <div data-testid="queue-listing-active-track">
+        {activeTrackId ?? "none"}
+      </div>
+      <div data-testid="queue-listing-has-tracks">{String(hasTracks)}</div>
+      <div data-testid="queue-listing-order">
+        {items.map(({ track }) => track.id).join(",")}
+      </div>
+    </div>
+  );
+}
+
 function renderProvider(children?: ReactNode) {
   return render(
-    <AppRuntimeProvider spotifyClient={defaultSpotifyClient}>
-      <WebPlayerProvider>{children ?? <PlayerProbe />}</WebPlayerProvider>
+    <AppRuntimeProvider
+      spotifyClient={createSpotifyClient({
+        spotifyActivity: {
+          getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
+          getCachedPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+          getFavoriteArtists: vi.fn().mockResolvedValue([]),
+          getRecentlyPlayed: vi
+            .fn()
+            .mockResolvedValue({ items: [], rateLimited: false }),
+          getPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+          getPlaylistTracks: vi.fn().mockResolvedValue([]),
+          getTopArtists: vi.fn().mockResolvedValue([]),
+        },
+      })}
+    >
+      <SpotifyActivityProvider>
+        <WebPlayerProvider>{children ?? <PlayerProbe />}</WebPlayerProvider>
+      </SpotifyActivityProvider>
     </AppRuntimeProvider>,
   );
 }
@@ -200,10 +264,26 @@ function renderProviderWithClient(
 ) {
   return render(
     <AppRuntimeProvider
-      spotifyClient={createSpotifyClient(spotifyClient)}
+      spotifyClient={createSpotifyClient({
+        spotifyActivity: {
+          getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
+          getCachedPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+          getFavoriteArtists: vi.fn().mockResolvedValue([]),
+          getRecentlyPlayed: vi
+            .fn()
+            .mockResolvedValue({ items: [], rateLimited: false }),
+          getPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+          getPlaylistTracks: vi.fn().mockResolvedValue([]),
+          getTopArtists: vi.fn().mockResolvedValue([]),
+          ...spotifyClient?.spotifyActivity,
+        },
+        ...spotifyClient,
+      })}
       ironmanClient={ironmanClient}
     >
-      <WebPlayerProvider>{children ?? <PlayerProbe />}</WebPlayerProvider>
+      <SpotifyActivityProvider>
+        <WebPlayerProvider>{children ?? <PlayerProbe />}</WebPlayerProvider>
+      </SpotifyActivityProvider>
     </AppRuntimeProvider>,
   );
 }
@@ -414,6 +494,70 @@ describe("WebPlayerProvider", () => {
     expect(playMock).toHaveBeenCalledTimes(1);
   });
 
+  it("exposes the current queue listing for multi-track playback", async () => {
+    renderProvider(
+      <>
+        <QueueListingProbe />
+        <PlayTracksActionProbe
+          startIndex={1}
+          tracks={[
+            {
+              id: "track-1",
+              name: "Track One",
+              artist: "Artist One",
+              albumImage: null,
+              durationMs: 123000,
+            },
+            {
+              id: "track-2",
+              name: "Track Two",
+              artist: "Artist Two",
+              albumImage: null,
+              durationMs: 156000,
+            },
+          ]}
+        />
+      </>,
+    );
+
+    expect(screen.getByTestId("queue-listing-has-tracks")).toHaveTextContent(
+      "false",
+    );
+
+    await waitFor(() => {
+      expect(mockAuthFetch).toHaveBeenCalled();
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      screen.getByRole("button", { name: "play-tracks" }).click();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("queue-listing-has-tracks")).toHaveTextContent(
+        "true",
+      );
+    });
+
+    expect(screen.getByTestId("queue-listing-length")).toHaveTextContent("2");
+    expect(screen.getByTestId("queue-listing-order")).toHaveTextContent(
+      "track-1,track-2",
+    );
+    expect(screen.getByTestId("queue-listing-active-track")).toHaveTextContent(
+      "track-2",
+    );
+    expect(screen.getByTestId("queue-listing-active-index")).toHaveTextContent(
+      "1",
+    );
+    expect(
+      screen.getByTestId("queue-listing-playback-index"),
+    ).toHaveTextContent("1");
+  });
+
   it("clears the local streak immediately after surrender without waiting for repeat cleanup", async () => {
     const ironman = createMockIronmanClient();
     ironman.getStatus.mockResolvedValue(buildStreak());
@@ -471,10 +615,28 @@ describe("WebPlayerProvider", () => {
 
     await act(async () => {
       rerender(
-        <AppRuntimeProvider spotifyClient={defaultSpotifyClient}>
-          <WebPlayerProvider>
-            <PlayerProbe />
-          </WebPlayerProvider>
+        <AppRuntimeProvider
+          spotifyClient={createSpotifyClient({
+          spotifyActivity: {
+            getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
+            getCachedPlaylistsPage: vi
+              .fn()
+              .mockResolvedValue({ items: [], total: 0 }),
+            getFavoriteArtists: vi.fn().mockResolvedValue([]),
+              getRecentlyPlayed: vi
+                .fn()
+                .mockResolvedValue({ items: [], rateLimited: false }),
+              getPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+              getPlaylistTracks: vi.fn().mockResolvedValue([]),
+              getTopArtists: vi.fn().mockResolvedValue([]),
+            },
+          })}
+        >
+          <SpotifyActivityProvider>
+            <WebPlayerProvider>
+              <PlayerProbe />
+            </WebPlayerProvider>
+          </SpotifyActivityProvider>
         </AppRuntimeProvider>,
       );
       await Promise.resolve();

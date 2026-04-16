@@ -4,10 +4,8 @@ import { components } from "./_generated/api";
 import { action } from "./_generated/server";
 import { authComponent, createAuth } from "./betterAuth";
 import {
-  spotifyActivitySnapshotValidator,
   spotifyArtistPageDataValidator,
   spotifyArtistValidator,
-  spotifyPlaylistValidator,
   spotifyPlaylistsPageValidator,
   spotifyRecentlyPlayedResultValidator,
   spotifySearchResultsValidator,
@@ -203,12 +201,11 @@ export const albumTracks = action({
   },
   returns: v.array(spotifyTrackValidator),
   handler: async (ctx, args) => {
-    const { user, accessToken } = await requireSpotifySession(ctx);
+    const accessToken = await requireSpotifyAccessToken(ctx);
 
     return ctx.runAction(components.spotify.search.albumTracks, {
       ...args,
       accessToken,
-      cacheScope: String(user._id),
     });
   },
 });
@@ -233,6 +230,7 @@ export const playlistsPage = action({
   args: {
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
+    forceRefresh: v.optional(v.boolean()),
   },
   returns: spotifyPlaylistsPageValidator,
   handler: async (ctx, args) => {
@@ -246,14 +244,17 @@ export const playlistsPage = action({
   },
 });
 
-export const activitySnapshot = action({
-  args: {},
-  returns: spotifyActivitySnapshotValidator,
-  handler: async (ctx) => {
-    const { user, accessToken } = await requireSpotifySession(ctx);
+export const playlistsPageCached = action({
+  args: {
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  returns: spotifyPlaylistsPageValidator,
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
 
-    return ctx.runAction(components.spotify.activity.activitySnapshot, {
-      accessToken,
+    return ctx.runAction(components.spotify.activity.playlistsPageCached, {
+      ...args,
       cacheScope: String(user._id),
     });
   },
@@ -294,6 +295,7 @@ export const topArtists = action({
 export const favoriteArtists = action({
   args: {
     limit: v.optional(v.number()),
+    forceRefresh: v.optional(v.boolean()),
   },
   returns: v.array(spotifyArtistValidator),
   handler: async (ctx, args) => {
@@ -302,6 +304,21 @@ export const favoriteArtists = action({
     return ctx.runAction(components.spotify.activity.favoriteArtists, {
       ...args,
       accessToken,
+      cacheScope: String(user._id),
+    });
+  },
+});
+
+export const favoriteArtistsCached = action({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  returns: v.array(spotifyArtistValidator),
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+
+    return ctx.runAction(components.spotify.activity.favoriteArtistsCached, {
+      ...args,
       cacheScope: String(user._id),
     });
   },

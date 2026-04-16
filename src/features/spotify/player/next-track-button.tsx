@@ -1,4 +1,4 @@
-import { FastForwardIcon } from "lucide-react";
+import { SkipForwardIcon } from "lucide-react";
 import { FC } from "react";
 
 import { Button, ButtonProps } from "@/components/ui/button";
@@ -8,12 +8,12 @@ export const NextTrackButton: FC<ButtonProps> = ({ ...props }) => {
   const { nextTrack } = useNowPlaying();
   return (
     <Button
-      size="icon-sm"
+      size="icon-lg"
       className="bg-white/10 hover:bg-white/5"
       onClick={nextTrack}
       {...props}
     >
-      <FastForwardIcon fill="currentColor" strokeWidth={0} />
+      <SkipForwardIcon />
     </Button>
   );
 };

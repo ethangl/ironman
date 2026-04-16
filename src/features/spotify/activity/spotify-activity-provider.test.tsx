@@ -9,24 +9,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   PLAYLIST_PAGE_SIZE,
+  RECENTLY_PLAYED_LIMIT,
   SpotifyClientProvider,
   createSpotifyClient,
 } from "@/features/spotify/client";
+import type { SpotifyTrack } from "@/types";
 import type { SpotifyActivityClient } from "@/features/spotify/client/spotify-activity-client";
 import { SpotifyActivityProvider } from "./spotify-activity-provider";
 import { useSpotifyActivity } from "./use-spotify-activity";
-
-const mockUseSpotifyRecentPolling = vi.fn();
 
 vi.mock("@/app", () => ({
   useAppCapabilities: () => ({
     canBrowsePersonalSpotify: true,
   }),
-}));
-
-vi.mock("./use-spotify-recent-polling", () => ({
-  useSpotifyRecentPolling: (...args: unknown[]) =>
-    mockUseSpotifyRecentPolling(...args),
 }));
 
 function createDeferred<T>() {
@@ -53,17 +48,48 @@ function playlist(id: string) {
 }
 
 function ActivityConsumer() {
-  const { playlists, loadMorePlaylists } = useSpotifyActivity();
+  const {
+    appendRecentTrack,
+    favoriteArtists,
+    favoriteArtistsLoading,
+    loadFavoriteArtists,
+    playlists,
+    playlistsLoading,
+    loadPlaylists,
+    loadMorePlaylists,
+    recentTracks,
+  } = useSpotifyActivity();
+  const sampleTrack: SpotifyTrack = {
+    id: "track-1",
+    name: "Track 1",
+    artist: "Artist 1",
+    albumImage: null,
+    durationMs: 120000,
+    albumName: "Album 1",
+  };
 
   return (
     <div>
       <div data-testid="playlist-count">{playlists.length}</div>
+      <div data-testid="recent-count">{recentTracks.length}</div>
+      <div data-testid="favorite-artists-count">{favoriteArtists.length}</div>
+      <div data-testid="playlists-loading">{String(playlistsLoading)}</div>
+      <div data-testid="favorite-artists-loading">
+        {String(favoriteArtistsLoading)}
+      </div>
       {playlists.map((item) => (
         <div data-testid="playlist-name" key={item.id}>
           {item.name}
         </div>
       ))}
+      <button onClick={() => void loadPlaylists()}>Load playlists</button>
+      <button onClick={() => void loadPlaylists(true)}>Refresh playlists</button>
       <button onClick={() => void loadMorePlaylists()}>Load more</button>
+      <button onClick={() => appendRecentTrack(sampleTrack)}>Append recent</button>
+      <button onClick={() => void loadFavoriteArtists()}>Load favorite artists</button>
+      <button onClick={() => void loadFavoriteArtists(true)}>
+        Refresh favorite artists
+      </button>
     </div>
   );
 }
@@ -73,11 +99,8 @@ function renderProvider(overrides: Partial<SpotifyActivityClient> = {}) {
     <SpotifyClientProvider
       client={createSpotifyClient({
         spotifyActivity: {
-          getActivitySnapshot: vi.fn().mockResolvedValue({
-            recentlyPlayed: { items: [], rateLimited: false },
-            playlistsPage: { items: [], total: 0 },
-            favoriteArtists: [],
-          }),
+          getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
+          getCachedPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
           getFavoriteArtists: vi.fn().mockResolvedValue([]),
           getRecentlyPlayed: vi
             .fn()
@@ -119,13 +142,9 @@ describe("SpotifyActivityProvider", () => {
     });
 
     renderProvider({
-      getActivitySnapshot: vi.fn().mockResolvedValue({
-        recentlyPlayed: { items: [], rateLimited: false },
-        playlistsPage: {
-          items: [playlist("1")],
-          total: 2,
-        },
-        favoriteArtists: [],
+      getCachedPlaylistsPage: vi.fn().mockResolvedValue({
+        items: [playlist("1")],
+        total: 2,
       }),
       getPlaylistsPage,
     });
@@ -156,38 +175,230 @@ describe("SpotifyActivityProvider", () => {
     expect(screen.getByText("Playlist 2")).toBeInTheDocument();
   });
 
-  it("waits for the initial activity snapshot before enabling recent polling", async () => {
-    const snapshot =
-      createDeferred<
-        Awaited<
-          ReturnType<NonNullable<SpotifyActivityClient["getActivitySnapshot"]>>
-        >
-      >();
-
+  it("appends recents locally without refetching Spotify", async () => {
+    const getRecentlyPlayed = vi
+      .fn()
+      .mockResolvedValue({ items: [], rateLimited: false });
     renderProvider({
-      getActivitySnapshot: vi.fn().mockReturnValue(snapshot.promise),
-    });
-
-    expect(mockUseSpotifyRecentPolling).toHaveBeenCalled();
-    expect(mockUseSpotifyRecentPolling).toHaveBeenLastCalledWith({
-      enabled: false,
-      refreshRecent: expect.any(Function),
-    });
-
-    await act(async () => {
-      snapshot.resolve({
-        recentlyPlayed: { items: [], rateLimited: false },
-        playlistsPage: { items: [], total: 0 },
-        favoriteArtists: [],
-      });
-      await snapshot.promise;
+      getRecentlyPlayed,
     });
 
     await waitFor(() => {
-      expect(mockUseSpotifyRecentPolling).toHaveBeenLastCalledWith({
-        enabled: true,
-        refreshRecent: expect.any(Function),
+      expect(screen.getByTestId("recent-count")).toHaveTextContent("0");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Append recent" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("recent-count")).toHaveTextContent("1");
+    });
+
+    expect(getRecentlyPlayed).toHaveBeenCalledTimes(1);
+  });
+
+  it("hydrates playlists from cache without calling Spotify", async () => {
+    const getCachedPlaylistsPage = vi.fn().mockResolvedValue({
+      items: [playlist("1")],
+      total: 1,
+    });
+    const getPlaylistsPage = vi.fn().mockResolvedValue({ items: [], total: 0 });
+
+    renderProvider({
+      getCachedPlaylistsPage,
+      getPlaylistsPage,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("playlist-count")).toHaveTextContent("1");
+    });
+
+    expect(getCachedPlaylistsPage).toHaveBeenCalledTimes(1);
+    expect(getPlaylistsPage).not.toHaveBeenCalled();
+  });
+
+  it("loads playlists on demand and can force refresh", async () => {
+    const getPlaylistsPage = vi
+      .fn()
+      .mockResolvedValueOnce({
+        items: [playlist("1")],
+        total: 1,
+      })
+      .mockResolvedValueOnce({
+        items: [playlist("2")],
+        total: 1,
       });
+
+    renderProvider({
+      getCachedPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+      getPlaylistsPage,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("playlist-count")).toHaveTextContent("0");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Load playlists" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("playlist-count")).toHaveTextContent("1");
+    });
+    expect(getPlaylistsPage).toHaveBeenNthCalledWith(1, PLAYLIST_PAGE_SIZE, 0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh playlists" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Playlist 2")).toBeInTheDocument();
+    });
+    expect(getPlaylistsPage).toHaveBeenNthCalledWith(
+      2,
+      PLAYLIST_PAGE_SIZE,
+      0,
+      true,
+    );
+  });
+
+  it("hydrates favorite artists from cache without calling Spotify", async () => {
+    const getCachedFavoriteArtists = vi.fn().mockResolvedValue([
+      {
+        id: "artist-1",
+        name: "Artist 1",
+        image: null,
+        followerCount: 100,
+        genres: [],
+      },
+    ]);
+    const getFavoriteArtists = vi.fn().mockResolvedValue([]);
+
+    renderProvider({
+      getCachedFavoriteArtists,
+      getFavoriteArtists,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("favorite-artists-count")).toHaveTextContent("1");
+    });
+
+    expect(getCachedFavoriteArtists).toHaveBeenCalledTimes(1);
+    expect(getFavoriteArtists).not.toHaveBeenCalled();
+  });
+
+  it("loads favorite artists on demand and can force refresh", async () => {
+    const getFavoriteArtists = vi
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          id: "artist-1",
+          name: "Artist 1",
+          image: null,
+          followerCount: 100,
+          genres: [],
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "artist-2",
+          name: "Artist 2",
+          image: null,
+          followerCount: 200,
+          genres: [],
+        },
+      ]);
+
+    renderProvider({
+      getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
+      getFavoriteArtists,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("favorite-artists-count")).toHaveTextContent("0");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Load favorite artists" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("favorite-artists-count")).toHaveTextContent("1");
+    });
+    expect(getFavoriteArtists).toHaveBeenNthCalledWith(1, 50);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Refresh favorite artists" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("favorite-artists-count")).toHaveTextContent("1");
+    });
+    expect(getFavoriteArtists).toHaveBeenNthCalledWith(2, 50, true);
+  });
+
+  it("dedupes and caps locally appended recents at 30 items", async () => {
+    function LimitConsumer() {
+      const { appendRecentTrack, recentTracks } = useSpotifyActivity();
+
+      return (
+        <div>
+          <div data-testid="recent-count">{recentTracks.length}</div>
+          <button
+            onClick={() => {
+              for (let index = 0; index < RECENTLY_PLAYED_LIMIT + 5; index += 1) {
+                appendRecentTrack({
+                  id: `track-${index}`,
+                  name: `Track ${index}`,
+                  artist: `Artist ${index}`,
+                  albumImage: null,
+                  durationMs: 100000,
+                  albumName: `Album ${index}`,
+                });
+              }
+              appendRecentTrack({
+                id: "track-10",
+                name: "Track 10",
+                artist: "Artist 10",
+                albumImage: null,
+                durationMs: 100000,
+                albumName: "Album 10",
+              });
+            }}
+          >
+            Fill recents
+          </button>
+        </div>
+      );
+    }
+
+    render(
+      <SpotifyClientProvider
+        client={createSpotifyClient({
+          spotifyActivity: {
+            getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
+            getCachedPlaylistsPage: vi
+              .fn()
+              .mockResolvedValue({ items: [], total: 0 }),
+            getFavoriteArtists: vi.fn().mockResolvedValue([]),
+            getRecentlyPlayed: vi
+              .fn()
+              .mockResolvedValue({ items: [], rateLimited: false }),
+            getPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+            getPlaylistTracks: vi.fn().mockResolvedValue([]),
+            getTopArtists: vi.fn().mockResolvedValue([]),
+          },
+        })}
+      >
+        <SpotifyActivityProvider>
+          <LimitConsumer />
+        </SpotifyActivityProvider>
+      </SpotifyClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("recent-count")).toHaveTextContent("0");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Fill recents" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("recent-count")).toHaveTextContent(
+        String(RECENTLY_PLAYED_LIMIT),
+      );
     });
   });
 });

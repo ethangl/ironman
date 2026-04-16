@@ -113,6 +113,26 @@ describe("usePlayerPlayback", () => {
     );
   });
 
+  it("does not replace the queue while a streak is active", async () => {
+    const props = createProps({
+      currentTrack: trackA,
+      streakActive: true,
+      streakTrackId: trackA.id,
+    });
+
+    const { result } = renderHook(() => usePlayerPlayback(props));
+
+    await act(async () => {
+      await result.current.playTracks([trackA, trackB], 1);
+    });
+
+    expect(props.play).not.toHaveBeenCalled();
+    expect(props.setCurrentTrack).not.toHaveBeenCalled();
+    expect(result.current.queue).toEqual([]);
+    expect(result.current.queueIndex).toBe(0);
+    expect(result.current.hasQueue).toBe(false);
+  });
+
   it("swallows thrown resume failures and surfaces a toast instead", async () => {
     const props = createProps({
       resume: vi.fn().mockRejectedValue(new Error("resume failed")),

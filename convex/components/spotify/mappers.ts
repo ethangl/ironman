@@ -33,6 +33,7 @@ export interface SpotifyApiTrack {
   artists?: SpotifyApiArtist[];
   album?: SpotifyAlbum;
   duration_ms: number;
+  popularity?: number;
 }
 
 export interface SpotifyApiPlaylist {

@@ -4,11 +4,14 @@ import { useEffect, useState } from "react";
 import { AlbumArt } from "@/components/album-art";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { AlbumButton } from "./album-button";
 import { HardcoreButton } from "./hardcore-button";
 import { LockInButton } from "./lock-in-button";
 import { NextTrackButton } from "./next-track-button";
 import { PlayerWrapper } from "./player-wrapper";
 import { PrevTrackButton } from "./prev-track-button";
+import { QueueButton } from "./queue-button";
+import { RepeatButton } from "./repeat-button";
 import { ShareButton } from "./share-button";
 import { ShuffleButton } from "./shuffle-button";
 import { TogglePlayButton } from "./toggle-play-button";
@@ -90,8 +93,8 @@ export function StandardPlayer() {
           </div>
         </header>
 
-        <nav className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center mb-8 mix-blend-plus-darker dark:mix-blend-plus-lighter">
-          <div className="flex flex-auto gap-4 items-center justify-end">
+        <nav className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center mb-8 mix-blend-plus-darker dark:mix-blend-plus-lighter">
+          <div className="flex flex-auto gap-3 items-center justify-end">
             {hasQueue && (
               <>
                 <ShuffleButton />
@@ -100,8 +103,13 @@ export function StandardPlayer() {
             )}
           </div>
           <TogglePlayButton size="icon-2xl" />
-          <div className="flex flex-auto gap-4 items-center justify-start">
-            {hasQueue && <NextTrackButton />}
+          <div className="flex flex-auto gap-3 items-center justify-start">
+            {hasQueue && (
+              <>
+                <NextTrackButton />
+                <RepeatButton />
+              </>
+            )}
           </div>
         </nav>
 
@@ -124,24 +132,18 @@ export function StandardPlayer() {
           </Button>
         </div>
 
-        <footer className="flex gap-6 items-center justify-center -mx-3">
-          <div className="flex flex-auto gap-4 items-center justify-start">
-            <ShareButton
-              trackId={displayTrackId}
-              trackArtist={displayArtist}
-              trackName={displayName}
-              count={streak?.count || 0}
-              isIronMan={streak?.active || false}
-            />
-          </div>
+        <footer className="grid grid-cols-[auto_1fr] gap-1 items-center -mx-3">
           <Button
             variant="overlay"
             size="icon-xl"
             onClick={() => setExpanded(false)}
+            className="-ml-1.5"
           >
             <ChevronsDownIcon />
           </Button>
-          <div className="flex flex-auto gap-4 items-center justify-end">
+          <div className="flex gap-1 items-center justify-end">
+            <AlbumButton />
+            <QueueButton />
             <ShareButton
               trackId={displayTrackId}
               trackArtist={displayArtist}

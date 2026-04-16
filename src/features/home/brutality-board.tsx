@@ -1,7 +1,7 @@
 import { List, ListItem } from "@/components/list";
 import { Section } from "@/components/section";
-import { TrackCell } from "@/features/spotify/player";
 import type { HellscapeSong } from "@shared/leaderboards";
+import { TrackCell } from "../spotify/activity/track-cell";
 
 export function BrutalityBoardList({
   songs,
@@ -19,11 +19,7 @@ export function BrutalityBoardList({
   }
 
   return (
-    <Section
-      title="Legacies of Brutality"
-      color="--color-red-400"
-      className="m-0"
-    >
+    <Section title="One Battle After Another" color="--color-red-400">
       <List loading={loading} count={songs.length} className="p-4">
         {songs.map((song, i) => (
           <ListItem key={song.trackId}>

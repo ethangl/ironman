@@ -140,7 +140,7 @@ export function LeaderboardList({
   title?: string;
 }) {
   return (
-    <Section title={title} color="--color-red-400" className="m-0">
+    <Section title={title} color="--color-red-400">
       <List loading={loading} count={liveCount} className="p-4">
         {entries.map((entry) => (
           <EntryRow

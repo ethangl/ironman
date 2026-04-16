@@ -47,7 +47,7 @@ interface FollowedArtistsResponse {
   };
 }
 
-export async function getRecentlyPlayed(token: string, limit = 50) {
+export async function getRecentlyPlayed(token: string, limit = 30) {
   const data = await spotifyFetch<RecentlyPlayedResponse>(
     `/me/player/recently-played?limit=${limit}`,
     token,

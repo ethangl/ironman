@@ -13,7 +13,7 @@ export function IronmenBoardList({
   loading: boolean;
 }) {
   return (
-    <Section title="True Iron Men" color="--color-red-400" className="m-0">
+    <Section title="True Iron Men" color="--color-red-400">
       <List loading={loading} count={entries.length} className="p-4">
         {entries.map((entry) => {
           const dl = difficultyLabel(entry.songDifficulty);

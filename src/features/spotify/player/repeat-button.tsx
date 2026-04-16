@@ -1,19 +1,19 @@
-import { SkipBackIcon } from "lucide-react";
+import { RepeatIcon } from "lucide-react";
 import { FC } from "react";
 
 import { Button, ButtonProps } from "@/components/ui/button";
 import { useNowPlaying } from "./use-now-playing";
 
-export const PrevTrackButton: FC<ButtonProps> = ({ ...props }) => {
-  const { prevTrack } = useNowPlaying();
+export const RepeatButton: FC<ButtonProps> = ({ ...props }) => {
+  const { toggleShuffle } = useNowPlaying();
   return (
     <Button
-      size="icon-lg"
+      size="icon-sm"
       className="bg-white/10 hover:bg-white/5"
-      onClick={prevTrack}
+      onClick={toggleShuffle}
       {...props}
     >
-      <SkipBackIcon />
+      <RepeatIcon />
     </Button>
   );
 };

@@ -1,30 +1,33 @@
-import { ComponentProps, CSSProperties, FC } from "react";
+import { ComponentProps, CSSProperties, FC, ReactNode } from "react";
 
 import { BackgroundOverlay } from "@/components/background-overlay";
 import { cn } from "@/lib/utils";
 
 export type SectionProps = ComponentProps<"section"> & {
-  color: string;
+  action?: ReactNode;
+  color?: string;
   title?: string;
 };
 
 export const Section: FC<SectionProps> = ({
+  action,
   children,
   className,
-  color,
+  color = "--color-emerald-400",
   title,
   ...props
 }) => {
   return (
     <section
-      className={cn("m-3 relative", className)}
+      className={cn("relative select-none", className)}
       style={{ "--section-color": `var(${color})` } as CSSProperties}
       {...props}
     >
       <BackgroundOverlay className="dark:bg-(--section-color)/50 backdrop-brightness-600 backdrop-contrast-600 mix-blend-exclusion rounded-[2rem]" />
       {title && (
-        <header className="px-6 pt-5 pb-1 text-(--section-color)">
-          <h2 className="font-medium text-2xl tracking-[0.025em]">{title}</h2>
+        <header className="flex items-center justify-between gap-3 p-6 pb-2 text-(--section-color)">
+          <h2 className="font-medium text-3xl tracking-[0.015em]">{title}</h2>
+          {action}
         </header>
       )}
       {children}

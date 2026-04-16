@@ -135,7 +135,7 @@ describe("convex/spotify auth handoff", () => {
       { query: "isis" },
     );
     await runAction(
-      spotifyModule.activitySnapshot as unknown as RegisteredAction,
+      spotifyModule.recentlyPlayed as unknown as RegisteredAction,
       ctx,
       {},
     );

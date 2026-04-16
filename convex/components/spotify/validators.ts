@@ -52,12 +52,6 @@ export const spotifyPlaylistsPageValidator = v.object({
   total: v.number(),
 });
 
-export const spotifyActivitySnapshotValidator = v.object({
-  recentlyPlayed: spotifyRecentlyPlayedResultValidator,
-  playlistsPage: spotifyPlaylistsPageValidator,
-  favoriteArtists: v.array(spotifyArtistValidator),
-});
-
 export const spotifyAlbumReleaseValidator = v.object({
   id: v.string(),
   name: v.string(),
@@ -76,5 +70,6 @@ export const spotifySearchResultsValidator = v.object({
 export const spotifyArtistPageDataValidator = v.object({
   artist: spotifyArtistValidator,
   topTracks: v.array(spotifyTrackValidator),
-  releases: v.array(spotifyAlbumReleaseValidator),
+  albums: v.array(spotifyAlbumReleaseValidator),
+  singles: v.array(spotifyAlbumReleaseValidator),
 });

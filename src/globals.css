@@ -13,9 +13,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: "Host Grotesk", var(--font-sans);
+  --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
-  --font-display: "Google Sans Flex", sans-serif;
+  --font-display: var(--font-display);
   --font-heading: var(--font-sans);
   --font-decorative: var(--font-decorative);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -81,9 +81,11 @@
 
 :root {
   --font-sans:
-    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    "Host Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-display: "Google Sans Flex";
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --font-decorative: "Jacquard 12", serif;
+  --font-decorative: "Jacquard 12";
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.148 0.004 228.8);
   --popover: oklch(1 0 0);

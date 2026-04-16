@@ -2,6 +2,7 @@ import type { SpotifyArtist } from "@/types";
 import type { Playlist, RecentTrack } from "@/types/spotify-activity";
 
 const PLAYLIST_PAGE_SIZE = 50;
+const RECENTLY_PLAYED_LIMIT = 30;
 
 export interface PlaylistsPage {
   items: Playlist[];
@@ -13,10 +14,4 @@ export interface RecentlyPlayedResult {
   rateLimited: boolean;
 }
 
-export interface SpotifyActivitySnapshot {
-  recentlyPlayed: RecentlyPlayedResult;
-  playlistsPage: PlaylistsPage;
-  favoriteArtists: SpotifyArtist[];
-}
-
-export { PLAYLIST_PAGE_SIZE };
+export { PLAYLIST_PAGE_SIZE, RECENTLY_PLAYED_LIMIT };

@@ -10,7 +10,9 @@ import {
 import { cn } from "@/lib/utils";
 import { useAppAuth, useAppCapabilities, useIronmanClient } from "@/app";
 import { useEnsureTrackAudioFeatures } from "@/features/reccobeats";
+import { useSpotifyActivity } from "@/features/spotify/activity";
 import { StreakData, Track } from "@/types";
+import type { SpotifyTrack } from "@/types";
 import { MiniPlayer } from "./mini-player";
 import { StandardPlayer } from "./standard-player";
 import { useChallengeAutoplay } from "./use-challenge-autoplay";
@@ -24,6 +26,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   const ironmanClient = useIronmanClient();
   const { session, getSpotifyAccessToken } = useAppAuth();
   const { canControlPlayback, canUseIronman } = useAppCapabilities();
+  const { appendRecentTrack } = useSpotifyActivity();
   const tokenRef = useRef<string | null>(null);
   const searchParams = useBrowserSearchParams();
   const hasSession = !!session;
@@ -136,6 +139,38 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     getStatus: fetchStreakStatus,
     hasSession,
   });
+
+  const pendingRecentTrackRef = useRef<SpotifyTrack | null>(null);
+  const prevCurrentTrackIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!currentTrack || prevCurrentTrackIdRef.current === currentTrack.id) {
+      prevCurrentTrackIdRef.current = currentTrack?.id ?? null;
+      return;
+    }
+
+    const albumNameValue = (currentTrack as Partial<SpotifyTrack>).albumName;
+    const albumName = typeof albumNameValue === "string" ? albumNameValue : "";
+    pendingRecentTrackRef.current = {
+      ...currentTrack,
+      albumName,
+    };
+    prevCurrentTrackIdRef.current = currentTrack.id;
+  }, [currentTrack]);
+
+  useEffect(() => {
+    const confirmedTrackId = !sdkState?.paused ? sdkState?.trackId ?? null : null;
+
+    if (!confirmedTrackId) {
+      return;
+    }
+
+    const pendingTrack = pendingRecentTrackRef.current;
+    if (pendingTrack && pendingTrack.id === confirmedTrackId) {
+      appendRecentTrack(pendingTrack);
+      pendingRecentTrackRef.current = null;
+    }
+  }, [appendRecentTrack, sdkState]);
 
   // --- Enforcement callbacks ---
 

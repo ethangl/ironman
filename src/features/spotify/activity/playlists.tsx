@@ -1,54 +1,76 @@
 import { FC, useCallback } from "react";
-import { toast } from "sonner";
 
-import { Section } from "@/components/section";
+import { List, ListItem } from "@/components/list";
+import { Section, SectionProps } from "@/components/section";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useWebPlayerActions } from "@/features/spotify/player";
-import type { Playlist } from "@/types/spotify-activity";
-import { Thumbnail } from "./thumbnail";
-import { useSpotifyActivity } from "./use-spotify-activity";
+import { Thumbnail } from "@/features/spotify/activity/thumbnail";
+import { useSpotifyClient } from "@/features/spotify/client";
+import { SpotifyPlaylist, Track } from "@/types";
+import { PlaylistCell } from "./playlist-cell";
+import { usePlayableTrackCollection } from "./use-playable-track-collection";
 
-export const Playlists: FC = () => {
-  const { playlists, getPlaylistTracks } = useSpotifyActivity();
-  const { playTracks } = useWebPlayerActions();
+export type PlaylistsProps = SectionProps & {
+  display?: "list" | "thumbnails";
+  playlists: SpotifyPlaylist[];
+};
 
-  const handlePlay = useCallback(
-    async (playlist: Playlist) => {
-      try {
-        const tracks =
-          playlist.tracks ?? (await getPlaylistTracks(playlist.id));
-        if (tracks.length === 0) {
-          toast.error("That playlist does not have any playable tracks.");
-          return;
-        }
-        playTracks(tracks);
-      } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Could not load that playlist right now.",
-        );
-      }
+export const Playlists: FC<PlaylistsProps> = ({
+  display = "list",
+  playlists,
+  ...props
+}) => {
+  const client = useSpotifyClient();
+  const loadTracks = useCallback(
+    async (playlist: SpotifyPlaylist): Promise<Track[]> => {
+      return client.spotifyActivity.getPlaylistTracks(playlist.id);
     },
-    [getPlaylistTracks, playTracks],
+    [client],
   );
+  const { getCachedTracks, loadingItemId, playItem } =
+    usePlayableTrackCollection<SpotifyPlaylist>({
+      emptyMessage: "That playlist does not have any playable tracks.",
+      fallbackErrorMessage: "Could not load playlist tracks.",
+      loadTracks,
+    });
 
   return (
-    <Section title="Your Playlists" color="--color-emerald-400">
-      <ScrollArea>
-        <ol className="flex gap-4 p-4 w-max">
-          {playlists.map((playlist) => (
-            <li key={playlist.id}>
-              <Thumbnail
-                description={`${playlist.trackCount} songs`}
-                handlePlay={() => void handlePlay(playlist)}
+    <Section {...props}>
+      {display === "list" ? (
+        <List count={playlists.length} className="p-4">
+          {playlists.map((playlist, i) => (
+            <ListItem key={playlist.id}>
+              <PlaylistCell
+                count={i + 1}
+                disabled={loadingItemId === playlist.id}
+                image={playlist.image}
                 name={playlist.name}
-                src={playlist.image}
+                subtitle={
+                  playlist.owner
+                    ? `${playlist.trackCount} songs by ${playlist.owner}`
+                    : `${playlist.trackCount} songs`
+                }
+                tracks={getCachedTracks(playlist.id)}
+                onPlay={() => void playItem(playlist)}
               />
-            </li>
+            </ListItem>
           ))}
-        </ol>
-      </ScrollArea>
+        </List>
+      ) : (
+        <ScrollArea>
+          <ol className="flex gap-4 p-4 w-max">
+            {playlists.map((playlist) => (
+              <li key={playlist.id}>
+                <Thumbnail
+                  description={`${playlist.trackCount} songs`}
+                  handlePlay={() => void playItem(playlist)}
+                  name={playlist.name}
+                  src={playlist.image}
+                />
+              </li>
+            ))}
+          </ol>
+        </ScrollArea>
+      )}
     </Section>
   );
 };

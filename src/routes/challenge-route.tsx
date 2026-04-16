@@ -50,7 +50,7 @@ export function ChallengeRoute() {
         )}
 
         <AppLink
-          href={`/?lockIn=${trackId}`}
+          href={`/home?lockIn=${trackId}`}
           className="mt-8 inline-block rounded-xl bg-red-600 px-8 py-3 text-lg font-bold text-foreground transition hover:bg-red-500"
         >
           Accept Challenge

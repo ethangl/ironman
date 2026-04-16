@@ -1,15 +1,10 @@
-import {
-  createContext,
-  ReactNode,
-  useContext,
-  useMemo,
-} from "react";
+import { createContext, ReactNode, useContext, useMemo } from "react";
 
+import { convexIronmanClient, type IronmanClient } from "@/features/ironman";
 import {
   SpotifyClient,
   SpotifyClientProvider,
 } from "@/features/spotify/client";
-import { convexIronmanClient, type IronmanClient } from "@/features/ironman";
 import {
   convexSignIn as signIn,
   convexSignOut as signOut,
@@ -18,7 +13,7 @@ import {
 import { getSpotifyStatus } from "./app-runtime-status";
 import type { AppRuntime } from "./app-runtime-types";
 import { useSettledSession } from "./use-settled-session";
-import { useSpotifyConnection } from "./use-spotify-connection";
+import { useSpotifyRuntimeCapabilities } from "./use-spotify-runtime-capabilities";
 
 export type {
   AppAuthRuntime,
@@ -37,8 +32,13 @@ function useAuthRuntimeValue(ironmanClient: IronmanClient): AppRuntime {
     session,
   });
   const sessionUserId = effectiveSession?.user.id ?? null;
-  const { canUsePersonalSpotify, getSpotifyAccessToken, spotifyConnection } =
-    useSpotifyConnection(sessionUserId);
+  const {
+    canBrowsePersonalSpotify,
+    canControlPlayback,
+    canUseIronman,
+    getSpotifyAccessToken,
+    spotifyConnection,
+  } = useSpotifyRuntimeCapabilities(sessionUserId);
 
   const spotifyStatus = getSpotifyStatus({
     isPending: isSessionPending,
@@ -62,14 +62,16 @@ function useAuthRuntimeValue(ironmanClient: IronmanClient): AppRuntime {
           ? spotifyConnection
           : "disconnected",
         spotifyStatus,
-        canBrowsePersonalSpotify: canUsePersonalSpotify,
-        canControlPlayback: canUsePersonalSpotify,
-        canUseIronman: canUsePersonalSpotify,
+        canBrowsePersonalSpotify,
+        canControlPlayback,
+        canUseIronman,
       },
       ironmanClient,
     }),
     [
-      canUsePersonalSpotify,
+      canBrowsePersonalSpotify,
+      canControlPlayback,
+      canUseIronman,
       effectiveSession,
       getSpotifyAccessToken,
       ironmanClient,

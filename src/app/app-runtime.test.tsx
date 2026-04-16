@@ -4,15 +4,19 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { defaultSpotifyClient } from "@/features/spotify/client";
+import { clearCachedSpotifyAccessToken } from "@/lib/spotify-access-token";
+import { clearCachedSpotifyAccountLink } from "@/lib/spotify-account-link";
 import { AppRuntimeProvider, useAppRuntime } from "./app-runtime";
 
 const mockUseSession = vi.fn();
 const mockGetAccessToken = vi.fn();
+const mockAuthFetch = vi.fn();
 const mockSignInSocial = vi.fn();
 const mockSignOut = vi.fn();
 
 vi.mock("@/lib/convex-auth-client", () => ({
   convexAuthClient: {
+    $fetch: (...args: unknown[]) => mockAuthFetch(...args),
     getAccessToken: (...args: unknown[]) => mockGetAccessToken(...args),
   },
   convexSignIn: {
@@ -45,6 +49,8 @@ function wrapper({ children }: { children: ReactNode }) {
 describe("AppRuntimeProvider", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearCachedSpotifyAccessToken();
+    clearCachedSpotifyAccountLink();
   });
 
   it("reports a signed out status after the session settle delay when there is no session", async () => {
@@ -68,20 +74,22 @@ describe("AppRuntimeProvider", () => {
     expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(false);
     expect(result.current.capabilities.canControlPlayback).toBe(false);
     expect(result.current.capabilities.canUseIronman).toBe(false);
+    expect(mockAuthFetch).not.toHaveBeenCalled();
     expect(mockGetAccessToken).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
 
-  it("stays in a checking state while spotify access is still being verified", () => {
+  it("stays in a checking state while spotify account linkage is still being verified", () => {
     mockUseSession.mockReturnValue({
       data: { user: { id: "user-1" } },
       isPending: false,
     });
 
-    const deferred = createDeferred<{
-      data?: { accessToken: string | null };
-    }>();
-    mockGetAccessToken.mockReturnValue(deferred.promise);
+    const deferred =
+      createDeferred<
+        { providerId: string; id: string; accountId: string; userId: string }[]
+      >();
+    mockAuthFetch.mockReturnValue(deferred.promise);
 
     const { result } = renderHook(() => useAppRuntime(), { wrapper });
 
@@ -90,18 +98,31 @@ describe("AppRuntimeProvider", () => {
     expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(false);
     expect(result.current.capabilities.canControlPlayback).toBe(false);
     expect(result.current.capabilities.canUseIronman).toBe(false);
+    expect(mockGetAccessToken).not.toHaveBeenCalled();
 
-    deferred.resolve({ data: { accessToken: null } });
+    deferred.resolve([
+      {
+        providerId: "spotify",
+        id: "account-1",
+        accountId: "spotify-account-1",
+        userId: "user-1",
+      },
+    ]);
   });
 
-  it("enables spotify-driven capabilities after confirming access", async () => {
+  it("enables spotify-driven capabilities after confirming a linked spotify account", async () => {
     mockUseSession.mockReturnValue({
       data: { user: { id: "user-1" } },
       isPending: false,
     });
-    mockGetAccessToken.mockResolvedValue({
-      data: { accessToken: "spotify-token" },
-    });
+    mockAuthFetch.mockResolvedValue([
+      {
+        providerId: "spotify",
+        id: "account-1",
+        accountId: "spotify-account-1",
+        userId: "user-1",
+      },
+    ]);
 
     const { result } = renderHook(() => useAppRuntime(), { wrapper });
 
@@ -112,15 +133,24 @@ describe("AppRuntimeProvider", () => {
     expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(true);
     expect(result.current.capabilities.canControlPlayback).toBe(true);
     expect(result.current.capabilities.canUseIronman).toBe(true);
+    expect(mockGetAccessToken).not.toHaveBeenCalled();
   });
 
-  it("can recover from reconnect_required after fetching a fresh spotify token", async () => {
+  it("keeps browsing enabled but disables playback after a spotify token fetch fails", async () => {
     let accessToken: string | null = null;
 
     mockUseSession.mockReturnValue({
       data: { user: { id: "user-1" } },
       isPending: false,
     });
+    mockAuthFetch.mockResolvedValue([
+      {
+        providerId: "spotify",
+        id: "account-1",
+        accountId: "spotify-account-1",
+        userId: "user-1",
+      },
+    ]);
     mockGetAccessToken.mockImplementation(async () => ({
       data: { accessToken },
     }));
@@ -128,11 +158,23 @@ describe("AppRuntimeProvider", () => {
     const { result } = renderHook(() => useAppRuntime(), { wrapper });
 
     await waitFor(() => {
+      expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
+    });
+
+    await act(async () => {
+      await expect(result.current.auth.getSpotifyAccessToken()).resolves.toBe(
+        null,
+      );
+    });
+
+    await waitFor(() => {
       expect(result.current.capabilities.spotifyStatus.code).toBe(
         "reconnect_required",
       );
     });
     expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(false);
+    expect(result.current.capabilities.canControlPlayback).toBe(false);
+    expect(result.current.capabilities.canUseIronman).toBe(false);
 
     accessToken = "fresh-token";
 
@@ -156,9 +198,14 @@ describe("AppRuntimeProvider", () => {
     };
 
     mockUseSession.mockImplementation(() => sessionValue);
-    mockGetAccessToken.mockResolvedValue({
-      data: { accessToken: "spotify-token" },
-    });
+    mockAuthFetch.mockResolvedValue([
+      {
+        providerId: "spotify",
+        id: "account-1",
+        accountId: "spotify-account-1",
+        userId: "user-1",
+      },
+    ]);
 
     const { result, rerender } = renderHook(() => useAppRuntime(), {
       wrapper,
@@ -172,7 +219,8 @@ describe("AppRuntimeProvider", () => {
     rerender();
 
     expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
-    expect(mockGetAccessToken).toHaveBeenCalledTimes(1);
+    expect(mockAuthFetch).toHaveBeenCalledTimes(1);
+    expect(mockGetAccessToken).not.toHaveBeenCalled();
   });
 
   it("keeps personal spotify capabilities during a pending revalidation for the same user", async () => {
@@ -185,9 +233,14 @@ describe("AppRuntimeProvider", () => {
     };
 
     mockUseSession.mockImplementation(() => sessionState);
-    mockGetAccessToken.mockResolvedValue({
-      data: { accessToken: "spotify-token" },
-    });
+    mockAuthFetch.mockResolvedValue([
+      {
+        providerId: "spotify",
+        id: "account-1",
+        accountId: "spotify-account-1",
+        userId: "user-1",
+      },
+    ]);
 
     const { result, rerender } = renderHook(() => useAppRuntime(), {
       wrapper,
@@ -221,9 +274,14 @@ describe("AppRuntimeProvider", () => {
     };
 
     mockUseSession.mockImplementation(() => sessionState);
-    mockGetAccessToken.mockResolvedValue({
-      data: { accessToken: "spotify-token" },
-    });
+    mockAuthFetch.mockResolvedValue([
+      {
+        providerId: "spotify",
+        id: "account-1",
+        accountId: "spotify-account-1",
+        userId: "user-1",
+      },
+    ]);
 
     const { result, rerender } = renderHook(() => useAppRuntime(), { wrapper });
 
@@ -260,12 +318,13 @@ describe("AppRuntimeProvider", () => {
       isPending: false,
     };
 
-    const deferred = createDeferred<{
-      data?: { accessToken: string | null };
-    }>();
+    const deferred =
+      createDeferred<
+        { providerId: string; id: string; accountId: string; userId: string }[]
+      >();
 
     mockUseSession.mockImplementation(() => sessionState);
-    mockGetAccessToken.mockImplementation(() => deferred.promise);
+    mockAuthFetch.mockImplementation(() => deferred.promise);
 
     const { result, rerender } = renderHook(() => useAppRuntime(), { wrapper });
 
@@ -282,7 +341,14 @@ describe("AppRuntimeProvider", () => {
 
     expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
 
-    deferred.resolve({ data: { accessToken: "spotify-token" } });
+    deferred.resolve([
+      {
+        providerId: "spotify",
+        id: "account-1",
+        accountId: "spotify-account-1",
+        userId: "user-1",
+      },
+    ]);
 
     await waitFor(() => {
       expect(result.current.capabilities.spotifyStatus.code).toBe("connected");

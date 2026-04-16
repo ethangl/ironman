@@ -36,69 +36,62 @@ export function useSearch() {
 export function SearchProvider({ children }: { children: ReactNode }) {
   const client = useSpotifyClient();
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<{
-    query: string;
-    data: SpotifySearchResults;
-  }>({ query: "", data: EMPTY_RESULTS });
+  const [results, setResults] = useState<SpotifySearchResults>(EMPTY_RESULTS);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debouncedQuery = useDebounce(query, 300);
-  const cacheRef = useRef(new Map<string, SpotifySearchResults>());
+  const requestVersionRef = useRef(0);
+  const trimmed = query.trim();
+  const debouncedTrimmed = debouncedQuery.trim();
 
   useEffect(() => {
-    const trimmed = debouncedQuery.trim();
-    if (!trimmed) return;
+    const requestVersion = ++requestVersionRef.current;
 
-    const cached = cacheRef.current.get(trimmed);
-    if (cached) {
-      queueMicrotask(() => {
-        setError(null);
-        setResults({ query: trimmed, data: cached });
-      });
+    if (!trimmed || trimmed !== debouncedTrimmed) {
+      setResults(EMPTY_RESULTS);
+      setLoading(false);
+      setError(null);
       return;
     }
 
-    const controller = new AbortController();
-    let cancelled = false;
+    setResults(EMPTY_RESULTS);
+    setLoading(true);
+    setError(null);
 
-    client.search.searchResults(trimmed, controller.signal)
-      .then((data) => {
-        if (cancelled || controller.signal.aborted) return;
-        setError(null);
-        cacheRef.current.set(trimmed, data);
-        setResults({ query: trimmed, data });
-      })
-      .catch((error) => {
-        if (cancelled || controller.signal.aborted) return;
-        if (error.name !== "AbortError") {
-          setResults({ query: trimmed, data: EMPTY_RESULTS });
-          setError(
-            error instanceof Error
-              ? error.message
-              : "Could not search Spotify.",
-          );
-          console.error("[search] request failed:", error);
+    void client.search
+      .searchResults(trimmed)
+      .then((nextResults) => {
+        if (requestVersionRef.current !== requestVersion) {
+          return;
         }
+        setResults(nextResults);
+      })
+      .catch((nextError) => {
+        if (requestVersionRef.current !== requestVersion) {
+          return;
+        }
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : "Could not search Spotify right now.",
+        );
+      })
+      .finally(() => {
+        if (requestVersionRef.current !== requestVersion) {
+          return;
+        }
+        setLoading(false);
       });
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [client, debouncedQuery]);
-
-  const trimmed = query.trim();
-  const loading = trimmed !== "" && results.query !== trimmed;
-  const displayResults = trimmed ? results.data : EMPTY_RESULTS;
-  const displayError = trimmed ? error : null;
+  }, [client, debouncedTrimmed, trimmed]);
 
   return (
     <SearchContext.Provider
       value={{
         query,
         setQuery,
-        results: displayResults,
-        loading,
-        error: displayError,
+        results: trimmed ? results : EMPTY_RESULTS,
+        loading: trimmed !== "" && trimmed === debouncedTrimmed && loading,
+        error: trimmed ? error : null,
       }}
     >
       {children}

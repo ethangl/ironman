@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getArtistPageData, searchSpotify } from "./searchApi";
+import { getAlbumTracks, getArtistPageData, searchSpotify } from "./searchApi";
 
 describe("searchSpotify", () => {
   afterEach(() => {
@@ -114,14 +114,6 @@ describe("getArtistPageData", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            country: "US",
-          }),
-          { status: 200 },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
             tracks: {
               items: [
                 {
@@ -166,7 +158,7 @@ describe("getArtistPageData", () => {
         ),
       );
 
-    const result = await getArtistPageData("spotify-token", "artist-1");
+    const result = await getArtistPageData("spotify-token", "artist-1", "US");
 
     expect(result).toEqual({
       artist: {
@@ -197,5 +189,54 @@ describe("getArtistPageData", () => {
         },
       ],
     });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[1]?.[0]).toContain("market=US");
+    expect(fetchMock.mock.calls[2]?.[0]).toContain("market=US");
+  });
+});
+
+describe("getAlbumTracks", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("maps album track items using the parent album metadata", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: "album-1",
+          name: "Oceanic",
+          images: [{ url: "album.jpg" }],
+          album_type: "album",
+          release_date: "2002-09-28",
+          total_tracks: 8,
+          artists: [{ id: "artist-1", name: "ISIS" }],
+          tracks: {
+            items: [
+              {
+                id: "track-1",
+                name: "Weight",
+                artists: [{ id: "artist-1", name: "ISIS" }],
+                duration_ms: 640000,
+              },
+            ],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await getAlbumTracks("spotify-token", "album-1");
+
+    expect(result).toEqual([
+      {
+        id: "track-1",
+        name: "Weight",
+        artist: "ISIS",
+        albumName: "Oceanic",
+        albumImage: "album.jpg",
+        durationMs: 640000,
+      },
+    ]);
   });
 });

@@ -2,10 +2,11 @@ import { HomeIcon } from "lucide-react";
 
 import { AppLink } from "@/components/app-link";
 import { Avatar } from "@/components/avatar";
+import { Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { LoginButton } from "@/features/auth";
-import { SearchInput, SearchProvider, SearchResults } from "@/features/search";
+import { SearchInput } from "@/features/search";
 import { useAppAuth, useAppCapabilities } from "./app-runtime";
 import { ClearSpotifyCacheButton } from "./clear-spotify-cache-button";
 
@@ -15,37 +16,34 @@ export function Navbar() {
 
   if (isAuthenticated && session && canBrowsePersonalSpotify) {
     return (
-      <SearchProvider>
-        <header className="backdrop-blur-lg backdrop-brightness-25 bottom-auto fixed inset-0 px-3 top-0 z-20">
-          <div className="flex gap-2 h-16 items-center relative -z-1">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              nativeButton={false}
-              render={
-                <AppLink href="/">
-                  <HomeIcon />
-                </AppLink>
-              }
-              className="mr-auto"
+      <Section color="--color-emerald-400" className="py-0">
+        <div className="flex gap-2 items-center mix-blend-exclusion p-4 relative">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            nativeButton={false}
+            render={
+              <AppLink href="/">
+                <HomeIcon />
+              </AppLink>
+            }
+            className="mr-auto"
+          />
+          <ClearSpotifyCacheButton />
+          <AppLink
+            href="/profile"
+            className="inline-flex gap-2 text-sm text-muted-foreground hover:text-foreground transition"
+          >
+            <Avatar
+              id={session.user.id}
+              image={session.user.image || null}
+              name={session.user.name}
+              sizeClassName="size-8 text-xl"
             />
-            <ClearSpotifyCacheButton />
-            <AppLink
-              href="/profile"
-              className="inline-flex gap-2 text-sm text-muted-foreground hover:text-foreground transition"
-            >
-              <Avatar
-                id={session.user.id}
-                image={session.user.image || null}
-                name={session.user.name}
-                sizeClassName="size-8 text-xl"
-              />
-            </AppLink>
-          </div>
+          </AppLink>
           <SearchInput />
-        </header>
-        <SearchResults />
-      </SearchProvider>
+        </div>
+      </Section>
     );
   }
 

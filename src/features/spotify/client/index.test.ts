@@ -16,6 +16,7 @@ describe("createSpotifyClient", () => {
 
   it("lets individual slices be swapped without rebuilding the full client", () => {
     const artistsOverride: ArtistsClient = {
+      getAlbumTracks: vi.fn().mockResolvedValue([]),
       getPageData: vi.fn().mockResolvedValue(null),
     };
     const searchOverride: SearchClient = {
@@ -23,6 +24,11 @@ describe("createSpotifyClient", () => {
       searchTracks: vi.fn().mockResolvedValue([]),
     };
     const spotifyActivityOverride: SpotifyActivityClient = {
+      getActivitySnapshot: vi.fn().mockResolvedValue({
+        recentlyPlayed: { items: [], rateLimited: false },
+        playlistsPage: { items: [], total: 0 },
+        favoriteArtists: [],
+      }),
       getFavoriteArtists: vi.fn().mockResolvedValue([]),
       getRecentlyPlayed: vi
         .fn()

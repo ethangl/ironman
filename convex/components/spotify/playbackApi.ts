@@ -2,6 +2,11 @@ import { PlaybackState } from "./types";
 
 const SPOTIFY_API = "https://api.spotify.com/v1";
 
+function getRetryAfterSeconds(response: Response) {
+  const value = Number(response.headers.get("retry-after"));
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
 function normalizePlaybackState(raw: unknown): PlaybackState | null {
   if (!raw || typeof raw !== "object") {
     return null;
@@ -49,16 +54,28 @@ function normalizePlaybackState(raw: unknown): PlaybackState | null {
 
 export async function getCurrentlyPlaying(
   token: string,
-): Promise<{ status: number; playback: PlaybackState | null }> {
+): Promise<{
+  status: number;
+  playback: PlaybackState | null;
+  retryAfterSeconds?: number;
+}> {
   try {
     const res = await fetch(`${SPOTIFY_API}/me/player/currently-playing`, {
       headers: { Authorization: `Bearer ${token}` },
     });
+    const retryAfterSeconds = getRetryAfterSeconds(res);
     if (!res.ok && res.status !== 204 && res.status !== 202) {
-      return { status: res.status, playback: null };
+      return {
+        status: res.status,
+        playback: null,
+        ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
+      };
     }
     if (res.status === 204 || res.status === 202) {
-      return { status: res.status, playback: null };
+      return {
+        status: res.status,
+        playback: null,
+      };
     }
     const text = await res.text();
     return {
@@ -80,7 +97,12 @@ export async function playUri(uri: string, token: string, deviceId?: string) {
     },
     body: JSON.stringify({ uris: [uri] }),
   });
-  return { ok: res.ok || res.status === 204, status: res.status };
+  const retryAfterSeconds = getRetryAfterSeconds(res);
+  return {
+    ok: res.ok || res.status === 204,
+    status: res.status,
+    ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
+  };
 }
 
 export async function resumePlayback(token: string) {
@@ -88,7 +110,12 @@ export async function resumePlayback(token: string) {
     method: "PUT",
     headers: { Authorization: `Bearer ${token}` },
   });
-  return { ok: res.ok || res.status === 204, status: res.status };
+  const retryAfterSeconds = getRetryAfterSeconds(res);
+  return {
+    ok: res.ok || res.status === 204,
+    status: res.status,
+    ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
+  };
 }
 
 export async function pausePlayback(token: string) {
@@ -97,7 +124,12 @@ export async function pausePlayback(token: string) {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}` },
     });
-    return { ok: res.ok || res.status === 204, status: res.status };
+    const retryAfterSeconds = getRetryAfterSeconds(res);
+    return {
+      ok: res.ok || res.status === 204,
+      status: res.status,
+      ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
+    };
   } catch {
     return { ok: false, status: 0 };
   }
@@ -109,7 +141,12 @@ export async function setVolumePercent(percent: number, token: string) {
       `${SPOTIFY_API}/me/player/volume?volume_percent=${percent}`,
       { method: "PUT", headers: { Authorization: `Bearer ${token}` } },
     );
-    return { ok: res.ok || res.status === 204, status: res.status };
+    const retryAfterSeconds = getRetryAfterSeconds(res);
+    return {
+      ok: res.ok || res.status === 204,
+      status: res.status,
+      ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
+    };
   } catch {
     return { ok: false, status: 0 };
   }
@@ -129,7 +166,12 @@ export async function setRepeatMode(
         headers: { Authorization: `Bearer ${token}` },
       },
     );
-    return { ok: res.ok || res.status === 204, status: res.status };
+    const retryAfterSeconds = getRetryAfterSeconds(res);
+    return {
+      ok: res.ok || res.status === 204,
+      status: res.status,
+      ...(retryAfterSeconds ? { retryAfterSeconds } : {}),
+    };
   } catch {
     return { ok: false, status: 0 };
   }

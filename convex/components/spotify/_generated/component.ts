@@ -24,6 +24,49 @@ import type { FunctionReference } from "convex/server";
 export type ComponentApi<Name extends string | undefined = string | undefined> =
   {
     activity: {
+      activitySnapshot: FunctionReference<
+        "action",
+        "internal",
+        { accessToken: string; cacheScope?: string },
+        {
+          favoriteArtists: Array<{
+            followerCount: number;
+            genres: Array<string>;
+            id: string;
+            image: string | null;
+            name: string;
+          }>;
+          playlistsPage: {
+            items: Array<{
+              description: string | null;
+              id: string;
+              image: string | null;
+              name: string;
+              owner: string | null;
+              public: boolean;
+              trackCount: number;
+            }>;
+            total: number;
+          };
+          recentlyPlayed: {
+            items: Array<{
+              playedAt: string;
+              track: {
+                albumImage: string | null;
+                albumName: string;
+                artist: string;
+                difficulty?: number;
+                durationMs: number;
+                id: string;
+                name: string;
+                topStreak?: { count: number; userName: string | null } | null;
+              };
+            }>;
+            rateLimited: boolean;
+          };
+        },
+        Name
+      >;
       favoriteArtists: FunctionReference<
         "action",
         "internal",
@@ -145,6 +188,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             } | null;
             progress_ms: number;
           } | null;
+          retryAfterSeconds?: number;
           status: number;
         },
         Name
@@ -153,21 +197,21 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         "action",
         "internal",
         { accessToken: string },
-        { ok: boolean; status: number },
+        { ok: boolean; retryAfterSeconds?: number; status: number },
         Name
       >;
       play: FunctionReference<
         "action",
         "internal",
         { accessToken: string; deviceId?: string; uri: string },
-        { ok: boolean; status: number },
+        { ok: boolean; retryAfterSeconds?: number; status: number },
         Name
       >;
       resume: FunctionReference<
         "action",
         "internal",
         { accessToken: string },
-        { ok: boolean; status: number },
+        { ok: boolean; retryAfterSeconds?: number; status: number },
         Name
       >;
       setRepeat: FunctionReference<
@@ -178,18 +222,34 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           deviceId?: string;
           state: "track" | "context" | "off";
         },
-        { ok: boolean; status: number },
+        { ok: boolean; retryAfterSeconds?: number; status: number },
         Name
       >;
       setVolume: FunctionReference<
         "action",
         "internal",
         { accessToken: string; percent: number },
-        { ok: boolean; status: number },
+        { ok: boolean; retryAfterSeconds?: number; status: number },
         Name
       >;
     };
     search: {
+      albumTracks: FunctionReference<
+        "action",
+        "internal",
+        { accessToken: string; albumId: string; cacheScope?: string },
+        Array<{
+          albumImage: string | null;
+          albumName: string;
+          artist: string;
+          difficulty?: number;
+          durationMs: number;
+          id: string;
+          name: string;
+          topStreak?: { count: number; userName: string | null } | null;
+        }>,
+        Name
+      >;
       artistPage: FunctionReference<
         "action",
         "internal",

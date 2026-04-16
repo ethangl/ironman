@@ -1,10 +1,11 @@
-import { ComponentProps, FC, PropsWithChildren } from "react";
+import { ComponentProps, FC } from "react";
 
 import { cn } from "@/lib/utils";
 import { AppLink } from "./app-link";
+import { BackgroundOverlay } from "./background-overlay";
 import { Spinner } from "./ui/spinner";
 
-export type ListProps = PropsWithChildren & {
+export type ListProps = ComponentProps<"section"> & {
   count: number | undefined;
   empty?: string;
   loading?: boolean;
@@ -12,17 +13,18 @@ export type ListProps = PropsWithChildren & {
 };
 
 const listItemClassName =
-  "bg-accent/15 gap-4 grid grid-cols-[max-content_max-content_minmax(0,1fr)_max-content] items-center px-3 py-2.5 rounded-xl";
+  "group gap-4 grid grid-cols-[max-content_max-content_minmax(0,1fr)_max-content] items-center px-3 py-2.5 relative rounded-xl";
 
 const List: FC<ListProps> = ({
   children,
+  className,
   count,
   empty = "No results",
   loading,
   title,
 }) => {
   return (
-    <section className="space-y-4">
+    <section className={cn("space-y-4", className)}>
       {title && <h3 className="text-lg font-bold">{title}</h3>}
       {loading ? (
         <div className={listItemClassName}>
@@ -40,7 +42,10 @@ const List: FC<ListProps> = ({
 };
 
 const ListItem: FC<ComponentProps<"li">> = ({ children, className }) => (
-  <li className={cn(listItemClassName, className)}>{children}</li>
+  <li className={cn(listItemClassName, className)}>
+    <BackgroundOverlay />
+    {children}
+  </li>
 );
 
 export type ListLinkProps = ComponentProps<typeof AppLink>;
@@ -53,6 +58,7 @@ const ListLink: FC<ListLinkProps> = ({ children, className, ...props }) => (
       className={cn(listItemClassName, listLinkClassName, className)}
       {...props}
     >
+      <BackgroundOverlay />
       {children}
     </AppLink>
   </li>

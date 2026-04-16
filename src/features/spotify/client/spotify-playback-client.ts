@@ -2,11 +2,13 @@ import type { PlayResult, SpotifyPlayback } from "@/types/spotify-playback";
 import { api } from "@api";
 import { getAuthenticatedSpotifyConvexClient } from "./spotify-convex-client";
 
+type CurrentlyPlayingResult = {
+  status: number;
+  playback: SpotifyPlayback | null;
+};
+
 interface SpotifyPlaybackClient {
-  getCurrentlyPlaying: () => Promise<{
-    status: number;
-    playback: SpotifyPlayback | null;
-  }>;
+  getCurrentlyPlaying: () => Promise<CurrentlyPlayingResult>;
   play: (uri: string, deviceId?: string) => Promise<PlayResult>;
   resume: () => Promise<PlayResult>;
   pause: () => Promise<PlayResult>;

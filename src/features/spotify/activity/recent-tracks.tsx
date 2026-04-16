@@ -1,5 +1,6 @@
 import { FC } from "react";
 
+import { Section } from "@/components/section";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWebPlayerActions } from "@/features/spotify/player";
 import { Thumbnail } from "./thumbnail";
@@ -10,10 +11,9 @@ export const RecentTracks: FC = () => {
   const { playTrack } = useWebPlayerActions();
 
   return (
-    <section className="-mx-6 space-y-4">
-      <h3 className="mx-6 text-lg font-bold">Recents</h3>
+    <Section title="Your Recent Tracks" color="--color-emerald-400">
       <ScrollArea>
-        <ol className="flex gap-2 px-3 w-max">
+        <ol className="flex gap-4 p-4 w-max">
           {recentTracks.map(({ track }) => (
             <li key={track.id}>
               <Thumbnail
@@ -26,6 +26,6 @@ export const RecentTracks: FC = () => {
           ))}
         </ol>
       </ScrollArea>
-    </section>
+    </Section>
   );
 };

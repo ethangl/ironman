@@ -4,12 +4,14 @@ import {
   PLAYLIST_PAGE_SIZE,
   type PlaylistsPage,
   type RecentlyPlayedResult,
+  type SpotifyActivitySnapshot,
 } from "./spotify-activity";
 import { getAuthenticatedSpotifyConvexClient } from "./spotify-convex-client";
 
 const TOP_ARTISTS_LIMIT = 10;
 
 export interface SpotifyActivityClient {
+  getActivitySnapshot: () => Promise<SpotifyActivitySnapshot>;
   getFavoriteArtists: (limit?: number) => Promise<SpotifyArtist[]>;
   getRecentlyPlayed: () => Promise<RecentlyPlayedResult>;
   getPlaylistsPage: (limit?: number, offset?: number) => Promise<PlaylistsPage>;
@@ -19,6 +21,11 @@ export interface SpotifyActivityClient {
 
 export function createSpotifyActivityClient(): SpotifyActivityClient {
   return {
+    async getActivitySnapshot() {
+      const client = await getAuthenticatedSpotifyConvexClient();
+
+      return client.action(api.spotify.activitySnapshot, {});
+    },
     async getFavoriteArtists(limit = 50) {
       const client = await getAuthenticatedSpotifyConvexClient();
 

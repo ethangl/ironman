@@ -35,6 +35,7 @@ const playbackStateValidator = v.union(
 
 const playResultValidator = v.object({
   ok: v.boolean(),
+  retryAfterSeconds: v.optional(v.number()),
   status: v.number(),
 });
 
@@ -43,6 +44,7 @@ export const currentlyPlaying = action({
     accessToken: v.string(),
   },
   returns: v.object({
+    retryAfterSeconds: v.optional(v.number()),
     status: v.number(),
     playback: playbackStateValidator,
   }),

@@ -2,18 +2,21 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AppRuntimeProvider } from "@/app";
+import type { IronmanClient } from "@/features/ironman";
 import {
   createSpotifyClient,
   defaultSpotifyClient,
 } from "@/features/spotify/client";
-import type { IronmanClient } from "@/features/ironman";
-import { AppRuntimeProvider } from "@/app";
+import { clearCachedSpotifyAccessToken } from "@/lib/spotify-access-token";
+import { clearCachedSpotifyAccountLink } from "@/lib/spotify-account-link";
 import { StreakData } from "@/types";
 import { useWebPlayerActions, useWebPlayerState } from "./use-web-player";
 import { WebPlayerProvider } from "./web-player-provider";
 
 const mockUseSession = vi.fn();
 const mockGetAccessToken = vi.fn();
+const mockAuthFetch = vi.fn();
 const mockUseBrowserSearchParams = vi.fn();
 const mockUseSpotify = vi.fn();
 const mockSignOut = vi.fn();
@@ -26,6 +29,7 @@ vi.mock("@/hooks/use-browser-search-params", () => ({
 vi.mock("@/lib/convex-auth-client", () => ({
   useConvexSession: () => mockUseSession(),
   convexAuthClient: {
+    $fetch: (...args: unknown[]) => mockAuthFetch(...args),
     getAccessToken: (...args: unknown[]) => mockGetAccessToken(...args),
   },
   convexSignIn: {
@@ -53,9 +57,10 @@ vi.mock("./standard-player", () => ({
 }));
 
 vi.mock("@/features/ironman", async () => {
-  const actual = await vi.importActual<typeof import("@/features/ironman")>(
-    "@/features/ironman",
-  );
+  const actual =
+    await vi.importActual<typeof import("@/features/ironman")>(
+      "@/features/ironman",
+    );
   return {
     ...actual,
     EnforcementEngine: () => null,
@@ -223,6 +228,8 @@ describe("WebPlayerProvider", () => {
   beforeEach(() => {
     FakeBroadcastChannel.reset();
     vi.restoreAllMocks();
+    clearCachedSpotifyAccountLink();
+    clearCachedSpotifyAccessToken();
     mockToastError.mockReset();
 
     Object.defineProperty(window, "BroadcastChannel", {
@@ -244,6 +251,14 @@ describe("WebPlayerProvider", () => {
     mockUseSession.mockReturnValue({
       data: { user: { id: "user-1" } },
     });
+    mockAuthFetch.mockResolvedValue([
+      {
+        providerId: "spotify",
+        id: "account-1",
+        accountId: "spotify-account-1",
+        userId: "user-1",
+      },
+    ]);
     mockGetAccessToken.mockResolvedValue({ data: { accessToken: "token" } });
     mockUseBrowserSearchParams.mockReturnValue({
       get: () => null,
@@ -369,7 +384,7 @@ describe("WebPlayerProvider", () => {
     );
 
     await waitFor(() => {
-      expect(mockGetAccessToken).toHaveBeenCalled();
+      expect(mockAuthFetch).toHaveBeenCalled();
     });
 
     await act(async () => {
@@ -381,6 +396,10 @@ describe("WebPlayerProvider", () => {
     act(() => {
       button.click();
       button.click();
+    });
+
+    await waitFor(() => {
+      expect(mockGetAccessToken).toHaveBeenCalled();
     });
 
     await waitFor(() => {
@@ -403,9 +422,7 @@ describe("WebPlayerProvider", () => {
     const repeatDeferred = createDeferred<void>();
     mockUseSpotify.mockReturnValue({
       ...baseSpotifyMock,
-      setRepeat: vi.fn().mockImplementation(
-        () => repeatDeferred.promise,
-      ),
+      setRepeat: vi.fn().mockImplementation(() => repeatDeferred.promise),
     });
 
     renderProviderWithClient(
@@ -480,7 +497,12 @@ describe("WebPlayerProvider", () => {
 
     mockUseSpotify.mockReturnValue({
       ...baseSpotifyMock,
-      sdkState: { paused: true, position: 0, duration: 123000, trackId: "track-1" },
+      sdkState: {
+        paused: true,
+        position: 0,
+        duration: 123000,
+        trackId: "track-1",
+      },
       resume: vi.fn().mockResolvedValue({ ok: false, status: 404 }),
       waitForReady: vi.fn().mockResolvedValue("device-1"),
       play: vi.fn().mockResolvedValue({ ok: false, status: 429 }),

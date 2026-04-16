@@ -273,6 +273,56 @@ describe("EnforcementEngine", () => {
     expect(ironmanClient.reportWeakness).not.toHaveBeenCalled();
   });
 
+  it("uses sdk playback state for enforcement polling before falling back to currently playing", async () => {
+    const ironmanClient = createIronmanClient({
+      poll: vi.fn().mockResolvedValue({ count: 6 }),
+    });
+    const getCurrentlyPlaying = vi.fn();
+    const onCountUpdate = vi.fn();
+    const onProgress = vi.fn();
+
+    render(
+      <AppRuntimeProvider
+        spotifyClient={defaultSpotifyClient}
+        ironmanClient={ironmanClient}
+      >
+        <EnforcementEngine
+          streak={buildStreak()}
+          getCurrentlyPlaying={getCurrentlyPlaying}
+          play={vi.fn().mockResolvedValue({ ok: true, status: 200 })}
+          setRepeat={vi.fn().mockResolvedValue(undefined)}
+          onCountUpdate={onCountUpdate}
+          onProgress={onProgress}
+          sdkState={{
+            paused: false,
+            position: 42000,
+            duration: 123000,
+            trackId: "track-1",
+          }}
+        />
+      </AppRuntimeProvider>,
+    );
+
+    await flushAsyncWork();
+
+    expect(getCurrentlyPlaying).not.toHaveBeenCalled();
+    expect(ironmanClient.poll).toHaveBeenCalledWith({
+      progressMs: 42000,
+      trackId: "track-1",
+      isPlaying: true,
+    });
+    expect(onProgress).toHaveBeenCalledWith(42000, 123000);
+    expect(onCountUpdate).toHaveBeenCalledWith(6);
+
+    act(() => {
+      vi.advanceTimersByTime(4000);
+    });
+    await flushAsyncWork();
+
+    expect(getCurrentlyPlaying).not.toHaveBeenCalled();
+    expect(ironmanClient.poll).toHaveBeenCalledTimes(2);
+  });
+
   it("swallows polling failures and retries on the next interval", async () => {
     const getCurrentlyPlaying = vi
       .fn()

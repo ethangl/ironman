@@ -7,6 +7,10 @@ import {
   useBrowserSearchParams,
 } from "@/hooks/use-browser-search-params";
 import { Button } from "@/components/ui/button";
+import {
+  convexLinkSocialAccount,
+  fetchSpotifyAuthCooldown,
+} from "@/lib/convex-auth-client";
 import { cn } from "@/lib/utils";
 import { useAppAuth } from "@/app";
 
@@ -14,6 +18,26 @@ const SPOTIFY_AUTH_PROVIDER = "spotify";
 const SPOTIFY_AUTH_COOLDOWN_KEY = "spotify-auth-cooldown-until";
 const SPOTIFY_AUTH_COOLDOWN_EVENT = "spotify-auth-cooldown-change";
 const SPOTIFY_AUTH_COOLDOWN_MS = 60_000;
+
+function formatCooldownWindow(ms: number) {
+  const totalSeconds = Math.max(Math.ceil(ms / 1000), 0);
+  if (totalSeconds < 90) {
+    return "about a minute";
+  }
+
+  const totalMinutes = Math.ceil(totalSeconds / 60);
+  if (totalMinutes < 90) {
+    return `about ${totalMinutes} minute${totalMinutes === 1 ? "" : "s"}`;
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (minutes === 0) {
+    return `about ${hours} hour${hours === 1 ? "" : "s"}`;
+  }
+
+  return `about ${hours}h ${minutes}m`;
+}
 
 function getStoredCooldownUntil() {
   if (typeof window === "undefined") return 0;
@@ -64,11 +88,6 @@ export function LoginButton({
   const authProvider = searchParams.get("authProvider");
 
   useEffect(() => {
-    if (!session) return;
-    clearStoredCooldown();
-  }, [session]);
-
-  useEffect(() => {
     if (
       authProvider !== SPOTIFY_AUTH_PROVIDER ||
       authError !== "unable_to_get_user_info"
@@ -76,15 +95,36 @@ export function LoginButton({
       return;
     }
 
-    const until = Date.now() + SPOTIFY_AUTH_COOLDOWN_MS;
-    setStoredCooldownUntil(until);
-    toast.error("Spotify is cooling down. Try reconnecting in about a minute.");
+    let cancelled = false;
 
-    const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.delete("error");
-    nextParams.delete("authProvider");
-    const nextQuery = nextParams.toString();
-    replaceBrowserUrl(nextQuery ? `/?${nextQuery}` : "/");
+    void fetchSpotifyAuthCooldown()
+      .catch(() => null)
+      .then((cooldown) => {
+        if (cancelled) {
+          return;
+        }
+
+        const until =
+          cooldown?.cooldownUntil &&
+          Number.isFinite(cooldown.cooldownUntil) &&
+          cooldown.cooldownUntil > Date.now()
+            ? cooldown.cooldownUntil
+            : Date.now() + SPOTIFY_AUTH_COOLDOWN_MS;
+        setStoredCooldownUntil(until);
+        toast.error(
+          `Spotify is cooling down. Try reconnecting ${formatCooldownWindow(until - Date.now())}.`,
+        );
+
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.delete("error");
+        nextParams.delete("authProvider");
+        const nextQuery = nextParams.toString();
+        replaceBrowserUrl(nextQuery ? `/?${nextQuery}` : "/");
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [authError, authProvider, searchParams]);
 
   useEffect(() => {
@@ -119,6 +159,19 @@ export function LoginButton({
   }
 
   const buttonLabel = session ? "Reconnect Spotify" : "Sign in with Spotify";
+  const startSpotifyAuth = () => {
+    const payload = {
+      provider: "spotify" as const,
+      callbackURL: "/",
+      errorCallbackURL: "/?authProvider=spotify",
+    };
+
+    if (session) {
+      return convexLinkSocialAccount(payload);
+    }
+
+    return signIn.social(payload);
+  };
 
   return (
     <div
@@ -129,13 +182,7 @@ export function LoginButton({
     >
       <Button
         disabled={isCoolingDown}
-        onClick={() =>
-          signIn.social({
-            provider: "spotify",
-            callbackURL: "/",
-            errorCallbackURL: "/?authProvider=spotify",
-          })
-        }
+        onClick={startSpotifyAuth}
         className=" bg-[#1DB954] font-semibold gap-2.5 pr-4 text-sm text-mist-950 hover:bg-[#1ed760] disabled:bg-[#1DB954]/45 disabled:text-mist-950/80"
       >
         {isCoolingDown ? (
@@ -151,7 +198,8 @@ export function LoginButton({
       </Button>
       {isCoolingDown && (
         <p className="text-[11px] text-muted-foreground">
-          Spotify asked us to slow down. Try reconnecting in about a minute.
+          Spotify asked us to slow down. Try reconnecting{" "}
+          {formatCooldownWindow(cooldownRemainingMs)}.
         </p>
       )}
     </div>

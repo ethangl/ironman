@@ -1,9 +1,9 @@
 import { SearchIcon, XIcon } from "lucide-react";
+import { useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 import { useSearch } from "./search-provider";
 
 export function SearchInput() {
@@ -15,11 +15,11 @@ export function SearchInput() {
   return (
     <div
       className={cn(
-        "absolute duration-1000 ease-elastic flex h-full inset-0 items-center justify-center mx-auto transition-all z-7",
-        expanded ? "w-full sm:w-md" : "w-16",
+        "absolute ease-elastic flex h-full inset-0 items-center justify-center mx-auto transition-all z-7",
+        expanded ? "duration-1000 w-full sm:w-lg" : "duration-444 w-16",
       )}
     >
-      <div className="absolute flex items-center left-6 justify-center m-auto pointer-events-none text-muted-foreground size-4 top-6">
+      <div className="absolute flex items-center left-6 justify-center m-auto pointer-events-none text-white size-4 top-6">
         {loading ? <Spinner /> : <SearchIcon className="size-4" />}
       </div>
       <Input
@@ -29,11 +29,11 @@ export function SearchInput() {
         onBlur={() => setIsFocused(false)}
         onFocus={() => setIsFocused(true)}
         onValueChange={(v) => setQuery(v)}
-        placeholder="Search songs, artists, or playlists..."
+        placeholder="Search Spotify for songs, artists, or playlists..."
         className={cn(
-          "bg-transparent duration-333 ease-out h-12 mx-2 pl-12 text-lg! transition-all w-full",
+          "duration-444 ease-elastic h-12 mx-2 text-lg! transition-all w-full",
           expanded
-            ? "cursor-auto bg-muted placeholder:opacity-100"
+            ? "cursor-auto border-emerald-400! ring-emerald-400/20! bg-muted pl-12 placeholder:opacity-100"
             : "bg-transparent hover:bg-muted cursor-pointer placeholder:opacity-0",
         )}
       />

@@ -1,6 +1,7 @@
 import { FC, useCallback } from "react";
 import { toast } from "sonner";
 
+import { Section } from "@/components/section";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWebPlayerActions } from "@/features/spotify/player";
 import type { Playlist } from "@/types/spotify-activity";
@@ -33,10 +34,9 @@ export const Playlists: FC = () => {
   );
 
   return (
-    <section className="-mx-6 space-y-4">
-      <h3 className="mx-6 text-lg font-bold">Playlists</h3>
+    <Section title="Your Playlists" color="--color-emerald-400">
       <ScrollArea>
-        <ol className="flex gap-2 px-3 w-max">
+        <ol className="flex gap-4 p-4 w-max">
           {playlists.map((playlist) => (
             <li key={playlist.id}>
               <Thumbnail
@@ -49,6 +49,6 @@ export const Playlists: FC = () => {
           ))}
         </ol>
       </ScrollArea>
-    </section>
+    </Section>
   );
 };

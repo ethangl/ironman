@@ -119,6 +119,49 @@ export function EnforcementEngine({
       trackId: streak.trackId,
     });
 
+  const syncCorrectPlayback = useCallback(
+    async ({
+      durationMs,
+      isPlaying,
+      progressMs,
+      trackId,
+    }: {
+      durationMs: number;
+      isPlaying: boolean;
+      progressMs: number;
+      trackId: string;
+    }) => {
+      setPlayingState();
+      cancelPauseTimer();
+      resetWrongSongState();
+      onProgress?.(progressMs, durationMs);
+
+      if (brokenRef.current) return;
+
+      const data = await ironmanClient
+        .poll({
+          progressMs,
+          trackId,
+          isPlaying,
+        })
+        .catch(() => null);
+
+      if (data && data.count !== countRef.current) {
+        countRef.current = data.count;
+        onCountUpdate(data.count);
+        logEnforcement("count updated", { count: data.count });
+      }
+    },
+    [
+      cancelPauseTimer,
+      ironmanClient,
+      onCountUpdate,
+      onProgress,
+      resetWrongSongState,
+      setPlayingState,
+    ],
+  );
+
   const enforce = useCallback(async () => {
     if (brokenRef.current) {
       logEnforcement("poll skipped: streak already broken");
@@ -131,8 +174,41 @@ export function EnforcementEngine({
     enforceInFlightRef.current = true;
 
     try {
+      if (sdkState?.trackId) {
+        logEnforcement("poll result", {
+          source: "sdk",
+          hasPlayback: true,
+          trackId: sdkState.trackId,
+          isPlaying: !sdkState.paused,
+        });
+
+        if (sdkState.paused) {
+          if (prevState.current !== "paused") {
+            prevState.current = "paused";
+            debouncedPauseWeakness("paused");
+          }
+          return;
+        }
+
+        if (sdkState.trackId !== streak.trackId) {
+          await handleWrongSong({
+            signature: sdkState.trackId,
+          });
+          return;
+        }
+
+        await syncCorrectPlayback({
+          durationMs: sdkState.duration,
+          isPlaying: !sdkState.paused,
+          progressMs: sdkState.position,
+          trackId: sdkState.trackId,
+        });
+        return;
+      }
+
       const { status, playback } = await getCurrentlyPlaying();
       logEnforcement("poll result", {
+        source: "api",
         status,
         hasPlayback: !!playback,
         trackId: playback?.item?.id ?? null,
@@ -177,25 +253,12 @@ export function EnforcementEngine({
         return;
       }
 
-      // Correct song playing — back to normal
-      setPlayingState();
-      cancelPauseTimer();
-      resetWrongSongState();
-      onProgress?.(playback.progress_ms, playback.item.duration_ms);
-
-      if (brokenRef.current) return;
-
-      const data = await ironmanClient.poll({
+      await syncCorrectPlayback({
+        durationMs: playback.item.duration_ms,
+        isPlaying: playback.is_playing,
         progressMs: playback.progress_ms,
         trackId: playback.item.id,
-        isPlaying: playback.is_playing,
-      }).catch(() => null);
-
-      if (data && data.count !== countRef.current) {
-        countRef.current = data.count;
-        onCountUpdate(data.count);
-        logEnforcement("count updated", { count: data.count });
-      }
+      });
     } catch (error) {
       logEnforcementError("enforcement poll failed", error);
     } finally {
@@ -206,10 +269,9 @@ export function EnforcementEngine({
     debouncedPauseWeakness,
     getCurrentlyPlaying,
     handleWrongSong,
-    ironmanClient,
-    onCountUpdate,
-    onProgress,
+    sdkState,
     streak.trackId,
+    syncCorrectPlayback,
   ]);
 
   enforceRef.current = enforce;

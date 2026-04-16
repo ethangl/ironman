@@ -20,6 +20,33 @@ const mockPlayTracks = vi.fn();
 const mockToastError = vi.fn();
 
 vi.mock("@/features/spotify/player", () => ({
+  PlaylistCell: ({
+    name,
+    onPlay,
+    tracks,
+  }: {
+    name: string;
+    onPlay?: (tracks: unknown[]) => void;
+    tracks: unknown[];
+  }) => (
+    <div>
+      <span>{name}</span>
+      <button onClick={() => onPlay?.(tracks)}>Play</button>
+    </div>
+  ),
+  TrackCell: ({
+    track,
+  }: {
+    track: {
+      name: string;
+      artist: string;
+    };
+  }) => (
+    <div>
+      <span>{track.name}</span>
+      <span>{track.artist}</span>
+    </div>
+  ),
   useWebPlayerActions: () => ({
     playTrack: (...args: unknown[]) => mockPlayTrack(...args),
     playTracks: (...args: unknown[]) => mockPlayTracks(...args),
@@ -76,7 +103,9 @@ vi.mock("sonner", () => ({
   },
 }));
 
-function renderSearch(overrides: Parameters<typeof createSpotifyClient>[0] = {}) {
+function renderSearch(
+  overrides: Parameters<typeof createSpotifyClient>[0] = {},
+) {
   return render(
     <SpotifyClientProvider client={createSpotifyClient(overrides)}>
       <SearchProvider>
@@ -89,7 +118,9 @@ function renderSearch(overrides: Parameters<typeof createSpotifyClient>[0] = {})
 
 async function searchFor(query: string) {
   fireEvent.change(
-    screen.getByPlaceholderText("Search songs, artists, or playlists..."),
+    screen.getByPlaceholderText(
+      "Search Spotify for songs, artists, or playlists...",
+    ),
     { target: { value: query } },
   );
   await act(async () => {
@@ -147,9 +178,9 @@ describe("search", () => {
     await searchFor("isis");
 
     await waitFor(() => {
-      expect(screen.getByText("Songs")).toBeInTheDocument();
-      expect(screen.getByText("Playlists")).toBeInTheDocument();
-      expect(screen.getByText("Artists")).toBeInTheDocument();
+      expect(screen.getByText('Songs matching "isis"')).toBeInTheDocument();
+      expect(screen.getByText('Playlists matching "isis"')).toBeInTheDocument();
+      expect(screen.getByText('Artists matching "isis"')).toBeInTheDocument();
     });
 
     expect(screen.getByText("Panopticon")).toBeInTheDocument();
@@ -196,6 +227,11 @@ describe("search", () => {
         searchTracks: vi.fn().mockResolvedValue([]),
       },
       spotifyActivity: {
+        getActivitySnapshot: vi.fn().mockResolvedValue({
+          recentlyPlayed: { items: [], rateLimited: false },
+          playlistsPage: { items: [], total: 0 },
+          favoriteArtists: [],
+        }),
         getFavoriteArtists: vi.fn().mockResolvedValue([]),
         getRecentlyPlayed: vi
           .fn()

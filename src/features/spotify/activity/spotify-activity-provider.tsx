@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useAppCapabilities } from "@/app";
 import {
   PLAYLIST_PAGE_SIZE,
   useSpotifyClient,
 } from "@/features/spotify/client";
-import { useAppCapabilities } from "@/app";
 import type { SpotifyArtist } from "@/types";
-import type {
-  Playlist,
-  RecentTrack,
-} from "@/types/spotify-activity";
+import type { Playlist, RecentTrack } from "@/types/spotify-activity";
 import { SpotifyActivityContext } from "./use-spotify-activity";
 import { useSpotifyPlaylistTracks } from "./use-spotify-playlist-tracks";
 import { useSpotifyRecentPolling } from "./use-spotify-recent-polling";
+
+const EMPTY_FAVORITE_ARTISTS: SpotifyArtist[] = [];
 
 function dedupeRecent(raw: RecentTrack[]) {
   const seen = new Set<string>();
@@ -37,85 +36,101 @@ export function SpotifyActivityProvider({
 }) {
   const client = useSpotifyClient();
   const { canBrowsePersonalSpotify } = useAppCapabilities();
-  const offsetRef = useRef(0);
-  const requestIdRef = useRef(0);
+  const nextPlaylistOffsetRef = useRef(0);
+  const appliedPlaylistOffsetsRef = useRef(new Set<number>());
+  const loadingPlaylistOffsetsRef = useRef(new Set<number>());
+  const playlistsGenerationRef = useRef(0);
+  const snapshotRequestVersionRef = useRef(0);
   const [recentTracks, setRecentTracksState] = useState<RecentTrack[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [playlistsTotal, setPlaylistsTotal] = useState(0);
   const [favoriteArtists, setFavoriteArtists] = useState<SpotifyArtist[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [snapshotLoading, setSnapshotLoading] = useState(
+    canBrowsePersonalSpotify,
+  );
+  const [snapshotRefreshing, setSnapshotRefreshing] = useState(false);
   const { clearPlaylistTracks, getPlaylistTracks } = useSpotifyPlaylistTracks({
     client,
     setPlaylists,
   });
 
   const resetActivity = useCallback(() => {
+    clearPlaylistTracks();
     setRecentTracksState([]);
     setPlaylists([]);
     setPlaylistsTotal(0);
     setFavoriteArtists([]);
-    offsetRef.current = 0;
-  }, []);
+    nextPlaylistOffsetRef.current = 0;
+    appliedPlaylistOffsetsRef.current.clear();
+    loadingPlaylistOffsetsRef.current.clear();
+    playlistsGenerationRef.current += 1;
+  }, [clearPlaylistTracks]);
 
-  const loadInitialActivity = useCallback(async () => {
-    requestIdRef.current += 1;
-    const requestId = requestIdRef.current;
+  const loadActivitySnapshot = useCallback(
+    async (mode: "load" | "refresh") => {
+      if (!canBrowsePersonalSpotify) {
+        return;
+      }
 
-    if (!canBrowsePersonalSpotify) {
-      clearPlaylistTracks();
-      resetActivity();
-      setLoading(false);
-      return;
-    }
+      const requestVersion = ++snapshotRequestVersionRef.current;
+      if (mode === "refresh") {
+        setSnapshotRefreshing(true);
+      } else {
+        setSnapshotLoading(true);
+        setSnapshotRefreshing(false);
+      }
 
-    setLoading(true);
-    clearPlaylistTracks();
+      try {
+        const activitySnapshot =
+          await client.spotifyActivity.getActivitySnapshot();
+        if (snapshotRequestVersionRef.current !== requestVersion) {
+          return;
+        }
 
-    const [recentResult, playlistsResult, favoriteArtistsResult] =
-      await Promise.allSettled([
-        client.spotifyActivity.getRecentlyPlayed(),
-        client.spotifyActivity.getPlaylistsPage(PLAYLIST_PAGE_SIZE, 0),
-        client.spotifyActivity.getFavoriteArtists(),
-      ]);
-
-    if (requestIdRef.current !== requestId) {
-      return;
-    }
-
-    if (recentResult.status === "fulfilled" && !recentResult.value.rateLimited) {
-      setRecentTracksState(dedupeRecent(recentResult.value.items));
-    } else {
-      setRecentTracksState([]);
-    }
-
-    if (playlistsResult.status === "fulfilled") {
-      setPlaylists(playlistsResult.value.items);
-      setPlaylistsTotal(playlistsResult.value.total);
-      offsetRef.current = playlistsResult.value.items.length;
-    } else {
-      setPlaylists([]);
-      setPlaylistsTotal(0);
-      offsetRef.current = 0;
-    }
-
-    if (favoriteArtistsResult.status === "fulfilled") {
-      setFavoriteArtists(favoriteArtistsResult.value);
-    } else {
-      setFavoriteArtists([]);
-    }
-
-    setLoading(false);
-  }, [canBrowsePersonalSpotify, clearPlaylistTracks, client, resetActivity]);
+        clearPlaylistTracks();
+        if (!activitySnapshot.recentlyPlayed.rateLimited) {
+          setRecentTracksState(
+            dedupeRecent(activitySnapshot.recentlyPlayed.items),
+          );
+        }
+        setPlaylists(activitySnapshot.playlistsPage.items);
+        setPlaylistsTotal(activitySnapshot.playlistsPage.total);
+        setFavoriteArtists(
+          activitySnapshot.favoriteArtists ?? EMPTY_FAVORITE_ARTISTS,
+        );
+        nextPlaylistOffsetRef.current =
+          activitySnapshot.playlistsPage.items.length;
+        appliedPlaylistOffsetsRef.current = new Set([0]);
+        loadingPlaylistOffsetsRef.current.clear();
+        playlistsGenerationRef.current += 1;
+      } catch {
+        if (snapshotRequestVersionRef.current !== requestVersion) {
+          return;
+        }
+      } finally {
+        if (snapshotRequestVersionRef.current !== requestVersion) {
+          return;
+        }
+        setSnapshotLoading(false);
+        setSnapshotRefreshing(false);
+      }
+    },
+    [canBrowsePersonalSpotify, clearPlaylistTracks, client],
+  );
 
   useEffect(() => {
-    void loadInitialActivity();
+    if (!canBrowsePersonalSpotify) {
+      snapshotRequestVersionRef.current += 1;
+      setSnapshotLoading(false);
+      setSnapshotRefreshing(false);
+      resetActivity();
+      return;
+    }
 
-    return () => {
-      requestIdRef.current += 1;
-    };
-  }, [loadInitialActivity]);
+    void loadActivitySnapshot("load");
+  }, [canBrowsePersonalSpotify, loadActivitySnapshot, resetActivity]);
 
-  const fetchRecent = useCallback(async () => {
+  const refreshRecent = useCallback(async () => {
     if (!canBrowsePersonalSpotify) {
       return;
     }
@@ -127,33 +142,56 @@ export function SpotifyActivityProvider({
   }, [canBrowsePersonalSpotify, client]);
 
   useSpotifyRecentPolling({
-    enabled: canBrowsePersonalSpotify,
-    refreshRecent: fetchRecent,
+    enabled: canBrowsePersonalSpotify && !snapshotLoading,
+    refreshRecent,
   });
 
   const refresh = useCallback(() => {
-    void loadInitialActivity();
-  }, [loadInitialActivity]);
+    if (!canBrowsePersonalSpotify) {
+      setSnapshotLoading(false);
+      setSnapshotRefreshing(false);
+      resetActivity();
+      return;
+    }
+
+    playlistsGenerationRef.current += 1;
+    appliedPlaylistOffsetsRef.current.clear();
+    void loadActivitySnapshot("refresh");
+  }, [canBrowsePersonalSpotify, loadActivitySnapshot, resetActivity]);
 
   const loadMorePlaylists = useCallback(async () => {
-    if (!canBrowsePersonalSpotify || offsetRef.current >= playlistsTotal) {
+    const requestedOffset = nextPlaylistOffsetRef.current;
+    if (
+      !canBrowsePersonalSpotify ||
+      requestedOffset >= playlistsTotal ||
+      loadingPlaylistOffsetsRef.current.has(requestedOffset)
+    ) {
       return;
     }
 
-    const requestId = requestIdRef.current;
+    const generation = playlistsGenerationRef.current;
+    loadingPlaylistOffsetsRef.current.add(requestedOffset);
 
-    const data = await client.spotifyActivity.getPlaylistsPage(
-      PLAYLIST_PAGE_SIZE,
-      offsetRef.current,
-    );
+    try {
+      const data = await client.spotifyActivity.getPlaylistsPage(
+        PLAYLIST_PAGE_SIZE,
+        requestedOffset,
+      );
 
-    if (requestIdRef.current !== requestId) {
-      return;
+      if (
+        generation !== playlistsGenerationRef.current ||
+        appliedPlaylistOffsetsRef.current.has(requestedOffset)
+      ) {
+        return;
+      }
+
+      appliedPlaylistOffsetsRef.current.add(requestedOffset);
+      setPlaylists((previous) => [...previous, ...data.items]);
+      setPlaylistsTotal(data.total);
+      nextPlaylistOffsetRef.current = requestedOffset + data.items.length;
+    } finally {
+      loadingPlaylistOffsetsRef.current.delete(requestedOffset);
     }
-
-    setPlaylists((previous) => [...previous, ...data.items]);
-    setPlaylistsTotal(data.total);
-    offsetRef.current += data.items.length;
   }, [
     canBrowsePersonalSpotify,
     client,
@@ -161,6 +199,7 @@ export function SpotifyActivityProvider({
     setPlaylists,
     setPlaylistsTotal,
   ]);
+  const loading = snapshotLoading || snapshotRefreshing;
 
   return (
     <SpotifyActivityContext.Provider

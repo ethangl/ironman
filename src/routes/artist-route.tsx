@@ -1,13 +1,18 @@
+import { useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 import { AlbumArt } from "@/components/album-art";
-import { AppLink } from "@/components/app-link";
 import { List, ListItem } from "@/components/list";
-import { TrackCell } from "@/components/track-cell";
-import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useArtistPageData } from "@/features/artist";
-import { useWebPlayerActions } from "@/features/spotify/player";
+import { useSpotifyClient } from "@/features/spotify/client";
+import {
+  PlaylistCell,
+  TrackCell,
+  useWebPlayerActions,
+} from "@/features/spotify/player";
+import type { SpotifyAlbumRelease, Track } from "@/types";
 
 function formatReleaseDate(value: string | null) {
   if (!value) return "Unknown release date";
@@ -26,10 +31,51 @@ function formatFollowers(count: number) {
   return `${count} followers`;
 }
 
+function formatReleaseMeta(release: SpotifyAlbumRelease) {
+  return [
+    formatReleaseDate(release.releaseDate),
+    `${release.totalTracks} tracks`,
+  ].join(" • ");
+}
+
 export function ArtistRoute() {
+  const client = useSpotifyClient();
   const { artistId = "" } = useParams();
   const { data, loading, error, notFound } = useArtistPageData(artistId);
-  const { playTrack, playTracks } = useWebPlayerActions();
+  const { playTracks } = useWebPlayerActions();
+  const [loadingReleaseId, setLoadingReleaseId] = useState<string | null>(null);
+  const releaseTracksRef = useRef(new Map<string, Track[]>());
+
+  const handlePlayRelease = async (release: SpotifyAlbumRelease) => {
+    try {
+      const cached = releaseTracksRef.current.get(release.id);
+      if (cached) {
+        await playTracks(cached);
+        return;
+      }
+
+      setLoadingReleaseId(release.id);
+      const tracks = await client.artists.getAlbumTracks(release.id);
+
+      if (tracks.length === 0) {
+        toast.error("That release does not have any playable tracks.");
+        return;
+      }
+
+      releaseTracksRef.current.set(release.id, tracks);
+      await playTracks(tracks);
+    } catch (nextError) {
+      toast.error(
+        nextError instanceof Error
+          ? nextError.message
+          : "Could not load that release right now.",
+      );
+    } finally {
+      setLoadingReleaseId((current) =>
+        current === release.id ? null : current,
+      );
+    }
+  };
 
   if (loading) {
     return (
@@ -72,31 +118,12 @@ export function ArtistRoute() {
             className="size-32 rounded-3xl sm:size-40"
           />
           <div className="min-w-0 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-red-400">
-              Artist
-            </p>
             <h1 className="text-4xl font-black tracking-tight sm:text-5xl">
               {artist.name}
             </h1>
-            {subtitle ? (
+            {subtitle && (
               <p className="text-sm text-muted-foreground">{subtitle}</p>
-            ) : null}
-            <div className="flex flex-wrap gap-3">
-              {topTracks.length > 0 ? (
-                <Button
-                  variant="secondary"
-                  onClick={() => void playTracks(topTracks)}
-                >
-                  Play Top Tracks
-                </Button>
-              ) : null}
-              <AppLink
-                href="/"
-                className="inline-flex h-9 items-center rounded-4xl bg-white/10 px-3 text-sm font-medium transition hover:bg-white/15"
-              >
-                Back Home
-              </AppLink>
-            </div>
+            )}
           </div>
         </div>
       </section>
@@ -105,61 +132,31 @@ export function ArtistRoute() {
         {topTracks.map((song, i) => {
           return (
             <ListItem key={song.id}>
-              <span className="w-6 text-center text-sm font-bold text-muted-foreground">
-                {i + 1}
-              </span>
-              <TrackCell
-                track={song}
-                onPlay={(nextTrack) => void playTrack(nextTrack)}
-              />
+              <TrackCell count={i + 1} track={song} />
             </ListItem>
           );
         })}
       </List>
 
-      <section className="space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-xl font-bold">Releases</h2>
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">
-            Albums and singles
-          </span>
-        </div>
-        {releases.length > 0 ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {releases.map((release) => (
-              <article
-                key={release.id}
-                className="rounded-2xl bg-white/5 p-4 transition hover:bg-white/10"
-              >
-                <div className="flex gap-4">
-                  <AlbumArt
-                    src={release.image}
-                    className="size-16 rounded-xl"
-                  />
-                  <div className="min-w-0 space-y-1">
-                    <h3 className="truncate text-sm font-medium">
-                      {release.name}
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      {release.albumType ?? "release"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatReleaseDate(release.releaseDate)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {release.totalTracks} tracks
-                    </p>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Spotify did not return any releases for this artist.
-          </p>
-        )}
-      </section>
+      <List
+        title="Albums"
+        count={releases.length}
+        empty="Spotify did not return any albums for this artist."
+      >
+        {releases.map((release, i) => (
+          <ListItem key={release.id}>
+            <PlaylistCell
+              count={i + 1}
+              disabled={loadingReleaseId === release.id}
+              image={release.image}
+              name={release.name}
+              subtitle={formatReleaseMeta(release)}
+              tracks={releaseTracksRef.current.get(release.id) ?? []}
+              onPlay={() => void handlePlayRelease(release)}
+            />
+          </ListItem>
+        ))}
+      </List>
     </main>
   );
 }

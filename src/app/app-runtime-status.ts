@@ -1,4 +1,8 @@
-import type { SessionData, SpotifyStatus } from "./app-runtime-types";
+import type {
+  SessionData,
+  SpotifyConnection,
+  SpotifyStatus,
+} from "./app-runtime-types";
 
 export function getSpotifyStatus({
   isPending,
@@ -7,7 +11,7 @@ export function getSpotifyStatus({
 }: {
   isPending: boolean;
   session: SessionData;
-  spotifyConnection: "unknown" | "connected" | "disconnected";
+  spotifyConnection: SpotifyConnection;
 }): SpotifyStatus {
   if (isPending) {
     return {

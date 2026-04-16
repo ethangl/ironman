@@ -8,6 +8,8 @@ import { LoginButton } from "./login-button";
 const mockUseSession = vi.fn();
 const mockUseBrowserSearchParams = vi.fn();
 const mockReplaceBrowserUrl = vi.fn();
+const mockFetchSpotifyAuthCooldown = vi.fn();
+const mockLinkSocialAccount = vi.fn();
 const mockSignInSocial = vi.fn();
 const mockSignOut = vi.fn();
 const mockToastError = vi.fn();
@@ -18,6 +20,9 @@ vi.mock("@/hooks/use-browser-search-params", () => ({
 }));
 
 vi.mock("@/lib/convex-auth-client", () => ({
+  fetchSpotifyAuthCooldown: (...args: unknown[]) =>
+    mockFetchSpotifyAuthCooldown(...args),
+  convexLinkSocialAccount: (...args: unknown[]) => mockLinkSocialAccount(...args),
   useConvexSession: () => mockUseSession(),
   convexSignIn: {
     social: (...args: unknown[]) => mockSignInSocial(...args),
@@ -60,6 +65,7 @@ describe("LoginButton", () => {
       data: null,
       isPending: false,
     });
+    mockFetchSpotifyAuthCooldown.mockResolvedValue(null);
     setSearchParams({});
   });
 
@@ -80,6 +86,27 @@ describe("LoginButton", () => {
       callbackURL: "/",
       errorCallbackURL: "/?authProvider=spotify",
     });
+    expect(mockLinkSocialAccount).not.toHaveBeenCalled();
+  });
+
+  it("uses account linking for reconnect when a session already exists", async () => {
+    mockUseSession.mockReturnValue({
+      data: { user: { id: "user-1" } },
+      isPending: false,
+    });
+
+    renderLoginButton();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Reconnect Spotify" }),
+    );
+
+    expect(mockLinkSocialAccount).toHaveBeenCalledWith({
+      provider: "spotify",
+      callbackURL: "/",
+      errorCallbackURL: "/?authProvider=spotify",
+    });
+    expect(mockSignInSocial).not.toHaveBeenCalled();
   });
 
   it("enters cooldown on unable_to_get_user_info and clears the auth query", async () => {
@@ -97,7 +124,7 @@ describe("LoginButton", () => {
     await settleSignedOutAuth();
 
     expect(mockToastError).toHaveBeenCalledWith(
-      "Spotify is cooling down. Try reconnecting in about a minute.",
+      "Spotify is cooling down. Try reconnecting about a minute.",
     );
     const button = screen.getByRole("button", {
       name: /Spotify cooling down/i,
@@ -109,9 +136,63 @@ describe("LoginButton", () => {
     expect(mockReplaceBrowserUrl).toHaveBeenCalledWith("/?foo=bar");
     expect(
       screen.getByText(
-        "Spotify asked us to slow down. Try reconnecting in about a minute.",
+        "Spotify asked us to slow down. Try reconnecting about a minute.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("uses the backend cooldown window when available", async () => {
+    setSearchParams({
+      authProvider: "spotify",
+      error: "unable_to_get_user_info",
+    });
+    mockFetchSpotifyAuthCooldown.mockResolvedValue({
+      cooldownUntil: Date.now() + 2 * 60 * 60 * 1000,
+      retryAfterSeconds: 7200,
+    });
+
+    await act(async () => {
+      renderLoginButton();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await settleSignedOutAuth();
+
+    expect(mockToastError).toHaveBeenCalledWith(
+      "Spotify is cooling down. Try reconnecting about 2 hours.",
+    );
+    expect(
+      screen.getByText(
+        "Spotify asked us to slow down. Try reconnecting about 2 hours.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("preserves cooldown for reconnect flows when a session already exists", async () => {
+    mockUseSession.mockReturnValue({
+      data: { user: { id: "user-1" } },
+      isPending: false,
+    });
+    setSearchParams({
+      authProvider: "spotify",
+      error: "unable_to_get_user_info",
+    });
+    const cooldownStartedAt = Date.now();
+
+    await act(async () => {
+      renderLoginButton();
+      await Promise.resolve();
+    });
+
+    expect(mockToastError).toHaveBeenCalledWith(
+      "Spotify is cooling down. Try reconnecting about a minute.",
+    );
+    expect(
+      screen.getByRole("button", { name: /Spotify cooling down/i }),
+    ).toBeDisabled();
+    expect(localStorage.getItem("spotify-auth-cooldown-until")).toBe(
+      String(cooldownStartedAt + 60_000),
+    );
   });
 
   it("renders from persisted cooldown state and counts down", async () => {

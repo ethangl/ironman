@@ -9,13 +9,16 @@
  */
 
 import type * as betterAuth from "../betterAuth.js";
+import type * as betterAuthCrossDomain from "../betterAuthCrossDomain.js";
 import type * as feed from "../feed.js";
 import type * as http from "../http.js";
 import type * as ironman from "../ironman.js";
 import type * as leaderboards from "../leaderboards.js";
+import type * as lib_reccobeats from "../lib/reccobeats.js";
 import type * as lib_songSummaries from "../lib/songSummaries.js";
 import type * as lib_streak from "../lib/streak.js";
 import type * as profile from "../profile.js";
+import type * as reccobeats from "../reccobeats.js";
 import type * as songSummaries from "../songSummaries.js";
 import type * as songs from "../songs.js";
 import type * as spotify from "../spotify.js";
@@ -30,13 +33,16 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   betterAuth: typeof betterAuth;
+  betterAuthCrossDomain: typeof betterAuthCrossDomain;
   feed: typeof feed;
   http: typeof http;
   ironman: typeof ironman;
   leaderboards: typeof leaderboards;
+  "lib/reccobeats": typeof lib_reccobeats;
   "lib/songSummaries": typeof lib_songSummaries;
   "lib/streak": typeof lib_streak;
   profile: typeof profile;
+  reccobeats: typeof reccobeats;
   songSummaries: typeof songSummaries;
   songs: typeof songs;
   spotify: typeof spotify;
@@ -21246,6 +21252,48 @@ export declare const components: {
   };
   spotify: {
     activity: {
+      activitySnapshot: FunctionReference<
+        "action",
+        "internal",
+        { accessToken: string; cacheScope?: string },
+        {
+          favoriteArtists: Array<{
+            followerCount: number;
+            genres: Array<string>;
+            id: string;
+            image: string | null;
+            name: string;
+          }>;
+          playlistsPage: {
+            items: Array<{
+              description: string | null;
+              id: string;
+              image: string | null;
+              name: string;
+              owner: string | null;
+              public: boolean;
+              trackCount: number;
+            }>;
+            total: number;
+          };
+          recentlyPlayed: {
+            items: Array<{
+              playedAt: string;
+              track: {
+                albumImage: string | null;
+                albumName: string;
+                artist: string;
+                difficulty?: number;
+                durationMs: number;
+                id: string;
+                name: string;
+                topStreak?: { count: number; userName: string | null } | null;
+              };
+            }>;
+            rateLimited: boolean;
+          };
+        }
+      >;
       favoriteArtists: FunctionReference<
         "action",
         "internal",
@@ -21360,6 +21408,7 @@ export declare const components: {
             } | null;
             progress_ms: number;
           } | null;
+          retryAfterSeconds?: number;
           status: number;
         }
       >;
@@ -21367,19 +21416,19 @@ export declare const components: {
         "action",
         "internal",
         { accessToken: string },
-        { ok: boolean; status: number }
+        { ok: boolean; retryAfterSeconds?: number; status: number }
       >;
       play: FunctionReference<
         "action",
         "internal",
         { accessToken: string; deviceId?: string; uri: string },
-        { ok: boolean; status: number }
+        { ok: boolean; retryAfterSeconds?: number; status: number }
       >;
       resume: FunctionReference<
         "action",
         "internal",
         { accessToken: string },
-        { ok: boolean; status: number }
+        { ok: boolean; retryAfterSeconds?: number; status: number }
       >;
       setRepeat: FunctionReference<
         "action",
@@ -21389,16 +21438,31 @@ export declare const components: {
           deviceId?: string;
           state: "track" | "context" | "off";
         },
-        { ok: boolean; status: number }
+        { ok: boolean; retryAfterSeconds?: number; status: number }
       >;
       setVolume: FunctionReference<
         "action",
         "internal",
         { accessToken: string; percent: number },
-        { ok: boolean; status: number }
+        { ok: boolean; retryAfterSeconds?: number; status: number }
       >;
     };
     search: {
+      albumTracks: FunctionReference<
+        "action",
+        "internal",
+        { accessToken: string; albumId: string; cacheScope?: string },
+        Array<{
+          albumImage: string | null;
+          albumName: string;
+          artist: string;
+          difficulty?: number;
+          durationMs: number;
+          id: string;
+          name: string;
+          topStreak?: { count: number; userName: string | null } | null;
+        }>
+      >;
       artistPage: FunctionReference<
         "action",
         "internal",

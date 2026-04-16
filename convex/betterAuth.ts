@@ -1,14 +1,14 @@
 import { betterAuth } from "better-auth";
 import { createClient } from "@convex-dev/better-auth";
-import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
+import { isRunMutationCtx } from "@convex-dev/better-auth/utils";
+import { convex } from "@convex-dev/better-auth/plugins";
 
 import authConfig from "./auth.config";
 import { components } from "./_generated/api";
+import { crossDomain } from "./betterAuthCrossDomain";
 
 type GeneratedComponents = typeof import("./_generated/api").components;
-
-const SPOTIFY_PROFILE_RETRY_LIMIT = 2;
-const SPOTIFY_PROFILE_RETRY_DELAY_MS = 15_000;
+const SPOTIFY_AUTH_COOLDOWN_KEY = "spotify-auth-cooldown";
 
 function requireEnv(name: string) {
   const value = process.env[name];
@@ -19,28 +19,50 @@ function requireEnv(name: string) {
   return value;
 }
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function fetchSpotifyProfile(accessToken: string) {
-  for (let attempt = 1; attempt <= SPOTIFY_PROFILE_RETRY_LIMIT; attempt++) {
-    const res = await fetch("https://api.spotify.com/v1/me", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    const text = await res.text();
-
-    if (res.ok) {
-      return text ? JSON.parse(text) : null;
-    }
-
-    if (res.status !== 429 || attempt === SPOTIFY_PROFILE_RETRY_LIMIT) {
-      return null;
-    }
-
-    await delay(SPOTIFY_PROFILE_RETRY_DELAY_MS);
+async function setSpotifyAuthCooldown(
+  ctx: Parameters<typeof authComponent.adapter>[0],
+  retryAfterSeconds: number,
+) {
+  if (!isRunMutationCtx(ctx)) {
+    return;
   }
 
+  const safeRetryAfterSeconds = Math.max(Math.ceil(retryAfterSeconds), 0);
+  await ctx.runMutation(components.spotify.cache.set, {
+    key: SPOTIFY_AUTH_COOLDOWN_KEY,
+    value: JSON.stringify({ retryAfterSeconds: safeRetryAfterSeconds }),
+    expiresAt: Date.now() + safeRetryAfterSeconds * 1000,
+  });
+}
+
+async function fetchSpotifyProfile(
+  ctx: Parameters<typeof authComponent.adapter>[0],
+  accessToken: string,
+) {
+  const res = await fetch("https://api.spotify.com/v1/me", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const text = await res.text();
+
+  if (res.ok) {
+    return text ? JSON.parse(text) : null;
+  }
+
+  if (res.status === 429) {
+    const retryAfter = res.headers.get("retry-after");
+    const retryAfterSeconds = Number(retryAfter);
+    if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+      await setSpotifyAuthCooldown(ctx, retryAfterSeconds);
+    }
+    console.error(
+      `[better-auth] Spotify profile lookup rate limited retry_after=${retryAfter ?? "unknown"}`,
+    );
+    return null;
+  }
+
+  console.error(
+    `[better-auth] Spotify profile lookup failed status=${res.status} body=${text.slice(0, 200)}`,
+  );
   return null;
 }
 
@@ -54,6 +76,11 @@ export const createAuth = (ctx: Parameters<typeof authComponent.adapter>[0]) =>
     baseURL: requireEnv("CONVEX_SITE_URL"),
     database: authComponent.adapter(ctx),
     trustedOrigins: [requireEnv("SITE_URL")],
+    account: {
+      accountLinking: {
+        trustedProviders: ["spotify"],
+      },
+    },
     plugins: [
       crossDomain({ siteUrl: requireEnv("SITE_URL") }),
       convex({ authConfig }),
@@ -77,7 +104,7 @@ export const createAuth = (ctx: Parameters<typeof authComponent.adapter>[0]) =>
         ],
         async getUserInfo(token) {
           if (!token.accessToken) return null;
-          const profile = await fetchSpotifyProfile(token.accessToken);
+          const profile = await fetchSpotifyProfile(ctx, token.accessToken);
           if (!profile) return null;
 
           return {

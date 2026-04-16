@@ -1,5 +1,6 @@
-import { FC, PropsWithChildren } from "react";
+import { FC, PropsWithChildren, useContext } from "react";
 
+import { WebPlayerActionsContext } from "@/features/spotify/player/use-web-player";
 import type { Track, TrackSnapshot } from "@/types";
 import { AlbumArt } from "./album-art";
 import { PlayButton } from "./play-button";
@@ -25,6 +26,7 @@ function toDisplayTrack(track: Track | TrackSnapshot): Track {
 export type TrackCellProps = PropsWithChildren & {
   count?: number;
   onPlay?: (track: Track) => void;
+  playable?: boolean;
   track: Track | TrackSnapshot;
 };
 
@@ -32,14 +34,23 @@ export const TrackCell: FC<TrackCellProps> = ({
   children,
   count,
   onPlay,
+  playable = true,
   track,
 }) => {
+  const webPlayerActions = useContext(WebPlayerActionsContext);
   const normalizedTrack = toDisplayTrack(track);
+  const handlePlay =
+    onPlay ??
+    (playable && webPlayerActions
+      ? (nextTrack: Track) => {
+          void webPlayerActions.playTrack(nextTrack);
+        }
+      : undefined);
 
   return (
     <>
       {count && (
-        <div className="bg-accent/25 font-bold flex items-center justify-center rounded-3xl text-xs text-muted-foreground size-8">
+        <div className="bg-black/25 font-bold flex items-center justify-center rounded-3xl text-xs text-white size-8">
           {count}
         </div>
       )}
@@ -54,13 +65,13 @@ export const TrackCell: FC<TrackCellProps> = ({
       </div>
       <div className="flex gap-2 items-center">
         {children}
-        {onPlay ? (
+        {handlePlay && (
           <PlayButton
             size="icon-lg"
             pausable={false}
-            onClick={() => onPlay(normalizedTrack)}
+            onClick={() => handlePlay(normalizedTrack)}
           />
-        ) : null}
+        )}
       </div>
     </>
   );

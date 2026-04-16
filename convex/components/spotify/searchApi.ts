@@ -33,19 +33,21 @@ interface SearchResponse {
 
 type ArtistResponse = SpotifyApiArtist;
 
-interface SpotifyProfileResponse {
-  country?: string;
-}
-
 interface ArtistAlbumsResponse {
   items?: Array<SpotifyAlbum | null>;
+}
+
+interface AlbumDetailsResponse extends SpotifyAlbum {
+  tracks?: {
+    items?: Array<(Omit<SpotifyApiTrack, "album"> & { album?: SpotifyAlbum }) | null>;
+  };
 }
 
 async function searchArtistTracks(
   token: string,
   artistId: string,
   artistName: string,
-  market?: string,
+  market?: string | null,
 ): Promise<SpotifyTrack[]> {
   const query = `artist:"${artistName}"`;
   const params = new URLSearchParams({
@@ -72,6 +74,13 @@ async function searchArtistTracks(
       return true;
     })
     .map(mapTrack);
+}
+
+export async function getSpotifyProfileMarket(
+  token: string,
+): Promise<string | null> {
+  const data = await spotifyFetch<{ country?: string }>("/me", token);
+  return data?.country ?? null;
 }
 
 export async function searchTracks(
@@ -106,17 +115,39 @@ export async function searchSpotify(
   };
 }
 
+export async function getAlbumTracks(
+  token: string,
+  albumId: string,
+): Promise<SpotifyTrack[]> {
+  const data = await spotifyFetch<AlbumDetailsResponse>(`/albums/${albumId}`, token);
+
+  if (!data?.tracks?.items) {
+    return [];
+  }
+
+  const album: SpotifyAlbum = {
+    id: data.id,
+    name: data.name,
+    album_type: data.album_type,
+    images: data.images,
+    release_date: data.release_date,
+    total_tracks: data.total_tracks,
+    artists: data.artists,
+  };
+
+  return data.tracks.items
+    .filter((track): track is Omit<SpotifyApiTrack, "album"> => !!track && !!track.id)
+    .map((track) => mapTrack({ ...track, album }));
+}
+
 export async function getArtistPageData(
   token: string,
   artistId: string,
+  market?: string | null,
 ): Promise<SpotifyArtistPageData> {
-  const [artistData, profileData] = await Promise.all([
-    spotifyFetch<ArtistResponse>(`/artists/${artistId}`, token),
-    spotifyFetch<SpotifyProfileResponse>("/me", token),
-  ]);
-  const market = profileData?.country;
+  const artistData = await spotifyFetch<ArtistResponse>(`/artists/${artistId}`, token);
   const albumsQuery = new URLSearchParams({
-    include_groups: "album,single",
+    include_groups: "album",
     limit: "10",
     ...(market ? { market } : {}),
   }).toString();

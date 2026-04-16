@@ -1,5 +1,6 @@
 import { List, ListItem } from "@/components/list";
-import { PlayableTrackCell } from "@/features/spotify/player";
+import { Section } from "@/components/section";
+import { TrackCell } from "@/features/spotify/player";
 import type { HellscapeSong } from "@shared/leaderboards";
 
 export function BrutalityBoardList({
@@ -18,12 +19,18 @@ export function BrutalityBoardList({
   }
 
   return (
-    <List title="Legacies of Brutality" loading={loading} count={songs.length}>
-      {songs.map((song, i) => (
-        <ListItem key={song.trackId}>
-          <PlayableTrackCell track={song} count={i + 1} />
-        </ListItem>
-      ))}
-    </List>
+    <Section
+      title="Legacies of Brutality"
+      color="--color-red-400"
+      className="m-0"
+    >
+      <List loading={loading} count={songs.length} className="p-4">
+        {songs.map((song, i) => (
+          <ListItem key={song.trackId}>
+            <TrackCell track={song} count={i + 1} />
+          </ListItem>
+        ))}
+      </List>
+    </Section>
   );
 }

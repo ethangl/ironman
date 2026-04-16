@@ -1,8 +1,9 @@
 import { AppLink } from "@/components/app-link";
 import { Avatar } from "@/components/avatar";
 import { List, ListItem } from "@/components/list";
-import type { IronmenEntry } from "@shared/leaderboards";
+import { Section } from "@/components/section";
 import { difficultyLabel } from "@/lib/difficulty";
+import type { IronmenEntry } from "@shared/leaderboards";
 
 export function IronmenBoardList({
   entries,
@@ -12,73 +13,75 @@ export function IronmenBoardList({
   loading: boolean;
 }) {
   return (
-    <List title="True Iron Men" loading={loading} count={entries.length}>
-      {entries.map((entry) => {
-        const dl = difficultyLabel(entry.songDifficulty);
-        return (
-          <ListItem
-            key={entry.id}
-            className={
-              entry.rank === 1
-                ? "border border-yellow-500/20 bg-linear-to-r from-yellow-500/10 to-transparent"
-                : undefined
-            }
-          >
-            <div
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+    <Section title="True Iron Men" color="--color-red-400" className="m-0">
+      <List loading={loading} count={entries.length} className="p-4">
+        {entries.map((entry) => {
+          const dl = difficultyLabel(entry.songDifficulty);
+          return (
+            <ListItem
+              key={entry.id}
+              className={
                 entry.rank === 1
-                  ? "bg-yellow-500 text-mist-950"
-                  : entry.rank === 2
-                    ? "bg-mist-300 text-mist-950"
-                    : entry.rank === 3
-                      ? "bg-amber-700 text-foreground"
-                      : "bg-white/10 text-muted-foreground"
-              }`}
+                  ? "border border-yellow-500/20 bg-linear-to-r from-yellow-500/10 to-transparent"
+                  : undefined
+              }
             >
-              {entry.rank}
-            </div>
+              <div
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                  entry.rank === 1
+                    ? "bg-yellow-500 text-mist-950"
+                    : entry.rank === 2
+                      ? "bg-mist-300 text-mist-950"
+                      : entry.rank === 3
+                        ? "bg-amber-700 text-foreground"
+                        : "bg-white/10 text-muted-foreground"
+                }`}
+              >
+                {entry.rank}
+              </div>
 
-            <Avatar
-              id={entry.userId}
-              image={entry.userImage}
-              name={entry.userName}
-              sizeClassName="size-8 text-3xl"
-            />
+              <Avatar
+                id={entry.userId}
+                image={entry.userImage}
+                name={entry.userName}
+                sizeClassName="size-8 text-3xl"
+              />
 
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <AppLink
+                    href={`/profile/${entry.userId}`}
+                    className="truncate text-sm font-medium transition hover:text-red-400"
+                  >
+                    {entry.userName ?? "Anonymous"}
+                  </AppLink>
+                </div>
                 <AppLink
-                  href={`/profile/${entry.userId}`}
-                  className="truncate text-sm font-medium transition hover:text-red-400"
+                  href={`/song/${entry.trackId}`}
+                  className="block truncate text-xs text-muted-foreground transition hover:text-foreground"
                 >
-                  {entry.userName ?? "Anonymous"}
+                  {entry.trackName} - {entry.trackArtist}
+                  <span className={`ml-1.5 ${dl.color}`}>{dl.label}</span>
                 </AppLink>
               </div>
-              <AppLink
-                href={`/song/${entry.trackId}`}
-                className="block truncate text-xs text-muted-foreground transition hover:text-foreground"
-              >
-                {entry.trackName} - {entry.trackArtist}
-                <span className={`ml-1.5 ${dl.color}`}>{dl.label}</span>
-              </AppLink>
-            </div>
 
-            <div className="shrink-0 text-right">
-              <div>
-                <span className="text-xl font-bold tabular-nums">
-                  {entry.count}
-                </span>
-                <span className="ml-1 text-xs text-muted-foreground">
-                  plays
-                </span>
+              <div className="shrink-0 text-right">
+                <div>
+                  <span className="text-xl font-bold tabular-nums">
+                    {entry.count}
+                  </span>
+                  <span className="ml-1 text-xs text-muted-foreground">
+                    plays
+                  </span>
+                </div>
+                <div className="text-[10px] tabular-nums text-muted-foreground">
+                  Score: {entry.streakScore}
+                </div>
               </div>
-              <div className="text-[10px] tabular-nums text-muted-foreground">
-                Score: {entry.streakScore}
-              </div>
-            </div>
-          </ListItem>
-        );
-      })}
-    </List>
+            </ListItem>
+          );
+        })}
+      </List>
+    </Section>
   );
 }

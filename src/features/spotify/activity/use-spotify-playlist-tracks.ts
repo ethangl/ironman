@@ -2,8 +2,8 @@ import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useRef } from "react";
 
 import type { SpotifyClient } from "@/features/spotify/client";
-import type { Playlist } from "@/types/spotify-activity";
 import type { SpotifyTrack } from "@/types";
+import type { Playlist } from "@/types/spotify-activity";
 
 export function useSpotifyPlaylistTracks({
   client,
@@ -12,7 +12,7 @@ export function useSpotifyPlaylistTracks({
   client: SpotifyClient;
   setPlaylists: Dispatch<SetStateAction<Playlist[]>>;
 }) {
-  const playlistTracksRef = useRef(new Map<string, Playlist["tracks"]>());
+  const playlistTracksRef = useRef(new Map<string, SpotifyTrack[]>());
 
   const clearPlaylistTracks = useCallback(() => {
     playlistTracksRef.current.clear();

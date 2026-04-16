@@ -2,6 +2,7 @@ type AuthModule = typeof import("@/lib/convex-auth-client");
 
 type SessionState = ReturnType<AuthModule["useConvexSession"]>;
 export type SessionData = SessionState["data"];
+export type SpotifyConnection = "unknown" | "connected" | "disconnected";
 
 export interface AppAuthRuntime {
   session: SessionData;
@@ -21,7 +22,7 @@ export interface SpotifyStatus {
 
 export interface AppCapabilities {
   hasSession: boolean;
-  spotifyConnection: "unknown" | "connected" | "disconnected";
+  spotifyConnection: SpotifyConnection;
   spotifyStatus: SpotifyStatus;
   canBrowsePersonalSpotify: boolean;
   canControlPlayback: boolean;

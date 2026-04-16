@@ -3,12 +3,14 @@ import { useMemo } from "react";
 import { Outlet } from "react-router-dom";
 
 import { Toaster } from "@/components/ui/sonner";
+import { SearchProvider, SearchResults } from "@/features/search";
 import { defaultSpotifyClient } from "@/features/spotify/client";
 import { WebPlayerProvider } from "@/features/spotify/player";
 import { convexAuthClient as authClient } from "@/lib/convex-auth-client";
 import { getConvexUrl } from "@/lib/convex-env";
-import { getConvexReactClient } from "./convex-react-client";
+import { FilmGrain, Shader, Swirl, WaveDistortion } from "shaders/react";
 import { AppRuntimeProvider } from "./app-runtime";
+import { getConvexReactClient } from "./convex-react-client";
 import { Navbar } from "./navbar";
 
 export function AppShell() {
@@ -23,9 +25,33 @@ export function AppShell() {
     <ConvexBetterAuthProvider client={convexClient} authClient={authClient}>
       <AppRuntimeProvider spotifyClient={defaultSpotifyClient}>
         <WebPlayerProvider>
-          <Navbar />
-          <Outlet />
-          <Toaster />
+          <SearchProvider>
+            <Shader className="fixed inset-0 pointer-events-none size-full -z-1">
+              <Swirl
+                id="idmnzddzegqivfwby28"
+                blendMode="normal-oklch"
+                colorA="oklch(14.8% 0.004 228.8)"
+                colorB="oklch(21.8% 0.008 223.9)"
+                colorSpace="oklch"
+                speed={0.25}
+              />
+              <WaveDistortion
+                angle={30}
+                blendMode="normal-oklch"
+                frequency={10}
+                maskSource="idmnzddzegqivfwby28"
+                speed={0.5}
+                strength={0.2}
+                visible={true}
+                waveType="bounce"
+              />
+              <FilmGrain strength={0.02} />
+            </Shader>
+            <Navbar />
+            <SearchResults />
+            <Outlet />
+            <Toaster />
+          </SearchProvider>
         </WebPlayerProvider>
       </AppRuntimeProvider>
     </ConvexBetterAuthProvider>

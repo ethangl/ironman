@@ -1,6 +1,7 @@
 import { AppLink } from "@/components/app-link";
 import { Avatar } from "@/components/avatar";
 import { List, ListItem } from "@/components/list";
+import { Section } from "@/components/section";
 import type { LeaderboardEntry } from "@shared/leaderboards";
 import { useLeaderboardData } from "./use-leaderboard-data";
 
@@ -139,29 +140,31 @@ export function LeaderboardList({
   title?: string;
 }) {
   return (
-    <List title={title} loading={loading} count={liveCount}>
-      {entries.map((entry) => (
-        <EntryRow
-          key={entry.id}
-          entry={entry}
-          showTrack={!trackId}
-          liveCount={entry.isMe ? liveCount : undefined}
-        />
-      ))}
-      {myEntry && (
-        <>
-          <div className="flex items-center gap-2 py-1 text-muted-foreground">
-            <div className="flex-1 border-t" />
-            <span className="text-xs">...</span>
-            <div className="flex-1 border-t" />
-          </div>
+    <Section title={title} color="--color-red-400" className="m-0">
+      <List loading={loading} count={liveCount} className="p-4">
+        {entries.map((entry) => (
           <EntryRow
-            entry={myEntry}
+            key={entry.id}
+            entry={entry}
             showTrack={!trackId}
-            liveCount={liveCount}
+            liveCount={entry.isMe ? liveCount : undefined}
           />
-        </>
-      )}
-    </List>
+        ))}
+        {myEntry && (
+          <>
+            <div className="flex items-center gap-2 py-1 text-muted-foreground">
+              <div className="flex-1 border-t" />
+              <span className="text-xs">...</span>
+              <div className="flex-1 border-t" />
+            </div>
+            <EntryRow
+              entry={myEntry}
+              showTrack={!trackId}
+              liveCount={liveCount}
+            />
+          </>
+        )}
+      </List>
+    </Section>
   );
 }

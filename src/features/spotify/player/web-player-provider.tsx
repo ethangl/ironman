@@ -9,6 +9,7 @@ import {
 } from "./use-web-player";
 import { cn } from "@/lib/utils";
 import { useAppAuth, useAppCapabilities, useIronmanClient } from "@/app";
+import { useEnsureTrackAudioFeatures } from "@/features/reccobeats";
 import { StreakData, Track } from "@/types";
 import { MiniPlayer } from "./mini-player";
 import { StandardPlayer } from "./standard-player";
@@ -110,6 +111,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   });
   const artworkUrl = streak?.trackImage ?? currentTrack?.albumImage ?? null;
   const palette = usePlayerPalette(artworkUrl);
+  useEnsureTrackAudioFeatures(hasSession ? trackId : null);
 
   const applyStreakState = useCallback((nextStreak: StreakData | null) => {
     streakRef.current = nextStreak;

@@ -7,29 +7,17 @@ import {
   getTopArtists,
   getUserPlaylists,
 } from "./activityApi";
-import { action } from "./_generated/server";
+import { action, type ActionCtx } from "./_generated/server";
 import { getCachedValue, setCachedValue } from "./cacheHelpers";
 import { SpotifyApiError } from "./errors";
 import {
+  spotifyActivitySnapshotValidator,
   spotifyArtistValidator,
+  spotifyPlaylistsPageValidator,
+  spotifyRecentlyPlayedResultValidator,
   spotifyPlaylistValidator,
   spotifyTrackValidator,
 } from "./validators";
-
-const recentlyPlayedItemValidator = v.object({
-  playedAt: v.string(),
-  track: spotifyTrackValidator,
-});
-
-const recentlyPlayedResultValidator = v.object({
-  items: v.array(recentlyPlayedItemValidator),
-  rateLimited: v.boolean(),
-});
-
-const playlistsPageValidator = v.object({
-  items: v.array(spotifyPlaylistValidator),
-  total: v.number(),
-});
 
 const RECENTLY_PLAYED_CACHE_TTL_MS = 30 * 1000;
 const PLAYLISTS_PAGE_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -50,6 +38,11 @@ type PlaylistsPageCacheValue = Awaited<ReturnType<typeof getUserPlaylists>>;
 type PlaylistTracksCacheValue = Awaited<ReturnType<typeof getPlaylistTracks>>;
 type FavoriteArtistsCacheValue = Awaited<ReturnType<typeof getFavoriteArtists>>;
 type TopArtistsCacheValue = Awaited<ReturnType<typeof getTopArtists>>;
+type ActivitySnapshotCacheValue = {
+  recentlyPlayed: RecentlyPlayedCacheValue;
+  playlistsPage: PlaylistsPageCacheValue;
+  favoriteArtists: FavoriteArtistsCacheValue;
+};
 
 function toActivityError(error: unknown, fallback: string) {
   if (!(error instanceof SpotifyApiError)) {
@@ -67,46 +60,111 @@ function toActivityError(error: unknown, fallback: string) {
   return new Error(fallback);
 }
 
+async function loadRecentlyPlayedResult(
+  ctx: ActionCtx,
+  args: {
+    accessToken: string;
+    limit?: number;
+    cacheScope?: string;
+  },
+): Promise<RecentlyPlayedCacheValue> {
+  const cacheKey = `recentlyPlayed:${resolveCacheScope(args.cacheScope)}:${args.limit ?? 50}`;
+  const cached = await getCachedValue<RecentlyPlayedCacheValue>(ctx, cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const result = {
+      items: await getRecentlyPlayed(args.accessToken, args.limit ?? 50),
+      rateLimited: false,
+    };
+    await setCachedValue(
+      ctx,
+      cacheKey,
+      result,
+      RECENTLY_PLAYED_CACHE_TTL_MS,
+    );
+    return result;
+  } catch (error) {
+    if (error instanceof SpotifyApiError && error.status === 429) {
+      return {
+        items: [],
+        rateLimited: true,
+      };
+    }
+
+    throw toActivityError(
+      error,
+      "Could not load your recent tracks right now.",
+    );
+  }
+}
+
+async function loadPlaylistsPageResult(
+  ctx: ActionCtx,
+  args: {
+    accessToken: string;
+    limit?: number;
+    offset?: number;
+    cacheScope?: string;
+  },
+): Promise<PlaylistsPageCacheValue> {
+  const cacheKey = `playlistsPage:${resolveCacheScope(args.cacheScope)}:${args.limit ?? 50}:${args.offset ?? 0}`;
+  const cached = await getCachedValue<PlaylistsPageCacheValue>(ctx, cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const result = await getUserPlaylists(
+      args.accessToken,
+      args.limit ?? 50,
+      args.offset ?? 0,
+    );
+    await setCachedValue(ctx, cacheKey, result, PLAYLISTS_PAGE_CACHE_TTL_MS);
+    return result;
+  } catch {
+    return { items: [], total: 0 };
+  }
+}
+
+async function loadFavoriteArtistsResult(
+  ctx: ActionCtx,
+  args: {
+    accessToken: string;
+    limit?: number;
+    cacheScope?: string;
+  },
+): Promise<FavoriteArtistsCacheValue> {
+  const cacheKey = `favoriteArtists:${resolveCacheScope(args.cacheScope)}:${args.limit ?? 50}`;
+  const cached = await getCachedValue<FavoriteArtistsCacheValue>(ctx, cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const result = await getFavoriteArtists(args.accessToken, args.limit ?? 50);
+    await setCachedValue(
+      ctx,
+      cacheKey,
+      result,
+      FAVORITE_ARTISTS_CACHE_TTL_MS,
+    );
+    return result;
+  } catch {
+    return [];
+  }
+}
+
 export const recentlyPlayed = action({
   args: {
     accessToken: v.string(),
     limit: v.optional(v.number()),
     cacheScope: v.optional(v.string()),
   },
-  returns: recentlyPlayedResultValidator,
-  handler: async (ctx, args) => {
-    const cacheKey = `recentlyPlayed:${resolveCacheScope(args.cacheScope)}:${args.limit ?? 50}`;
-    const cached = await getCachedValue<RecentlyPlayedCacheValue>(ctx, cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    try {
-      const result = {
-        items: await getRecentlyPlayed(args.accessToken, args.limit ?? 50),
-        rateLimited: false,
-      };
-      await setCachedValue(
-        ctx,
-        cacheKey,
-        result,
-        RECENTLY_PLAYED_CACHE_TTL_MS,
-      );
-      return result;
-    } catch (error) {
-      if (error instanceof SpotifyApiError && error.status === 429) {
-        return {
-          items: [],
-          rateLimited: true,
-        };
-      }
-
-      throw toActivityError(
-        error,
-        "Could not load your recent tracks right now.",
-      );
-    }
-  },
+  returns: spotifyRecentlyPlayedResultValidator,
+  handler: async (ctx, args) => loadRecentlyPlayedResult(ctx, args),
 });
 
 export const playlistsPage = action({
@@ -116,26 +174,8 @@ export const playlistsPage = action({
     offset: v.optional(v.number()),
     cacheScope: v.optional(v.string()),
   },
-  returns: playlistsPageValidator,
-  handler: async (ctx, args) => {
-    const cacheKey = `playlistsPage:${resolveCacheScope(args.cacheScope)}:${args.limit ?? 50}:${args.offset ?? 0}`;
-    const cached = await getCachedValue<PlaylistsPageCacheValue>(ctx, cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    try {
-      const result = await getUserPlaylists(
-        args.accessToken,
-        args.limit ?? 50,
-        args.offset ?? 0,
-      );
-      await setCachedValue(ctx, cacheKey, result, PLAYLISTS_PAGE_CACHE_TTL_MS);
-      return result;
-    } catch {
-      return { items: [], total: 0 };
-    }
-  },
+  returns: spotifyPlaylistsPageValidator,
+  handler: async (ctx, args) => loadPlaylistsPageResult(ctx, args),
 });
 
 export const playlistTracks = action({
@@ -198,24 +238,28 @@ export const favoriteArtists = action({
     cacheScope: v.optional(v.string()),
   },
   returns: v.array(spotifyArtistValidator),
-  handler: async (ctx, args) => {
-    const cacheKey = `favoriteArtists:${resolveCacheScope(args.cacheScope)}:${args.limit ?? 50}`;
-    const cached = await getCachedValue<FavoriteArtistsCacheValue>(ctx, cacheKey);
-    if (cached) {
-      return cached;
-    }
+  handler: async (ctx, args) => loadFavoriteArtistsResult(ctx, args),
+});
 
-    try {
-      const result = await getFavoriteArtists(args.accessToken, args.limit ?? 50);
-      await setCachedValue(
-        ctx,
-        cacheKey,
-        result,
-        FAVORITE_ARTISTS_CACHE_TTL_MS,
-      );
-      return result;
-    } catch {
-      return [];
-    }
+export const activitySnapshot = action({
+  args: {
+    accessToken: v.string(),
+    cacheScope: v.optional(v.string()),
+  },
+  returns: spotifyActivitySnapshotValidator,
+  handler: async (ctx, args) => {
+    const [recentlyPlayed, playlistsPage, favoriteArtists] = await Promise.all([
+      loadRecentlyPlayedResult(ctx, args),
+      loadPlaylistsPageResult(ctx, args),
+      loadFavoriteArtistsResult(ctx, args),
+    ]);
+
+    const result: ActivitySnapshotCacheValue = {
+      recentlyPlayed,
+      playlistsPage,
+      favoriteArtists,
+    };
+
+    return result;
   },
 });

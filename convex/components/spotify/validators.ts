@@ -37,6 +37,27 @@ export const spotifyPlaylistValidator = v.object({
   trackCount: v.number(),
 });
 
+export const spotifyRecentlyPlayedItemValidator = v.object({
+  playedAt: v.string(),
+  track: spotifyTrackValidator,
+});
+
+export const spotifyRecentlyPlayedResultValidator = v.object({
+  items: v.array(spotifyRecentlyPlayedItemValidator),
+  rateLimited: v.boolean(),
+});
+
+export const spotifyPlaylistsPageValidator = v.object({
+  items: v.array(spotifyPlaylistValidator),
+  total: v.number(),
+});
+
+export const spotifyActivitySnapshotValidator = v.object({
+  recentlyPlayed: spotifyRecentlyPlayedResultValidator,
+  playlistsPage: spotifyPlaylistsPageValidator,
+  favoriteArtists: v.array(spotifyArtistValidator),
+});
+
 export const spotifyAlbumReleaseValidator = v.object({
   id: v.string(),
   name: v.string(),

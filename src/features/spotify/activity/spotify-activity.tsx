@@ -41,7 +41,7 @@ export function SpotifyActivity() {
             <RefreshCw
               className={playlistsLoading ? "animate-spin" : undefined}
             />
-            {hasPlaylists ? "Refresh" : "Load"}
+            Refresh
           </Button>
         }
       />
@@ -58,7 +58,7 @@ export function SpotifyActivity() {
             <RefreshCw
               className={favoriteArtistsLoading ? "animate-spin" : undefined}
             />
-            {hasFavoriteArtists ? "Refresh" : "Load"}
+            Refresh
           </Button>
         }
       />

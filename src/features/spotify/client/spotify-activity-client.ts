@@ -11,11 +11,6 @@ import { getAuthenticatedSpotifyConvexClient } from "./spotify-convex-client";
 const TOP_ARTISTS_LIMIT = 10;
 
 export interface SpotifyActivityClient {
-  getCachedFavoriteArtists: (limit?: number) => Promise<SpotifyArtist[]>;
-  getCachedPlaylistsPage: (
-    limit?: number,
-    offset?: number,
-  ) => Promise<PlaylistsPage>;
   getFavoriteArtists: (
     limit?: number,
     forceRefresh?: boolean,
@@ -32,21 +27,6 @@ export interface SpotifyActivityClient {
 
 export function createSpotifyActivityClient(): SpotifyActivityClient {
   return {
-    async getCachedFavoriteArtists(limit = 50) {
-      const client = await getAuthenticatedSpotifyConvexClient();
-
-      return client.action(api.spotify.favoriteArtistsCached, {
-        limit,
-      });
-    },
-    async getCachedPlaylistsPage(limit = PLAYLIST_PAGE_SIZE, offset = 0) {
-      const client = await getAuthenticatedSpotifyConvexClient();
-
-      return client.action(api.spotify.playlistsPageCached, {
-        limit,
-        offset,
-      });
-    },
     async getFavoriteArtists(limit = 50, forceRefresh = false) {
       const client = await getAuthenticatedSpotifyConvexClient();
 

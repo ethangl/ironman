@@ -1,7 +1,7 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 
-import { components } from "./_generated/api";
+import { internal } from "./_generated/api";
 import { authComponent, createAuth } from "./betterAuth";
 
 const http = httpRouter();
@@ -13,7 +13,7 @@ http.route({
   path: "/api/spotify-auth/cooldown",
   method: "GET",
   handler: httpAction(async (ctx) => {
-    const entry = await ctx.runQuery(components.spotify.cache.get, {
+    const entry = await ctx.runQuery(internal.spotifyAuthCooldown.get, {
       key: SPOTIFY_AUTH_COOLDOWN_KEY,
     });
 
@@ -24,24 +24,13 @@ http.route({
       });
     }
 
-    let retryAfterSeconds: number | null = null;
-    try {
-      const parsed = JSON.parse(entry.value) as { retryAfterSeconds?: unknown };
-      if (
-        typeof parsed.retryAfterSeconds === "number" &&
-        Number.isFinite(parsed.retryAfterSeconds)
-      ) {
-        retryAfterSeconds = parsed.retryAfterSeconds;
-      }
-    } catch {
-      retryAfterSeconds = null;
-    }
-
     return Response.json({
       cooldownUntil: entry.expiresAt,
-      retryAfterSeconds:
-        retryAfterSeconds ??
-        Math.max(Math.ceil((entry.expiresAt - Date.now()) / 1000), 0),
+      retryAfterSeconds: Math.max(
+        entry.retryAfterSeconds,
+        Math.ceil((entry.expiresAt - Date.now()) / 1000),
+        0,
+      ),
     });
   }),
 });

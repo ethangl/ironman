@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getCachedValue, setCachedValue } from "./cacheHelpers";
 import { SpotifyApiError } from "./errors";
 import { albumTracks, artistPage, searchResults } from "./search";
 import {
@@ -18,13 +17,6 @@ vi.mock("./searchApi", () => ({
   searchTracks: vi.fn(),
 }));
 
-vi.mock("./cacheHelpers", () => ({
-  getCachedValue: vi.fn(),
-  setCachedValue: vi.fn(),
-}));
-
-const mockedGetCachedValue = vi.mocked(getCachedValue);
-const mockedSetCachedValue = vi.mocked(setCachedValue);
 const mockedGetAlbumTracks = vi.mocked(getAlbumTracks);
 const mockedGetArtistPageDataResult = vi.mocked(getArtistPageDataResult);
 const mockedGetSpotifyProfileMarket = vi.mocked(getSpotifyProfileMarket);
@@ -56,84 +48,13 @@ function createArtistPage() {
   };
 }
 
-describe("spotify search artist page", () => {
+describe("spotify search component", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it("reuses a cached Spotify market when loading an artist page", async () => {
+  it("falls back to a marketless artist page request when profile market lookup is rate limited", async () => {
     const page = createArtistPage();
-    mockedGetCachedValue
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ market: "US" });
-    mockedGetArtistPageDataResult.mockResolvedValueOnce({
-      page,
-      usedReleaseFallback: false,
-    });
-
-    const result = await runAction<
-      { artistId: string; accessToken: string; cacheScope?: string },
-      typeof page
-    >(artistPage as unknown as RegisteredAction, {
-      artistId: "artist-1",
-      accessToken: "spotify-token",
-      cacheScope: "user-1",
-    });
-
-    expect(result).toEqual(page);
-    expect(mockedGetSpotifyProfileMarket).not.toHaveBeenCalled();
-    expect(mockedGetArtistPageDataResult).toHaveBeenCalledWith(
-      "spotify-token",
-      "artist-1",
-      "US",
-    );
-    expect(mockedSetCachedValue).toHaveBeenCalledTimes(1);
-    expect(mockedSetCachedValue).toHaveBeenCalledWith(
-      expect.anything(),
-      "artistPage:user-1:artist-1",
-      page,
-      30 * 60 * 1000,
-    );
-  });
-
-  it("caches the Spotify market after a successful lookup", async () => {
-    const page = createArtistPage();
-    mockedGetCachedValue.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
-    mockedGetSpotifyProfileMarket.mockResolvedValueOnce("US");
-    mockedGetArtistPageDataResult.mockResolvedValueOnce({
-      page,
-      usedReleaseFallback: false,
-    });
-
-    await runAction<
-      { artistId: string; accessToken: string; cacheScope?: string },
-      typeof page
-    >(artistPage as unknown as RegisteredAction, {
-      artistId: "artist-1",
-      accessToken: "spotify-token",
-      cacheScope: "user-1",
-    });
-
-    expect(mockedGetSpotifyProfileMarket).toHaveBeenCalledWith("spotify-token");
-    expect(mockedSetCachedValue).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      "spotifyMarket:user-1",
-      { market: "US" },
-      30 * 60 * 1000,
-    );
-    expect(mockedSetCachedValue).toHaveBeenNthCalledWith(
-      2,
-      expect.anything(),
-      "artistPage:user-1:artist-1",
-      page,
-      30 * 60 * 1000,
-    );
-  });
-
-  it("falls back to a marketless artist page request when Spotify profile lookup is rate limited", async () => {
-    const page = createArtistPage();
-    mockedGetCachedValue.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
     mockedGetSpotifyProfileMarket.mockRejectedValueOnce(
       new SpotifyApiError(429, "rate limited"),
     );
@@ -142,55 +63,42 @@ describe("spotify search artist page", () => {
       usedReleaseFallback: false,
     });
 
-    const result = await runAction<
-      { artistId: string; accessToken: string; cacheScope?: string },
-      typeof page
-    >(artistPage as unknown as RegisteredAction, {
-      artistId: "artist-1",
-      accessToken: "spotify-token",
-      cacheScope: "user-1",
-    });
+    await expect(
+      runAction<
+        { artistId: string; accessToken: string; cacheScope?: string },
+        typeof page
+      >(artistPage as unknown as RegisteredAction, {
+        artistId: "artist-1",
+        accessToken: "spotify-token",
+        cacheScope: "user-1",
+      }),
+    ).resolves.toEqual(page);
 
-    expect(result).toEqual(page);
     expect(mockedGetArtistPageDataResult).toHaveBeenCalledWith(
       "spotify-token",
       "artist-1",
       null,
     );
-    expect(mockedSetCachedValue).toHaveBeenCalledTimes(1);
-    expect(mockedSetCachedValue).toHaveBeenCalledWith(
-      expect.anything(),
-      "artistPage:user-1:artist-1",
-      page,
-      30 * 60 * 1000,
+  });
+
+  it("returns null for spotify 404 artist misses", async () => {
+    mockedGetSpotifyProfileMarket.mockResolvedValueOnce("US");
+    mockedGetArtistPageDataResult.mockRejectedValueOnce(
+      new SpotifyApiError(404, "not found"),
     );
+
+    await expect(
+      runAction<
+        { artistId: string; accessToken: string; cacheScope?: string },
+        null
+      >(artistPage as unknown as RegisteredAction, {
+        artistId: "missing-artist",
+        accessToken: "spotify-token",
+      }),
+    ).resolves.toBeNull();
   });
 
-  it("does not cache an artist page when albums or singles used fallback data", async () => {
-    const page = createArtistPage();
-    mockedGetCachedValue
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ market: "US" });
-    mockedGetArtistPageDataResult.mockResolvedValueOnce({
-      page,
-      usedReleaseFallback: true,
-    });
-
-    const result = await runAction<
-      { artistId: string; accessToken: string; cacheScope?: string },
-      typeof page
-    >(artistPage as unknown as RegisteredAction, {
-      artistId: "artist-1",
-      accessToken: "spotify-token",
-      cacheScope: "user-1",
-    });
-
-    expect(result).toEqual(page);
-    expect(mockedSetCachedValue).not.toHaveBeenCalled();
-  });
-
-  it("maps Spotify search rate limits to a user-facing search error", async () => {
-    mockedGetCachedValue.mockResolvedValueOnce(null);
+  it("maps spotify search rate limits to a user-facing search error", async () => {
     mockedSearchSpotify.mockRejectedValueOnce(
       new SpotifyApiError(429, "rate limited", 30),
     );
@@ -201,13 +109,9 @@ describe("spotify search artist page", () => {
         accessToken: "spotify-token",
       }),
     ).rejects.toThrow("Spotify is rate limiting search right now.");
-
-    expect(mockedSearchSpotify).toHaveBeenCalledTimes(1);
-    expect(mockedSetCachedValue).not.toHaveBeenCalled();
   });
 
   it("maps album track rate limits to a user-facing album error", async () => {
-    mockedGetCachedValue.mockResolvedValueOnce(null);
     mockedGetAlbumTracks.mockRejectedValueOnce(
       new SpotifyApiError(429, "rate limited"),
     );
@@ -218,43 +122,5 @@ describe("spotify search artist page", () => {
         accessToken: "spotify-token",
       }),
     ).rejects.toThrow("Spotify is rate limiting album requests right now.");
-
-    expect(mockedGetAlbumTracks).toHaveBeenCalledTimes(1);
-    expect(mockedSetCachedValue).not.toHaveBeenCalled();
-  });
-
-  it("caches album tracks by album id instead of user scope", async () => {
-    const tracks = [
-      {
-        id: "track-1",
-        name: "Weight",
-        artist: "ISIS",
-        albumName: "Oceanic",
-        albumImage: "album.jpg",
-        durationMs: 640000,
-      },
-    ];
-    mockedGetCachedValue.mockResolvedValueOnce(null);
-    mockedGetAlbumTracks.mockResolvedValueOnce(tracks);
-
-    const result = await runAction<
-      { albumId: string; accessToken: string },
-      typeof tracks
-    >(albumTracks as unknown as RegisteredAction, {
-      albumId: "album-1",
-      accessToken: "spotify-token",
-    });
-
-    expect(result).toEqual(tracks);
-    expect(mockedGetCachedValue).toHaveBeenCalledWith(
-      expect.anything(),
-      "albumTracks:album-1",
-    );
-    expect(mockedSetCachedValue).toHaveBeenCalledWith(
-      expect.anything(),
-      "albumTracks:album-1",
-      tracks,
-      10 * 365 * 24 * 60 * 60 * 1000,
-    );
   });
 });

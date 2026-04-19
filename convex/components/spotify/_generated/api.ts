@@ -10,8 +10,6 @@
 
 import type * as activity from "../activity.js";
 import type * as activityApi from "../activityApi.js";
-import type * as cache from "../cache.js";
-import type * as cacheHelpers from "../cacheHelpers.js";
 import type * as client from "../client.js";
 import type * as errors from "../errors.js";
 import type * as mappers from "../mappers.js";
@@ -32,8 +30,6 @@ import { anyApi, componentsGeneric } from "convex/server";
 const fullApi: ApiFromModules<{
   activity: typeof activity;
   activityApi: typeof activityApi;
-  cache: typeof cache;
-  cacheHelpers: typeof cacheHelpers;
   client: typeof client;
   errors: typeof errors;
   mappers: typeof mappers;

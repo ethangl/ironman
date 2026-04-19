@@ -1,4 +1,5 @@
 export { AuthedHomeRoute } from "./authed-home-route";
+export { ArtistResolveRoute } from "./artist-resolve-route";
 export { ArtistRoute } from "./artist-route";
 export { ChallengeRoute } from "./challenge-route";
 export { HomeRoute } from "./home-route";

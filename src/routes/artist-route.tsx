@@ -1,15 +1,26 @@
 import { useParams } from "react-router-dom";
 
-import { AlbumArt } from "@/components/album-art";
-
+import { Section } from "@/components/section";
 import { Spinner } from "@/components/ui/spinner";
-import { useArtistPageData } from "@/features/artist";
+import {
+  ArtistExternalLinks,
+  ArtistLastFmOverview,
+  useArtistPageData,
+  useLastFmArtist,
+  useMusicBrainzArtist,
+} from "@/features/artist";
 import { Releases } from "@/features/spotify/activity/releases";
 import { Tracks } from "@/features/spotify/activity/tracks";
+import { Dither, ImageTexture, Shader } from "shaders/react";
 
 export function ArtistRoute() {
   const { artistId = "" } = useParams();
   const { data, loading, error, notFound } = useArtistPageData(artistId);
+  const musicBrainzArtist = useMusicBrainzArtist(artistId);
+  const lastFmArtist = useLastFmArtist({
+    artistName: data?.artist.name ?? "",
+    musicBrainzId: musicBrainzArtist?.artist.id ?? null,
+  });
 
   if (loading) {
     return (
@@ -39,21 +50,29 @@ export function ArtistRoute() {
 
   return (
     <main className="gap-3 grid md:grid-cols-2 items-start m-3 max-w-none p-0">
-      <section className="col-span-full rounded-3xl bg-white/5 p-6 sm:p-8">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <AlbumArt
-            src={artist.image}
-            className="size-32 rounded-3xl sm:size-40"
-          />
-          <h1 className="text-4xl font-black tracking-tight sm:text-5xl">
-            {artist.name}
-          </h1>
+      <Section
+        color="--color-lime-400"
+        className="relative self-stretch"
+        title={artist.name}
+      >
+        {artist.image && (
+          <div className="absolute inset-0 mix-blend-overlay opacity-33 overflow-hidden rounded-3xl size-full">
+            <Shader className="absolute inset-0">
+              <Dither colorMode="source" pattern="blueNoise" pixelSize={1}>
+                <ImageTexture url={artist.image} />
+              </Dither>
+            </Shader>
+          </div>
+        )}
+        <div className="relative p-4">
+          <ArtistExternalLinks links={musicBrainzArtist?.links ?? null} />
         </div>
-      </section>
-      <div className="flex flex-col gap-3">
-        <Tracks title="Top Tracks" tracks={topTracks} />
-        <Releases title="Singles" releases={singles} />
-      </div>
+
+        {lastFmArtist && <ArtistLastFmOverview artist={lastFmArtist} />}
+      </Section>
+
+      <Tracks title="Top Tracks" tracks={topTracks} />
+      <Releases title="Singles" releases={singles} />
       <Releases title="Albums" releases={albums} />
     </main>
   );

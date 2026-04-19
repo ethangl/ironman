@@ -4,7 +4,7 @@ import { isRunMutationCtx } from "@convex-dev/better-auth/utils";
 import { convex } from "@convex-dev/better-auth/plugins";
 
 import authConfig from "./auth.config";
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import { crossDomain } from "./betterAuthCrossDomain";
 
 type GeneratedComponents = typeof import("./_generated/api").components;
@@ -28,10 +28,10 @@ async function setSpotifyAuthCooldown(
   }
 
   const safeRetryAfterSeconds = Math.max(Math.ceil(retryAfterSeconds), 0);
-  await ctx.runMutation(components.spotify.cache.set, {
+  await ctx.runMutation(internal.spotifyAuthCooldown.set, {
     key: SPOTIFY_AUTH_COOLDOWN_KEY,
-    value: JSON.stringify({ retryAfterSeconds: safeRetryAfterSeconds }),
     expiresAt: Date.now() + safeRetryAfterSeconds * 1000,
+    retryAfterSeconds: safeRetryAfterSeconds,
   });
 }
 

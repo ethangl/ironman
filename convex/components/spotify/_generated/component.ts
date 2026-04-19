@@ -42,19 +42,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         }>,
         Name
       >;
-      favoriteArtistsCached: FunctionReference<
-        "action",
-        "internal",
-        { cacheScope?: string; limit?: number },
-        Array<{
-          followerCount: number;
-          genres: Array<string>;
-          id: string;
-          image: string | null;
-          name: string;
-        }>,
-        Name
-      >;
       playlistsPage: FunctionReference<
         "action",
         "internal",
@@ -65,24 +52,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           limit?: number;
           offset?: number;
         },
-        {
-          items: Array<{
-            description: string | null;
-            id: string;
-            image: string | null;
-            name: string;
-            owner: string | null;
-            public: boolean;
-            trackCount: number;
-          }>;
-          total: number;
-        },
-        Name
-      >;
-      playlistsPageCached: FunctionReference<
-        "action",
-        "internal",
-        { cacheScope?: string; limit?: number; offset?: number },
         {
           items: Array<{
             description: string | null;
@@ -146,23 +115,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           image: string | null;
           name: string;
         }>,
-        Name
-      >;
-    };
-    cache: {
-      clear: FunctionReference<"mutation", "internal", {}, number, Name>;
-      get: FunctionReference<
-        "query",
-        "internal",
-        { key: string },
-        { expiresAt: number; value: string } | null,
-        Name
-      >;
-      set: FunctionReference<
-        "mutation",
-        "internal",
-        { expiresAt: number; key: string; value: string },
-        null,
         Name
       >;
     };

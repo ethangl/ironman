@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useLocation } from "react-router-dom";
 
 import { useSpotifyClient } from "@/features/spotify/client";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -35,14 +36,29 @@ export function useSearch() {
 
 export function SearchProvider({ children }: { children: ReactNode }) {
   const client = useSpotifyClient();
+  const location = useLocation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SpotifySearchResults>(EMPTY_RESULTS);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debouncedQuery = useDebounce(query, 300);
   const requestVersionRef = useRef(0);
+  const lastLocationKeyRef = useRef(location.key);
   const trimmed = query.trim();
   const debouncedTrimmed = debouncedQuery.trim();
+
+  useEffect(() => {
+    if (lastLocationKeyRef.current === location.key) {
+      return;
+    }
+
+    lastLocationKeyRef.current = location.key;
+    window.scrollTo(0, 0);
+    setQuery("");
+    setResults(EMPTY_RESULTS);
+    setLoading(false);
+    setError(null);
+  }, [location.key]);
 
   useEffect(() => {
     const requestVersion = ++requestVersionRef.current;

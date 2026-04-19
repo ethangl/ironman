@@ -6,13 +6,11 @@ import {
   RECENTLY_PLAYED_LIMIT,
   useSpotifyClient,
 } from "@/features/spotify/client";
-import type { SpotifyArtist } from "@/types";
 import type { SpotifyTrack } from "@/types";
+import type { SpotifyArtist } from "@/types";
 import type { Playlist, RecentTrack } from "@/types/spotify-activity";
 import { SpotifyActivityContext } from "./use-spotify-activity";
 import { useSpotifyPlaylistTracks } from "./use-spotify-playlist-tracks";
-
-const EMPTY_FAVORITE_ARTISTS: SpotifyArtist[] = [];
 const FAVORITE_ARTISTS_LIMIT = 50;
 
 function dedupeRecent(raw: RecentTrack[]) {
@@ -205,26 +203,13 @@ export function SpotifyActivityProvider({
       return;
     }
 
-    setPlaylistsLoading(true);
-    void client.spotifyActivity
-      .getCachedPlaylistsPage(PLAYLIST_PAGE_SIZE, 0)
-      .then((cachedPlaylistsPage) => {
-        applyPlaylistsPage(cachedPlaylistsPage.items, cachedPlaylistsPage.total);
-      })
-      .finally(() => {
-        setPlaylistsLoading(false);
-      });
-
-    setFavoriteArtistsLoading(true);
-    void client.spotifyActivity
-      .getCachedFavoriteArtists(FAVORITE_ARTISTS_LIMIT)
-      .then((cachedFavoriteArtists) => {
-        setFavoriteArtists(cachedFavoriteArtists ?? EMPTY_FAVORITE_ARTISTS);
-      })
-      .finally(() => {
-        setFavoriteArtistsLoading(false);
-      });
-  }, [applyPlaylistsPage, canBrowsePersonalSpotify, client]);
+    void loadPlaylists();
+    void loadFavoriteArtists();
+  }, [
+    canBrowsePersonalSpotify,
+    loadFavoriteArtists,
+    loadPlaylists,
+  ]);
 
   const refresh = useCallback(() => {
     if (!canBrowsePersonalSpotify) {

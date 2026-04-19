@@ -23,7 +23,7 @@ function runAction<TArgs, TResult>(
   return registeredAction._handler(ctx, args) as Promise<TResult>;
 }
 
-async function loadSpotifyModule({
+async function loadSpotifyModules({
   accessToken = "spotify-token",
   accessTokenExpiresAt = Date.now() + 5 * 60 * 1000,
   getAccessTokenImpl,
@@ -52,7 +52,7 @@ async function loadSpotifyModule({
         getAccessToken,
       },
     },
-    headers: {},
+    headers: new Headers(),
   });
 
   vi.doMock("./betterAuth", () => ({
@@ -64,9 +64,11 @@ async function loadSpotifyModule({
   }));
 
   const spotifyModule = await import("./spotify");
+  const spotifyLoaders = await import("./spotifyLoaders");
 
   return {
     spotifyModule,
+    spotifyLoaders,
     getAuth,
     getAccessToken,
   };
@@ -78,25 +80,26 @@ describe("convex/spotify auth handoff", () => {
     vi.resetModules();
   });
 
-  it("dedupes concurrent provider token lookups across actions", async () => {
+  it("dedupes concurrent provider token lookups across loaders", async () => {
     const deferred = createDeferred<{
       accessToken?: string | null;
       accessTokenExpiresAt?: number | null;
     }>();
-    const { spotifyModule, getAuth, getAccessToken } = await loadSpotifyModule({
-      getAccessTokenImpl: () => deferred.promise,
-    });
+    const { spotifyLoaders, getAuth, getAccessToken } =
+      await loadSpotifyModules({
+        getAccessTokenImpl: () => deferred.promise,
+      });
     const ctx = {
       runAction: vi.fn().mockResolvedValue(null),
     };
 
     const first = runAction(
-      spotifyModule.search as unknown as RegisteredAction,
+      spotifyLoaders.loadSearchResults as unknown as RegisteredAction,
       ctx,
       { query: "isis" },
     );
     const second = runAction(
-      spotifyModule.searchTracks as unknown as RegisteredAction,
+      spotifyLoaders.loadSearchTracks as unknown as RegisteredAction,
       ctx,
       { query: "weight" },
     );
@@ -123,21 +126,21 @@ describe("convex/spotify auth handoff", () => {
     );
   });
 
-  it("reuses a cached provider token for sequential actions until expiry", async () => {
-    const { spotifyModule, getAuth, getAccessToken } = await loadSpotifyModule();
+  it("reuses a cached provider token for sequential loader actions until expiry", async () => {
+    const { spotifyLoaders, getAuth, getAccessToken } = await loadSpotifyModules();
     const ctx = {
       runAction: vi.fn().mockResolvedValue(null),
     };
 
     await runAction(
-      spotifyModule.search as unknown as RegisteredAction,
+      spotifyLoaders.loadSearchResults as unknown as RegisteredAction,
       ctx,
       { query: "isis" },
     );
     await runAction(
-      spotifyModule.recentlyPlayed as unknown as RegisteredAction,
+      spotifyLoaders.loadRecentlyPlayed as unknown as RegisteredAction,
       ctx,
-      {},
+      { limit: 30, cacheScope: "user-1" },
     );
 
     expect(getAuth).toHaveBeenCalledTimes(1);
@@ -145,15 +148,20 @@ describe("convex/spotify auth handoff", () => {
     expect(ctx.runAction).toHaveBeenCalledTimes(2);
   });
 
-  it("forwards artist page requests with user cache scope", async () => {
-    const { spotifyModule } = await loadSpotifyModule();
+  it("forwards artist page loader requests with user cache scope", async () => {
+    const { spotifyLoaders } = await loadSpotifyModules();
     const ctx = {
       runAction: vi.fn().mockResolvedValue(null),
     };
 
-    await runAction(spotifyModule.artistPage as unknown as RegisteredAction, ctx, {
-      artistId: "artist-1",
-    });
+    await runAction(
+      spotifyLoaders.loadArtistPage as unknown as RegisteredAction,
+      ctx,
+      {
+        artistId: "artist-1",
+        cacheScope: "user-1",
+      },
+    );
 
     expect(ctx.runAction).toHaveBeenCalledWith(
       expect.anything(),
@@ -166,7 +174,7 @@ describe("convex/spotify auth handoff", () => {
   });
 
   it("forwards playback writes without adding extra request policy", async () => {
-    const { spotifyModule } = await loadSpotifyModule();
+    const { spotifyModule } = await loadSpotifyModules();
     const ctx = {
       runAction: vi.fn().mockResolvedValue({ ok: true, status: 204 }),
     };

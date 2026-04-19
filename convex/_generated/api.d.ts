@@ -13,15 +13,21 @@ import type * as betterAuthCrossDomain from "../betterAuthCrossDomain.js";
 import type * as feed from "../feed.js";
 import type * as http from "../http.js";
 import type * as ironman from "../ironman.js";
+import type * as lastfm from "../lastfm.js";
 import type * as leaderboards from "../leaderboards.js";
 import type * as lib_reccobeats from "../lib/reccobeats.js";
 import type * as lib_songSummaries from "../lib/songSummaries.js";
 import type * as lib_streak from "../lib/streak.js";
+import type * as musicbrainz from "../musicbrainz.js";
 import type * as profile from "../profile.js";
 import type * as reccobeats from "../reccobeats.js";
 import type * as songSummaries from "../songSummaries.js";
 import type * as songs from "../songs.js";
 import type * as spotify from "../spotify.js";
+import type * as spotifyAuthCooldown from "../spotifyAuthCooldown.js";
+import type * as spotifyCaches from "../spotifyCaches.js";
+import type * as spotifyLoaders from "../spotifyLoaders.js";
+import type * as spotifySession from "../spotifySession.js";
 import type * as streaks from "../streaks.js";
 import type * as users from "../users.js";
 
@@ -37,15 +43,21 @@ declare const fullApi: ApiFromModules<{
   feed: typeof feed;
   http: typeof http;
   ironman: typeof ironman;
+  lastfm: typeof lastfm;
   leaderboards: typeof leaderboards;
   "lib/reccobeats": typeof lib_reccobeats;
   "lib/songSummaries": typeof lib_songSummaries;
   "lib/streak": typeof lib_streak;
+  musicbrainz: typeof musicbrainz;
   profile: typeof profile;
   reccobeats: typeof reccobeats;
   songSummaries: typeof songSummaries;
   songs: typeof songs;
   spotify: typeof spotify;
+  spotifyAuthCooldown: typeof spotifyAuthCooldown;
+  spotifyCaches: typeof spotifyCaches;
+  spotifyLoaders: typeof spotifyLoaders;
+  spotifySession: typeof spotifySession;
   streaks: typeof streaks;
   users: typeof users;
 }>;
@@ -77,6 +89,48 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {
+  actionCache: {
+    crons: {
+      purge: FunctionReference<
+        "mutation",
+        "internal",
+        { expiresAt?: number },
+        null
+      >;
+    };
+    lib: {
+      get: FunctionReference<
+        "query",
+        "internal",
+        { args: any; name: string; ttl: number | null },
+        { kind: "hit"; value: any } | { expiredEntry?: string; kind: "miss" }
+      >;
+      put: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          args: any;
+          expiredEntry?: string;
+          name: string;
+          ttl: number | null;
+          value: any;
+        },
+        { cacheHit: boolean; deletedExpiredEntry: boolean }
+      >;
+      remove: FunctionReference<
+        "mutation",
+        "internal",
+        { args: any; name: string },
+        null
+      >;
+      removeAll: FunctionReference<
+        "mutation",
+        "internal",
+        { batchSize?: number; before?: number; name?: string },
+        null
+      >;
+    };
+  };
   betterAuth: {
     adapter: {
       create: FunctionReference<
@@ -21250,6 +21304,86 @@ export declare const components: {
       };
     };
   };
+  lastfm: {
+    artists: {
+      artistDetails: FunctionReference<
+        "action",
+        "internal",
+        {
+          apiKey: string;
+          artistName: string | null;
+          musicBrainzId: string | null;
+        },
+        {
+          artistName: string;
+          bio: { published: string | null; summary: string | null };
+          lastFmUrl: string | null;
+          musicBrainzId: string | null;
+          resolvedVia: "musicbrainz_id" | "artist_name";
+          similarArtists: Array<{
+            musicBrainzId: string | null;
+            name: string;
+            url: string | null;
+          }>;
+          stats: { listeners: number | null; playcount: number | null };
+          topTags: Array<{ name: string; url: string | null }>;
+        } | null
+      >;
+    };
+    scheduler: {
+      reserve: FunctionReference<
+        "mutation",
+        "internal",
+        { intervalMs: number; key: string },
+        number
+      >;
+    };
+  };
+  musicbrainz: {
+    artists: {
+      artistBySpotifyId: FunctionReference<
+        "action",
+        "internal",
+        { spotifyArtistId: string },
+        {
+          artist: {
+            country: string | null;
+            disambiguation: string | null;
+            id: string;
+            musicBrainzUrl: string;
+            name: string;
+            sortName: string | null;
+            spotifyUrl: string;
+            type: string | null;
+          };
+          links: {
+            bandcamp: string | null;
+            homepage: string | null;
+            instagram: string | null;
+            youtube: string | null;
+          };
+          matchCount: number;
+          resolvedVia: "spotify_url";
+          spotifyArtistId: string;
+          spotifyUrl: string;
+        } | null
+      >;
+      spotifyArtistIdByMusicBrainzId: FunctionReference<
+        "action",
+        "internal",
+        { musicBrainzArtistId: string },
+        string | null
+      >;
+    };
+    scheduler: {
+      reserve: FunctionReference<
+        "mutation",
+        "internal",
+        { intervalMs: number; key: string },
+        number
+      >;
+    };
+  };
   spotify: {
     activity: {
       favoriteArtists: FunctionReference<
@@ -21269,18 +21403,6 @@ export declare const components: {
           name: string;
         }>
       >;
-      favoriteArtistsCached: FunctionReference<
-        "action",
-        "internal",
-        { cacheScope?: string; limit?: number },
-        Array<{
-          followerCount: number;
-          genres: Array<string>;
-          id: string;
-          image: string | null;
-          name: string;
-        }>
-      >;
       playlistsPage: FunctionReference<
         "action",
         "internal",
@@ -21291,23 +21413,6 @@ export declare const components: {
           limit?: number;
           offset?: number;
         },
-        {
-          items: Array<{
-            description: string | null;
-            id: string;
-            image: string | null;
-            name: string;
-            owner: string | null;
-            public: boolean;
-            trackCount: number;
-          }>;
-          total: number;
-        }
-      >;
-      playlistsPageCached: FunctionReference<
-        "action",
-        "internal",
-        { cacheScope?: string; limit?: number; offset?: number },
         {
           items: Array<{
             description: string | null;
@@ -21368,21 +21473,6 @@ export declare const components: {
           image: string | null;
           name: string;
         }>
-      >;
-    };
-    cache: {
-      clear: FunctionReference<"mutation", "internal", {}, number>;
-      get: FunctionReference<
-        "query",
-        "internal",
-        { key: string },
-        { expiresAt: number; value: string } | null
-      >;
-      set: FunctionReference<
-        "mutation",
-        "internal",
-        { expiresAt: number; key: string; value: string },
-        null
       >;
     };
     playback: {

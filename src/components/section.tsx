@@ -25,7 +25,7 @@ export const Section: FC<SectionProps> = ({
     >
       <BackgroundOverlay className="dark:bg-(--section-color)/50 backdrop-brightness-600 backdrop-contrast-600 mix-blend-exclusion rounded-[2rem]" />
       {title && (
-        <header className="flex items-center justify-between gap-3 p-6 pb-2 text-(--section-color)">
+        <header className="flex items-center justify-between gap-3 p-6 pb-2 relative text-(--section-color) z-10">
           <h2 className="font-medium text-3xl tracking-[0.015em]">{title}</h2>
           {action}
         </header>

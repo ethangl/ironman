@@ -43,13 +43,13 @@ export function useArtistPageData(artistId: string) {
             ? nextError.message
             : "Could not load artist right now.",
         );
-      } finally {
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
-        setLoading(false);
-        setRefreshing(false);
       }
+
+      if (requestVersionRef.current !== requestVersion) {
+        return;
+      }
+      setLoading(false);
+      setRefreshing(false);
     },
     [artistId, client],
   );

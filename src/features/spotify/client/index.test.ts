@@ -17,6 +17,9 @@ describe("createSpotifyClient", () => {
   it("lets individual slices be swapped without rebuilding the full client", () => {
     const artistsOverride: ArtistsClient = {
       getAlbumTracks: vi.fn().mockResolvedValue([]),
+      getLastFmArtist: vi.fn().mockResolvedValue(null),
+      getMusicBrainzArtist: vi.fn().mockResolvedValue(null),
+      getSpotifyArtistIdByMusicBrainzArtistId: vi.fn().mockResolvedValue(null),
       getPageData: vi.fn().mockResolvedValue(null),
     };
     const searchOverride: SearchClient = {

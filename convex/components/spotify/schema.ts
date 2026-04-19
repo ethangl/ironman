@@ -1,10 +1,3 @@
-import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { defineSchema } from "convex/server";
 
-export default defineSchema({
-  spotifyCache: defineTable({
-    key: v.string(),
-    value: v.string(),
-    expiresAt: v.number(),
-  }).index("by_key", ["key"]),
-});
+export default defineSchema({});

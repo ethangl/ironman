@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, useParams } from "react-router-dom";
 
 import {
   ArtistRoute,
+  ArtistResolveRoute,
   AuthedHomeRoute,
   ChallengeRoute,
   HomeRoute,
@@ -42,6 +43,10 @@ export const router = createBrowserRouter([
             element: <AuthedLayout />,
             children: [
               { path: "home", element: <AuthedHomeRoute /> },
+              {
+                path: "artist/resolve/:musicBrainzArtistId",
+                element: <ArtistResolveRoute />,
+              },
               { path: "artist/:artistId", element: <ArtistRoute /> },
               { path: "profile", element: <ProfileRoute /> },
             ],

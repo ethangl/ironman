@@ -99,8 +99,6 @@ function renderProvider(overrides: Partial<SpotifyActivityClient> = {}) {
     <SpotifyClientProvider
       client={createSpotifyClient({
         spotifyActivity: {
-          getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
-          getCachedPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
           getFavoriteArtists: vi.fn().mockResolvedValue([]),
           getRecentlyPlayed: vi
             .fn()
@@ -134,6 +132,13 @@ describe("SpotifyActivityProvider", () => {
         throw new Error(`Unexpected playlist page size: ${limit}`);
       }
 
+      if (offset === 0) {
+        return Promise.resolve({
+          items: [playlist("1")],
+          total: 2,
+        });
+      }
+
       if (offset === 1) {
         return nextPage.promise;
       }
@@ -142,10 +147,6 @@ describe("SpotifyActivityProvider", () => {
     });
 
     renderProvider({
-      getCachedPlaylistsPage: vi.fn().mockResolvedValue({
-        items: [playlist("1")],
-        total: 2,
-      }),
       getPlaylistsPage,
     });
 
@@ -157,7 +158,9 @@ describe("SpotifyActivityProvider", () => {
     fireEvent.click(loadMore);
     fireEvent.click(loadMore);
 
-    expect(getPlaylistsPage).toHaveBeenCalledTimes(1);
+    expect(getPlaylistsPage).toHaveBeenCalledTimes(2);
+    expect(getPlaylistsPage).toHaveBeenNthCalledWith(1, PLAYLIST_PAGE_SIZE, 0);
+    expect(getPlaylistsPage).toHaveBeenNthCalledWith(2, PLAYLIST_PAGE_SIZE, 1);
 
     await act(async () => {
       nextPage.resolve({
@@ -196,15 +199,13 @@ describe("SpotifyActivityProvider", () => {
     expect(getRecentlyPlayed).toHaveBeenCalledTimes(1);
   });
 
-  it("hydrates playlists from cache without calling Spotify", async () => {
-    const getCachedPlaylistsPage = vi.fn().mockResolvedValue({
+  it("loads playlists on mount", async () => {
+    const getPlaylistsPage = vi.fn().mockResolvedValue({
       items: [playlist("1")],
       total: 1,
     });
-    const getPlaylistsPage = vi.fn().mockResolvedValue({ items: [], total: 0 });
 
     renderProvider({
-      getCachedPlaylistsPage,
       getPlaylistsPage,
     });
 
@@ -212,11 +213,11 @@ describe("SpotifyActivityProvider", () => {
       expect(screen.getByTestId("playlist-count")).toHaveTextContent("1");
     });
 
-    expect(getCachedPlaylistsPage).toHaveBeenCalledTimes(1);
-    expect(getPlaylistsPage).not.toHaveBeenCalled();
+    expect(getPlaylistsPage).toHaveBeenCalledTimes(1);
+    expect(getPlaylistsPage).toHaveBeenCalledWith(PLAYLIST_PAGE_SIZE, 0);
   });
 
-  it("loads playlists on demand and can force refresh", async () => {
+  it("refreshes playlists with force refresh", async () => {
     const getPlaylistsPage = vi
       .fn()
       .mockResolvedValueOnce({
@@ -229,19 +230,13 @@ describe("SpotifyActivityProvider", () => {
       });
 
     renderProvider({
-      getCachedPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
       getPlaylistsPage,
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("playlist-count")).toHaveTextContent("0");
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Load playlists" }));
-
-    await waitFor(() => {
       expect(screen.getByTestId("playlist-count")).toHaveTextContent("1");
     });
+
     expect(getPlaylistsPage).toHaveBeenNthCalledWith(1, PLAYLIST_PAGE_SIZE, 0);
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh playlists" }));
@@ -257,8 +252,8 @@ describe("SpotifyActivityProvider", () => {
     );
   });
 
-  it("hydrates favorite artists from cache without calling Spotify", async () => {
-    const getCachedFavoriteArtists = vi.fn().mockResolvedValue([
+  it("loads favorite artists on mount", async () => {
+    const getFavoriteArtists = vi.fn().mockResolvedValue([
       {
         id: "artist-1",
         name: "Artist 1",
@@ -267,10 +262,7 @@ describe("SpotifyActivityProvider", () => {
         genres: [],
       },
     ]);
-    const getFavoriteArtists = vi.fn().mockResolvedValue([]);
-
     renderProvider({
-      getCachedFavoriteArtists,
       getFavoriteArtists,
     });
 
@@ -278,11 +270,11 @@ describe("SpotifyActivityProvider", () => {
       expect(screen.getByTestId("favorite-artists-count")).toHaveTextContent("1");
     });
 
-    expect(getCachedFavoriteArtists).toHaveBeenCalledTimes(1);
-    expect(getFavoriteArtists).not.toHaveBeenCalled();
+    expect(getFavoriteArtists).toHaveBeenCalledTimes(1);
+    expect(getFavoriteArtists).toHaveBeenCalledWith(50);
   });
 
-  it("loads favorite artists on demand and can force refresh", async () => {
+  it("refreshes favorite artists with force refresh", async () => {
     const getFavoriteArtists = vi
       .fn()
       .mockResolvedValueOnce([
@@ -305,19 +297,13 @@ describe("SpotifyActivityProvider", () => {
       ]);
 
     renderProvider({
-      getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
       getFavoriteArtists,
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("favorite-artists-count")).toHaveTextContent("0");
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Load favorite artists" }));
-
-    await waitFor(() => {
       expect(screen.getByTestId("favorite-artists-count")).toHaveTextContent("1");
     });
+
     expect(getFavoriteArtists).toHaveBeenNthCalledWith(1, 50);
 
     fireEvent.click(
@@ -369,10 +355,6 @@ describe("SpotifyActivityProvider", () => {
       <SpotifyClientProvider
         client={createSpotifyClient({
           spotifyActivity: {
-            getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
-            getCachedPlaylistsPage: vi
-              .fn()
-              .mockResolvedValue({ items: [], total: 0 }),
             getFavoriteArtists: vi.fn().mockResolvedValue([]),
             getRecentlyPlayed: vi
               .fn()

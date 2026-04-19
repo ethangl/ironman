@@ -5,6 +5,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { MemoryRouter, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -18,6 +19,7 @@ import { SearchResults } from "./search-results";
 const mockPlayTrack = vi.fn();
 const mockPlayTracks = vi.fn();
 const mockToastError = vi.fn();
+const mockScrollTo = vi.fn();
 
 vi.mock("@/features/spotify/player", () => ({
   PlaylistCell: ({
@@ -105,14 +107,26 @@ vi.mock("sonner", () => ({
 
 function renderSearch(
   overrides: Parameters<typeof createSpotifyClient>[0] = {},
+  options?: { extraUi?: React.ReactNode },
 ) {
   return render(
-    <SpotifyClientProvider client={createSpotifyClient(overrides)}>
-      <SearchProvider>
-        <SearchInput />
-        <SearchResults />
-      </SearchProvider>
-    </SpotifyClientProvider>,
+    <MemoryRouter initialEntries={["/home"]}>
+      <SpotifyClientProvider client={createSpotifyClient(overrides)}>
+        <SearchProvider>
+          {options?.extraUi}
+          <SearchInput />
+          <SearchResults />
+        </SearchProvider>
+      </SpotifyClientProvider>
+    </MemoryRouter>,
+  );
+}
+
+function NavigateButton() {
+  const navigate = useNavigate();
+
+  return (
+    <button onClick={() => navigate("/artist/artist-1")}>Go to artist</button>
   );
 }
 
@@ -131,6 +145,7 @@ async function searchFor(query: string) {
 describe("search", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.scrollTo = mockScrollTo;
   });
 
   afterEach(() => {
@@ -267,5 +282,50 @@ describe("search", () => {
     });
 
     expect(mockToastError).not.toHaveBeenCalled();
+  });
+
+  it("clears the search panel when navigation changes the url", async () => {
+    renderSearch(
+      {
+        search: {
+          searchResults: vi.fn().mockResolvedValue({
+            tracks: [],
+            playlists: [],
+            artists: [
+              {
+                id: "artist-1",
+                name: "ISIS",
+                image: "artist.jpg",
+                followerCount: 0,
+                genres: ["post-metal"],
+              },
+            ],
+          }),
+          searchTracks: vi.fn().mockResolvedValue([]),
+        },
+      },
+      { extraUi: <NavigateButton /> },
+    );
+
+    await searchFor("isis");
+
+    await waitFor(() => {
+      expect(screen.getByText('Artists matching "isis"')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Go to artist" }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Artists matching "isis"'),
+      ).not.toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByPlaceholderText(
+        "Search Spotify for songs, artists, or playlists...",
+      ),
+    ).toHaveValue("");
+    expect(mockScrollTo).toHaveBeenCalledWith(0, 0);
   });
 });

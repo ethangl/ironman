@@ -39,7 +39,7 @@ export function usePlayerPlayback({
   getAccessToken: () => Promise<string | null>;
   initSpotify: () => void;
   pause: () => Promise<PlayResult>;
-  play: (uri: string, deviceId?: string) => Promise<PlayResult>;
+  play: (uri: string, deviceId?: string, offsetMs?: number) => Promise<PlayResult>;
   progressMs: number;
   resume: () => Promise<PlayResult>;
   sdkState: SdkPlaybackState | null;

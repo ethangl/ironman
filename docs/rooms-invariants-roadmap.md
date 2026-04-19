@@ -133,11 +133,9 @@ Given only room state and current time, the app can answer what a room should be
 
 These boxes give the client enough transport power to follow room state.
 
-- [ ] The Spotify play path supports starting playback at a provided offset in milliseconds.
-- [ ] That offset support is threaded through Convex actions and browser client code.
-- [ ] Offset playback is test-covered.
-- [ ] Joining a room does not require repeated Spotify polling just to derive room state.
-- [ ] Repairing drift does not depend on aggressive background Spotify calls.
+- [x] The Spotify play path supports starting playback at a provided offset in milliseconds.
+- [x] That offset support is threaded through Convex actions and browser client code.
+- [x] Offset playback is test-covered.
 
 Exit condition:
 
@@ -156,6 +154,8 @@ These boxes replace punitive enforcement with room sync.
 - [ ] The runtime treats drift as sync repair, not as player punishment.
 - [ ] The runtime does not reintroduce wrong-song enforcement concepts under new names.
 - [ ] Any optimistic UI around queue actions reconciles back to Convex state.
+- [ ] Joining a room does not require repeated Spotify polling just to derive room state.
+- [ ] Repairing drift does not depend on aggressive background Spotify calls.
 
 Exit condition:
 

@@ -56,10 +56,11 @@ export const play = action({
     accessToken: v.string(),
     uri: v.string(),
     deviceId: v.optional(v.string()),
+    offsetMs: v.optional(v.number()),
   },
   returns: playResultValidator,
   handler: async (_ctx, args) =>
-    playUri(args.uri, args.accessToken, args.deviceId),
+    playUri(args.uri, args.accessToken, args.deviceId, args.offsetMs),
 });
 
 export const resume = action({

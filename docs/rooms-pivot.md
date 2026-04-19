@@ -316,6 +316,8 @@ Deliverable:
 
 ### Phase 4: Add playback transport support
 
+Status: complete
+
 - extend Spotify play actions to support playback offset
 - thread that support through Convex and the browser client
 - add tests around offset playback requests

@@ -19,4 +19,5 @@ export interface SpotifyPlayback {
 export interface PlayResult {
   ok: boolean;
   status: number;
+  retryAfterSeconds?: number;
 }

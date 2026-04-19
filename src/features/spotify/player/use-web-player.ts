@@ -17,7 +17,11 @@ interface WebPlayerActionsValue {
   spotify: {
     init: () => void;
     waitForReady: () => Promise<string | null>;
-    play: (uri: string, deviceId?: string) => Promise<PlayResult>;
+    play: (
+      uri: string,
+      deviceId?: string,
+      offsetMs?: number,
+    ) => Promise<PlayResult>;
     setRepeat: (state: string, deviceId?: string) => Promise<void>;
   };
 }

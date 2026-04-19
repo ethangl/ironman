@@ -234,6 +234,7 @@ export const playbackPlay = action({
   args: {
     uri: v.string(),
     deviceId: v.optional(v.string()),
+    offsetMs: v.optional(v.number()),
   },
   returns: playResultValidator,
   handler: async (ctx, args) => {

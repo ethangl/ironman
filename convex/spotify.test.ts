@@ -190,4 +190,29 @@ describe("convex/spotify auth handoff", () => {
       }),
     );
   });
+
+  it("forwards playback offsets to the spotify component action", async () => {
+    const { spotifyModule } = await loadSpotifyModules();
+    const ctx = {
+      runAction: vi.fn().mockResolvedValue({ ok: true, status: 204 }),
+    };
+
+    await expect(
+      runAction(spotifyModule.playbackPlay as unknown as RegisteredAction, ctx, {
+        uri: "spotify:track:track-1",
+        deviceId: "device-1",
+        offsetMs: 12_345,
+      }),
+    ).resolves.toEqual({ ok: true, status: 204 });
+
+    expect(ctx.runAction).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        accessToken: "spotify-token",
+        uri: "spotify:track:track-1",
+        deviceId: "device-1",
+        offsetMs: 12_345,
+      }),
+    );
+  });
 });

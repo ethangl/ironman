@@ -40,7 +40,10 @@ function createProps(overrides: Partial<UsePlayerPlaybackProps> = {}) {
       ok: true,
       status: 200,
     }),
-    play: vi.fn<(uri: string, deviceId?: string) => Promise<PlayResult>>()
+    play: vi
+      .fn<
+        (uri: string, deviceId?: string, offsetMs?: number) => Promise<PlayResult>
+      >()
       .mockResolvedValue({
         ok: true,
         status: 200,

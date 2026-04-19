@@ -41,13 +41,14 @@ That means the room system should prefer:
 - Convex as the room state authority
 - sparse, explicit playback sync
 - local computation of expected room playback from stored timestamps
-- user-triggered repair when sync drifts
+- sync on room entry, room playback changes, and explicit user-triggered rejoin
 
 It should avoid:
 
 - frequent polling of Spotify to ask what the room is doing
 - background resync loops that hit Spotify as a normal control path
 - one-Spotify-call-per-listener fan-out patterns
+- continuous drift repair that treats local playback variance as a room error
 
 ## Existing queue code we can reuse conceptually
 
@@ -174,6 +175,10 @@ The first room API should be intentionally small.
 - `rooms.skip`
 - `rooms.syncListener`
 
+Note:
+
+Phase 6 is expected to refine listener-facing pause and resume away from shared room controls and toward local stop-listening and rejoin semantics.
+
 ### Playback model
 
 The room should have a canonical clock.
@@ -195,7 +200,8 @@ To keep implementation simpler and product behavior predictable, start with thes
 - rooms are persistent, named spaces
 - anyone in the room can enqueue tracks
 - owner can skip and reorder
-- room playback pauses when the room is empty
+- once a room has started, its playback clock can continue advancing on wall-clock time even if nobody is currently listening
+- local stop listening is device-local, and rejoining starts from the current room offset
 - when a user joins an active room, the client tries to start the current room track at the current room offset
 
 ## Frontend Shape
@@ -218,11 +224,12 @@ The new room runtime should do a different job:
 - subscribe to room state
 - compute expected local playback from room timestamps
 - start playback when joining
-- repair drift when the user explicitly rejoins or when drift is clearly detected
+- rejoin the room at the current room offset when the user explicitly chooses to listen live again
+- react to room playback changes without treating passive local drift as something to police
 
 The mental model is:
 
-- "Your player is out of sync with the room"
+- "This device can listen live to the room, or stop listening and later rejoin"
 
 ### Keep the local queue helper, but repurpose it
 
@@ -256,9 +263,10 @@ Add:
 
 - join room button
 - leave room button
+- listen live / stop listening controls
 - room name
 - room queue
-- synced / out-of-sync state
+- live / detached listener state
 - room controls based on role
 
 ### Routes
@@ -338,6 +346,18 @@ Deliverable:
 
 - user can join a room and hear the room's current track
 
+### Phase 6: Playback mechanic refinement
+
+- refine the room clock so it can continue advancing even when nobody is currently listening
+- treat local pause as device-local stop listening, not shared room pause
+- make local resume behave like rejoining the room at the current canonical offset
+- simplify the runtime so passive local drift is not a room-level error condition
+- update player language toward `listen live`, `stop listening`, and `sync to room`
+
+Deliverable:
+
+- a user can stop listening locally and later rejoin the room without affecting canonical room playback
+
 ## Definition Of Done
 
 We should consider the pivot complete when all of the following are true:
@@ -354,10 +374,10 @@ We should consider the pivot complete when all of the following are true:
 These do not block the pivot document, but they will shape implementation details:
 
 - Can any room member reorder the queue, or only the owner?
-- Should rooms pause when empty, or continue advancing on wall-clock time?
 - Do we want public and private rooms in the first version?
 - Do we want any room-level scoring or badges, or no competitive mechanic at all at launch?
 - Should the room auto-advance strictly by stored durations, or only when an explicit skip or next action happens?
+- Do we ever want explicit shared room pause and resume controls after launch, or should the product stay with local stop-listening and rejoin mechanics only?
 
 ## Recommended answers for now
 
@@ -365,7 +385,8 @@ If we want to move quickly, use these defaults unless product direction changes:
 
 - owner controls skip and reorder
 - anyone in the room can enqueue
-- rooms pause when empty
+- once playback has started, the room clock continues on wall-clock time even if nobody is currently listening
+- local pause and resume are modeled as stop listening and rejoin at the current room offset
 - support public rooms first
 - no scoring, no badges, no replacement for weakness in v1
 - auto-advance from the canonical room clock

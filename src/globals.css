@@ -7,6 +7,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wdth,wght@6..144,25..151,100..1000&display=swap");
 
 @plugin "@toolwind/corner-shape";
+@plugin "tailwind-scrollbar";
 
 /* b4hu55yfz */
 
@@ -160,19 +161,10 @@
   }
   html,
   body {
-    @apply min-h-dvh;
+    @apply min-h-dvh overscroll-none;
   }
   body {
     @apply bg-background font-sans text-foreground;
-  }
-  body:has(.search-results) {
-    @apply fixed overflow-hidden;
-  }
-  main {
-    @apply flex-auto mx-auto max-w-6xl overscroll-contain p-6;
-  }
-  .offset-header {
-    @apply -ml-[0.15em] -mb-[0.3em] text-8xl mix-blend-overlay overflow-hidden whitespace-nowrap;
   }
   svg.lucide:not([stroke-width="0"]) {
     stroke-width: 1.5;

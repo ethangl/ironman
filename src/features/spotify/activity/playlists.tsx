@@ -1,7 +1,12 @@
 import { FC, useCallback } from "react";
 
 import { List, ListItem } from "@/components/list";
-import { Section, SectionProps } from "@/components/section";
+import {
+  Section,
+  SectionContent,
+  SectionHeader,
+  SectionTitle,
+} from "@/components/section";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Thumbnail } from "@/features/spotify/activity/thumbnail";
 import { useSpotifyClient } from "@/features/spotify/client";
@@ -9,15 +14,18 @@ import { SpotifyPlaylist, Track } from "@/types";
 import { PlaylistCell } from "./playlist-cell";
 import { usePlayableTrackCollection } from "./use-playable-track-collection";
 
-export type PlaylistsProps = SectionProps & {
+export type PlaylistsProps = {
+  action: React.ReactNode;
   display?: "list" | "thumbnails";
   playlists: SpotifyPlaylist[];
+  title: string;
 };
 
 export const Playlists: FC<PlaylistsProps> = ({
+  action,
   display = "list",
   playlists,
-  ...props
+  title,
 }) => {
   const client = useSpotifyClient();
   const loadTracks = useCallback(
@@ -34,41 +42,48 @@ export const Playlists: FC<PlaylistsProps> = ({
     });
 
   return (
-    <Section {...props}>
+    <Section>
+      <SectionHeader>
+        <SectionTitle>
+          {title}
+          {action}
+        </SectionTitle>
+      </SectionHeader>
       {display === "list" ? (
-        <List count={playlists.length} className="p-4">
-          {playlists.map((playlist, i) => (
-            <ListItem key={playlist.id}>
-              <PlaylistCell
-                count={i + 1}
-                disabled={loadingItemId === playlist.id}
-                image={playlist.image}
-                name={playlist.name}
-                subtitle={
-                  playlist.owner
-                    ? `${playlist.trackCount} songs by ${playlist.owner}`
-                    : `${playlist.trackCount} songs`
-                }
-                tracks={getCachedTracks(playlist.id)}
-                onPlay={() => void playItem(playlist)}
-              />
-            </ListItem>
-          ))}
-        </List>
+        <SectionContent>
+          <List count={playlists.length}>
+            {playlists.map((playlist, i) => (
+              <ListItem key={playlist.id}>
+                <PlaylistCell
+                  count={i + 1}
+                  disabled={loadingItemId === playlist.id}
+                  image={playlist.image}
+                  name={playlist.name}
+                  subtitle={
+                    playlist.owner
+                      ? `${playlist.trackCount} songs by ${playlist.owner}`
+                      : `${playlist.trackCount} songs`
+                  }
+                  tracks={getCachedTracks(playlist.id)}
+                  onPlay={() => void playItem(playlist)}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </SectionContent>
       ) : (
         <ScrollArea>
-          <ol className="flex gap-4 p-4 w-max">
+          <SectionContent className="flex gap-4 w-max">
             {playlists.map((playlist) => (
-              <li key={playlist.id}>
-                <Thumbnail
-                  description={`${playlist.trackCount} songs`}
-                  handlePlay={() => void playItem(playlist)}
-                  name={playlist.name}
-                  src={playlist.image}
-                />
-              </li>
+              <Thumbnail
+                key={playlist.id}
+                description={`${playlist.trackCount} songs`}
+                handlePlay={() => void playItem(playlist)}
+                name={playlist.name}
+                src={playlist.image}
+              />
             ))}
-          </ol>
+          </SectionContent>
         </ScrollArea>
       )}
     </Section>

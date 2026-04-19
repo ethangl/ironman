@@ -1,5 +1,5 @@
 import { RoomsHome } from "@/features/rooms/ui/rooms-home";
 
-export function AuthedHomeRoute() {
+export function RoomsRoute() {
   return <RoomsHome />;
 }

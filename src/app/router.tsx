@@ -8,6 +8,7 @@ import {
   NotFoundRoute,
   ProfileRoute,
   PublicProfileRoute,
+  RoomRoute,
 } from "@/routes";
 import { AppShell } from "./app-shell";
 import { AuthedLayout } from "./authed-layout";
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
             element: <AuthedLayout />,
             children: [
               { path: "home", element: <AuthedHomeRoute /> },
+              { path: "rooms/:roomId", element: <RoomRoute /> },
               {
                 path: "artist/resolve/:musicBrainzArtistId",
                 element: <ArtistResolveRoute />,

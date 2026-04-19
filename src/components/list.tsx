@@ -17,28 +17,27 @@ const listItemClassName =
 
 const List: FC<ListProps> = ({
   children,
-  className,
   count,
   empty = "No results",
   loading,
-  title,
 }) => {
-  return (
-    <section className={cn("space-y-4", className)}>
-      {title && <h3 className="text-lg font-bold">{title}</h3>}
-      {loading ? (
-        <div className={listItemClassName}>
-          <Spinner />
-        </div>
-      ) : count !== 0 ? (
-        <ol className="space-y-2">{children}</ol>
-      ) : (
-        <div className={listItemClassName}>
-          <p className="text-muted-foreground text-xs">{empty}</p>
-        </div>
-      )}
-    </section>
-  );
+  if (loading) {
+    return (
+      <div className={listItemClassName}>
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (count === 0) {
+    return (
+      <div className={listItemClassName}>
+        <p className="text-muted-foreground text-xs">{empty}</p>
+      </div>
+    );
+  }
+
+  return <ol className="space-y-2">{children}</ol>;
 };
 
 const ListItem: FC<ComponentProps<"li">> = ({ children, className }) => (

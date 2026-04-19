@@ -123,7 +123,7 @@ These boxes define what it means for a room to be "playing."
 - [x] Playback state can represent paused vs active playback.
 - [x] There is one server-side rule for computing the expected current room offset from stored timestamps.
 - [x] There is one server-side rule for advancing to the next queue item.
-- [x] Room playback pauses when the room is empty.
+- [x] The room clock has a server-owned non-playing state for cases where no active track should advance.
 
 Exit condition:
 
@@ -150,12 +150,12 @@ These boxes replace punitive enforcement with room sync.
 - [ ] Joining a room causes the client to fetch or subscribe to the canonical room state.
 - [ ] The runtime computes expected local playback from room timestamps.
 - [ ] The runtime can attempt an initial playback sync when joining.
-- [ ] The runtime can detect clear out-of-sync conditions.
-- [ ] The runtime treats drift as sync repair, not as player punishment.
+- [ ] The runtime can react to canonical room playback changes without depending on local drift-detection loops.
+- [ ] The runtime does not treat passive local drift as a product error that must be continuously repaired.
 - [ ] The runtime does not reintroduce wrong-song enforcement concepts under new names.
 - [ ] Any optimistic UI around queue actions reconciles back to Convex state.
 - [ ] Joining a room does not require repeated Spotify polling just to derive room state.
-- [ ] Repairing drift does not depend on aggressive background Spotify calls.
+- [ ] Rejoining the room does not depend on aggressive background Spotify calls.
 
 Exit condition:
 
@@ -168,7 +168,7 @@ These boxes make the new product visible and usable.
 - [ ] The player UI is room-centric.
 - [ ] The player exposes join and leave behavior instead of lock-in and surrender.
 - [ ] The room queue is visible in the UI.
-- [ ] The UI can show whether the listener is synced or needs repair.
+- [ ] The UI can show whether this device is listening live or detached from the room.
 - [ ] Room controls are shown or hidden based on role.
 - [ ] There is a room discovery or room list surface.
 - [ ] There is a room detail route such as `rooms/:roomId`.
@@ -191,7 +191,22 @@ Exit condition:
 
 The surrounding app reinforces the room product instead of referencing a deleted game loop.
 
-## Gate 12: Launch Readiness
+## Gate 12: Playback Mechanic Refinement
+
+These boxes refine the room from "shared pause state" toward "continuous stream with local listener attachment."
+
+- [ ] Room playback can continue advancing on wall-clock time even when no listener is currently attached.
+- [ ] A local stop-listening action does not mutate canonical room playback state.
+- [ ] Rejoining on a device starts from the current room offset, as if the user had just joined the room.
+- [ ] Shared room pause and resume are no longer the primary listener control model.
+- [ ] Player copy prefers `listen live`, `stop listening`, and `sync to room` language over shared `pause` and `resume`.
+- [ ] Listener attachment is treated as local transport state, not room authority.
+
+Exit condition:
+
+The room behaves like a continuously advancing stream, and whether a device is currently listening is a local concern.
+
+## Gate 13: Launch Readiness
 
 These boxes make the pivot feel complete rather than half-translated.
 
@@ -212,3 +227,4 @@ The room pivot is complete enough that a new user would describe the product as 
 - If we find ourselves storing room queue only in React state, stop and ask whether Gate 4 or Gate 6 is incomplete.
 - If we find ourselves building room UI before offset playback works, stop and ask whether Gate 8 is incomplete.
 - If we find ourselves reintroducing punishment or wrong-song logic, stop and ask whether we are smuggling the old product back in.
+- If we find ourselves treating "nobody is listening right now" as a reason to stop the room clock, stop and ask whether Gate 12 is incomplete.

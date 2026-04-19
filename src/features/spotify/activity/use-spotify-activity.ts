@@ -1,12 +1,10 @@
 import { createContext, useContext } from "react";
 
 import type { SpotifyArtist, SpotifyTrack } from "@/types";
-import type {
-  Playlist,
-  RecentTrack,
-} from "@/types/spotify-activity";
+import type { Playlist, RecentTrack } from "@/types/spotify-activity";
 
 interface SpotifyActivityContextValue {
+  isExpanded: boolean;
   recentTracks: RecentTrack[];
   playlists: Playlist[];
   playlistsTotal: number;
@@ -20,6 +18,7 @@ interface SpotifyActivityContextValue {
   refresh: () => void;
   loadMorePlaylists: () => void;
   getPlaylistTracks: (playlistId: string) => Promise<SpotifyTrack[]>;
+  setIsExpanded: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const SpotifyActivityContext =

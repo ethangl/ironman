@@ -8,7 +8,7 @@ export const BackgroundOverlay: FC<ComponentProps<"div">> = ({
 }) => (
   <div
     className={cn(
-      "absolute bg-black dark:bg-white duration-555 inset-0 mix-blend-overlay opacity-25 group-hover:opacity-75 rounded-xl transition -z-1",
+      "absolute bg-black dark:bg-white duration-555 inset-0 mix-blend-overlay opacity-25 group-hover:opacity-75 transition -z-1",
       className,
     )}
     {...props}

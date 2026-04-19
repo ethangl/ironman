@@ -15,8 +15,8 @@ export function SearchInput() {
   return (
     <div
       className={cn(
-        "absolute ease-elastic flex h-full inset-0 items-center justify-center mx-auto transition-all z-7",
-        expanded ? "duration-1000 w-full sm:w-lg" : "duration-444 w-16",
+        "absolute ease-elastic flex h-full left-0 items-center justify-center transition-all z-7",
+        expanded ? "duration-1000 w-full" : "duration-444 w-16",
       )}
     >
       <div className="absolute flex items-center left-6 justify-center m-auto pointer-events-none text-white size-4 top-6">

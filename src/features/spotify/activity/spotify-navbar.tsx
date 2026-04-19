@@ -1,18 +1,18 @@
-import { HomeIcon } from "lucide-react";
+import { LibraryIcon, PanelLeftCloseIcon } from "lucide-react";
 
 import { AppLink } from "@/components/app-link";
 import { Avatar } from "@/components/avatar";
 import { Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import { LoginButton } from "@/features/auth";
 import { SearchInput } from "@/features/search";
-import { useAppAuth, useAppCapabilities } from "./app-runtime";
-import { ClearSpotifyCacheButton } from "./clear-spotify-cache-button";
+import { useAppAuth, useAppCapabilities } from "../../../app/app-runtime";
+import { useSpotifyActivity } from "./use-spotify-activity";
 
-export function AuthedNavbar() {
+export function SpotifyNavbar() {
   const { session } = useAppAuth();
   const { canBrowsePersonalSpotify, spotifyStatus } = useAppCapabilities();
+  const { isExpanded, setIsExpanded } = useSpotifyActivity();
 
   if (!session) {
     return null;
@@ -20,33 +20,16 @@ export function AuthedNavbar() {
 
   if (canBrowsePersonalSpotify) {
     return (
-      <Section color="--color-emerald-400" className="m-3">
-        <div className="flex gap-2 items-center mix-blend-exclusion p-4 relative">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            nativeButton={false}
-            render={
-              <AppLink href="/home">
-                <HomeIcon />
-              </AppLink>
-            }
-            className="mr-auto"
-          />
-          <ClearSpotifyCacheButton />
-          <AppLink
-            href="/profile"
-            className="inline-flex gap-2 text-sm text-muted-foreground hover:text-foreground transition"
-          >
-            <Avatar
-              id={session.user.id}
-              image={session.user.image || null}
-              name={session.user.name}
-              sizeClassName="size-8 text-xl"
-            />
-          </AppLink>
-          <SearchInput />
-        </div>
+      <Section className="flex flex-none gap-2 h-16 items-center pl-0 pr-4">
+        <SearchInput />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="ml-auto"
+          onClick={() => setIsExpanded((expanded) => !expanded)}
+        >
+          {isExpanded ? <PanelLeftCloseIcon /> : <LibraryIcon />}
+        </Button>
       </Section>
     );
   }
@@ -62,15 +45,6 @@ export function AuthedNavbar() {
             {spotifyStatus.description}
           </p>
         </div>
-        <ClearSpotifyCacheButton />
-        {spotifyStatus.code === "checking" ? (
-          <div
-            aria-label="Checking Spotify connection"
-            className="flex h-9 w-9 items-center justify-center"
-          >
-            <Spinner />
-          </div>
-        ) : null}
         <AppLink
           href="/profile"
           className="inline-flex gap-2 text-sm text-muted-foreground transition hover:text-foreground"

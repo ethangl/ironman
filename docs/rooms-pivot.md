@@ -4,35 +4,16 @@ Started: 2026-04-19
 
 Status: Accepted product direction
 
-## Decision Summary
+## Product Principles
 
-This is a true product pivot away from song streaks.
+The product unit is a "room". Users are entering a shared listening space with a queue and a shared playback state.
 
-The old core loop was:
-
-- pick a song
-- lock in
-- enforce staying on that exact song
-- count repeated completions
-- track weakness and surrender
-- build song-level stats and leaderboards
-
-The new core loop is:
+The core loop is:
 
 - join a room
 - listen to the room's queue
 - hear whatever the room is currently playing
 - interact with the room through queue and playback controls
-
-Because this is a real pivot, we should not preserve the old streak model as a compatibility layer. Song streaks, moments of weakness, hardcore, song lock-ins, and song-based leaderboard logic should be removed rather than adapted.
-
-## Product Principles
-
-### Rooms, not streaks
-
-The product unit is now a room, not a song attempt.
-
-Users are not making an individual promise to stay on a track. They are entering a shared listening space with a queue and a shared playback state.
 
 ### Shared room state is canonical
 
@@ -68,53 +49,7 @@ It should avoid:
 - background resync loops that hit Spotify as a normal control path
 - one-Spotify-call-per-listener fan-out patterns
 
-## What We Are Removing
-
-The following concepts are no longer part of the product:
-
-- song lock-in
-- active streaks tied to a single track
-- weakness reporting
-- hardcore mode
-- surrender as the primary failure mechanic
-- song challenge flow
-- song-based ironman boards and streak stats
-
-This likely means deleting or fully replacing these current areas:
-
-- `convex/ironman.ts`
-- `convex/songSummaries.ts`
-- `convex/streaks.ts`
-- `convex/leaderboards.ts`
-- `convex/songs.ts`
-- `src/features/ironman/*`
-- `src/routes/song-route.tsx`
-- `src/routes/challenge-route.tsx`
-- lock-in and hardcore controls in `src/features/spotify/player/*`
-
-## Current Architecture That Assumes Song Streaks
-
-### Backend
-
-The current backend is strongly centered on a single active song per user:
-
-- `convex/schema.ts` defines a `streaks` table with `trackId`, `count`, `hardcore`, `weaknessCount`, and `lastCompletionArmed`.
-- `convex/ironman.ts` owns streak lifecycle, count progression, weakness reporting, and surrender.
-- `convex/songSummaries.ts` materializes per-song aggregate stats from streak history.
-- `convex/leaderboards.ts` builds global and track-level boards from streak and song summary data.
-- `convex/feed.ts` logs lock-in and surrender events.
-
-### Frontend
-
-The current frontend assumes the active gameplay target is one exact track:
-
-- `src/features/ironman/enforcement-engine.tsx` treats any track mismatch as a wrong-song event.
-- `src/features/ironman/use-wrong-song-enforcement.ts` force-corrects playback back to the locked song.
-- `src/features/ironman/use-ironman-player-actions.ts` starts and ends song streaks.
-- `src/features/spotify/player/use-now-playing.ts` prefers streak track metadata over normal playback.
-- `src/features/spotify/player/lock-in-button.tsx` and `hardcore-button.tsx` expose the current game loop in the player.
-
-### Existing queue code we can reuse conceptually
+## Existing queue code we can reuse conceptually
 
 The app already has queue mechanics in the browser:
 
@@ -129,7 +64,7 @@ This is useful as a local playback abstraction, but it is not yet a shared room 
 
 We should treat this as a rename, not just a behavior change.
 
-If the new product is rooms, future code should prefer `rooms` naming over continuing to overload `ironman`.
+If the new product is rooms, future code should prefer `rooms` naming over continuing to overload the old `ironman`.
 
 That means favoring new modules such as:
 
@@ -274,9 +209,9 @@ Suggested feature areas:
 - `src/features/rooms/queue`
 - `src/features/rooms/ui`
 
-### Replace the enforcement engine with a room sync engine
+### Create a room sync engine
 
-The current enforcement engine is designed to punish divergence from a locked song.
+The old enforcement engine was designed to punish divergence from a locked song.
 
 The new room runtime should do a different job:
 
@@ -285,11 +220,7 @@ The new room runtime should do a different job:
 - start playback when joining
 - repair drift when the user explicitly rejoins or when drift is clearly detected
 
-The mental model changes from:
-
-- "You played the wrong song"
-
-to:
+The mental model is:
 
 - "Your player is out of sync with the room"
 
@@ -321,13 +252,7 @@ Without offset support, listeners can only join at the start of the song, which 
 
 ### Player UI
 
-Replace:
-
-- lock-in button
-- hardcore button
-- streak count display
-
-With:
+Add:
 
 - join room button
 - leave room button
@@ -338,12 +263,7 @@ With:
 
 ### Routes
 
-Likely retire or redesign:
-
-- `song/:trackId`
-- `challenge/:trackId`
-
-Likely add:
+Add:
 
 - `rooms`
 - `rooms/:roomId`
@@ -351,20 +271,16 @@ Likely add:
 
 ### Home
 
-The home page will need a new purpose once song boards are gone.
-
-Likely replacements:
+Likely additions:
 
 - active rooms
 - popular rooms
 - recently active rooms
 - recently added queue items
 
-## Live Feed
+## Room Feed
 
-The live feed should pivot from streak events to room events.
-
-Replace lock-in and surrender style events with room events such as:
+Display room events such as:
 
 - joined room
 - left room
@@ -376,57 +292,17 @@ This likely requires replacing the current feed event schema in `convex/feed.ts`
 
 ## Migration Strategy
 
-Because this is a true pivot, we should optimize for clean replacement rather than compatibility scaffolding.
-
-Preferred strategy:
-
-Remove the old model first.
-
-This is a better fit for the product decision than trying to keep streaks alive while rooms are built beside them.
-
-Why this is preferable:
-
-- it prevents us from spending time on a model we already decided to kill
-- it avoids dual-model code paths and migration glue
-- it reduces the temptation to keep old concepts like weakness or lock-in alive under new names
-- it forces new room code to stand on its own terms
-
-Main tradeoff:
-
-There may be an intentional transition period where the app has reduced or missing core gameplay while rooms are under construction.
-
-That is acceptable if we want the cleanest architecture and the clearest product reset.
-
 ### Phase 1: Remove old model and surfaces
 
 Status: complete
-
-- remove streak, weakness, hardcore, surrender, and challenge language from the main app direction
-- delete or disable old player controls tied to lock-in behavior
-- remove old song-board and song-stats product surfaces
-- treat any remaining old code as temporary cleanup debt, not active product code
-
-Deliverable:
-
-- the app no longer presents the song-streak loop as a live product feature
 
 ### Phase 2: Delete legacy backend and frontend code
 
 Status: complete
 
-- remove `convex/ironman.ts`
-- remove `convex/songSummaries.ts`
-- remove `convex/streaks.ts`
-- remove `convex/leaderboards.ts`
-- remove `convex/songs.ts`
-- remove `src/features/ironman/*`
-- remove old tests for streak, weakness, hardcore, and song-board behavior
-
-Deliverable:
-
-- no active product-critical code depends on the streak model
-
 ### Phase 3: Add room backend foundations
+
+Status: complete
 
 - add `rooms`
 - add `roomMemberships`
@@ -454,14 +330,11 @@ Deliverable:
 - replace lock-in flow with join room flow
 - build room queue UI
 - add room playback sync behavior
-- replace old home leaderboard content
-- replace song and challenge routes
-- update live feed to room events
-- remove streak-specific player UI
+- display live feed of room events
 
 Deliverable:
 
-- user can join a room, hear the room's current track, and the app no longer exposes the old ironman loop in the main UI
+- user can join a room and hear the room's current track
 
 ## Definition Of Done
 

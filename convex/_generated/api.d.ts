@@ -14,6 +14,7 @@ import type * as http from "../http.js";
 import type * as lastfm from "../lastfm.js";
 import type * as musicbrainz from "../musicbrainz.js";
 import type * as profile from "../profile.js";
+import type * as rooms from "../rooms.js";
 import type * as spotify from "../spotify.js";
 import type * as spotifyAuthCooldown from "../spotifyAuthCooldown.js";
 import type * as spotifyCaches from "../spotifyCaches.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   lastfm: typeof lastfm;
   musicbrainz: typeof musicbrainz;
   profile: typeof profile;
+  rooms: typeof rooms;
   spotify: typeof spotify;
   spotifyAuthCooldown: typeof spotifyAuthCooldown;
   spotifyCaches: typeof spotifyCaches;

@@ -58,10 +58,9 @@ No active product-critical behavior depends on the streak model.
 
 These boxes keep us from rebuilding rooms inside leftover `ironman` boundaries.
 
-- [ ] New backend room behavior is implemented in room-named modules such as `convex/rooms.ts`, not hidden inside `convex/ironman.ts`.
-- [ ] New frontend room behavior is implemented under `src/features/rooms/*`, not as more extensions to `src/features/ironman/*`.
-- [ ] Public APIs and client contracts use room language instead of streak language.
-- [ ] New code does not overload old domain terms like `lockIn`, `hardcore`, `weakness`, or `streak` to mean room concepts.
+- [x] New backend room behavior is implemented in room-named modules such as `convex/rooms.ts`, not hidden inside `convex/ironman.ts`.
+- [x] Public APIs and client contracts use room language instead of streak language.
+- [x] New code does not overload old domain terms like `lockIn`, `hardcore`, `weakness`, or `streak` to mean room concepts.
 
 Exit condition:
 
@@ -71,12 +70,12 @@ The new architecture is allowed to be itself, instead of wearing the shape of th
 
 These boxes establish the shared backend source of truth.
 
-- [ ] A `rooms` table exists for stable room metadata.
-- [ ] A `roomMemberships` table exists for membership and role state.
-- [ ] A `roomQueueItems` table exists with one document per queued track.
-- [ ] A `roomPlaybackStates` table exists for the canonical room clock.
-- [ ] Queue data is not stored as one unbounded array on a room document.
-- [ ] Table indexes support the primary reads we expect to use: room by id or slug, active memberships by room and by user, queue items by room and order, and playback state by room.
+- [x] A `rooms` table exists for stable room metadata.
+- [x] A `roomMemberships` table exists for membership and role state.
+- [x] A `roomQueueItems` table exists with one document per queued track.
+- [x] A `roomPlaybackStates` table exists for the canonical room clock.
+- [x] Queue data is not stored as one unbounded array on a room document.
+- [x] Table indexes support the primary reads we expect to use: room by id or slug, active memberships by room and by user, queue items by room and order, and playback state by room.
 
 Exit condition:
 
@@ -86,12 +85,12 @@ Convex can represent a room, who is in it, what is queued, and what should be pl
 
 These boxes define who can do what.
 
-- [ ] A user can join a room through server-owned auth, not by passing arbitrary user ids.
-- [ ] A user can leave a room cleanly.
-- [ ] Membership state distinguishes active members from historical joins.
-- [ ] Room ownership or moderator authority is represented explicitly.
-- [ ] Queue and playback mutations enforce role checks on the server.
-- [ ] The initial permission rules are explicit and implemented: any member may enqueue, and only owner or moderator may reorder or skip.
+- [x] A user can join a room through server-owned auth, not by passing arbitrary user ids.
+- [x] A user can leave a room cleanly.
+- [x] Membership state distinguishes active members from historical joins.
+- [x] Room ownership or moderator authority is represented explicitly.
+- [x] Queue and playback mutations enforce role checks on the server.
+- [x] The initial permission rules are explicit and implemented: any member may enqueue, and only owner or moderator may reorder or skip.
 
 Exit condition:
 
@@ -101,13 +100,13 @@ Room actions are governed by room membership rules, not by frontend convention.
 
 These boxes make the queue a reliable shared object.
 
-- [ ] Queue order is canonical in Convex.
-- [ ] Adding a track inserts one queue item document with enough track snapshot data to render immediately.
-- [ ] Removing a queue item is a server mutation with stable ordering semantics afterward.
-- [ ] Reordering queue items is a server mutation with stable ordering semantics afterward.
-- [ ] Reading a room queue returns a deterministic order.
-- [ ] The queue can be rendered without asking Spotify for more metadata in the hot path.
-- [ ] Browser-local queue state is not treated as the source of truth for room order.
+- [x] Queue order is canonical in Convex.
+- [x] Adding a track inserts one queue item document with enough track snapshot data to render immediately.
+- [x] Removing a queue item is a server mutation with stable ordering semantics afterward.
+- [x] Reordering queue items is a server mutation with stable ordering semantics afterward.
+- [x] Reading a room queue returns a deterministic order.
+- [x] The queue can be rendered without asking Spotify for more metadata in the hot path.
+- [x] Browser-local queue state is not treated as the source of truth for room order.
 
 Exit condition:
 
@@ -117,14 +116,14 @@ The room queue is a shared Convex object that every client can render consistent
 
 These boxes define what it means for a room to be "playing."
 
-- [ ] Each room has a canonical playback state in Convex.
-- [ ] Playback state identifies the current queue item.
-- [ ] Playback state records when the current track started.
-- [ ] Playback state records the starting offset in milliseconds.
-- [ ] Playback state can represent paused vs active playback.
-- [ ] There is one server-side rule for computing the expected current room offset from stored timestamps.
-- [ ] There is one server-side rule for advancing to the next queue item.
-- [ ] Room playback pauses when the room is empty.
+- [x] Each room has a canonical playback state in Convex.
+- [x] Playback state identifies the current queue item.
+- [x] Playback state records when the current track started.
+- [x] Playback state records the starting offset in milliseconds.
+- [x] Playback state can represent paused vs active playback.
+- [x] There is one server-side rule for computing the expected current room offset from stored timestamps.
+- [x] There is one server-side rule for advancing to the next queue item.
+- [x] Room playback pauses when the room is empty.
 
 Exit condition:
 
@@ -148,6 +147,7 @@ The local player can be pointed at the room's current track and current offset.
 
 These boxes replace punitive enforcement with room sync.
 
+- [ ] New frontend room behavior is implemented under `src/features/rooms/*`, not as more extensions to `src/features/ironman/*`.
 - [ ] There is a room runtime on the frontend that subscribes to room state.
 - [ ] Joining a room causes the client to fetch or subscribe to the canonical room state.
 - [ ] The runtime computes expected local playback from room timestamps.
@@ -205,23 +205,6 @@ These boxes make the pivot feel complete rather than half-translated.
 Exit condition:
 
 The room pivot is complete enough that a new user would describe the product as room-based listening, not as a stripped-down version of the old ironman mode.
-
-## Suggested Working Order
-
-If we want the cleanest sequence, do the work in this order:
-
-1. Gate 1
-2. Gate 2
-3. Gate 3
-4. Gate 4
-5. Gate 5
-6. Gate 6
-7. Gate 7
-8. Gate 8
-9. Gate 9
-10. Gate 10
-11. Gate 11
-12. Gate 12
 
 ## Things To Watch For
 

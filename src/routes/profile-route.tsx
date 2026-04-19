@@ -19,5 +19,5 @@ export function ProfileRoute() {
     );
   }
 
-  return <ProfileContent data={data} />;
+  return <ProfileContent data={data} showLogout />;
 }

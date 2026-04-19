@@ -5,14 +5,11 @@ import { AlbumArt } from "@/components/album-art";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { AlbumButton } from "./album-button";
-import { HardcoreButton } from "./hardcore-button";
-import { LockInButton } from "./lock-in-button";
 import { NextTrackButton } from "./next-track-button";
 import { PlayerWrapper } from "./player-wrapper";
 import { PrevTrackButton } from "./prev-track-button";
 import { QueueButton } from "./queue-button";
 import { RepeatButton } from "./repeat-button";
-import { ShareButton } from "./share-button";
 import { ShuffleButton } from "./shuffle-button";
 import { TogglePlayButton } from "./toggle-play-button";
 import { useNowPlaying } from "./use-now-playing";
@@ -31,12 +28,10 @@ export function StandardPlayer() {
     displayImage,
     displayName,
     displayProgress,
-    displayTrackId,
     expanded,
     hasQueue,
     palette,
     pct,
-    streak,
     volume,
     setExpanded,
     setVolume,
@@ -61,7 +56,6 @@ export function StandardPlayer() {
         speed: 0.5,
       }}
       toggled={expanded}
-      fullScreen={!!streak?.hardcore}
     >
       <div className="p-7 pb-2 rounded-3xl">
         <AlbumArt src={displayImage} className="mb-9 mx-auto size-80" />
@@ -72,10 +66,6 @@ export function StandardPlayer() {
               <h5 className="font-medium opacity-33 text-sm truncate">
                 {displayArtist}
               </h5>
-            </div>
-            <div className="flex gap-1 items-center">
-              <LockInButton />
-              <HardcoreButton />
             </div>
           </div>
           <div className="space-y-2 ">
@@ -144,13 +134,6 @@ export function StandardPlayer() {
           <div className="flex gap-1 items-center justify-end">
             <AlbumButton />
             <QueueButton />
-            <ShareButton
-              trackId={displayTrackId}
-              trackArtist={displayArtist}
-              trackName={displayName}
-              count={streak?.count || 0}
-              isIronMan={streak?.active || false}
-            />
           </div>
         </footer>
       </div>

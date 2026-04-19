@@ -1,11 +1,8 @@
-export { AuthedHomeRoute } from "./authed-home-route";
 export { ArtistResolveRoute } from "./artist-resolve-route";
 export { ArtistRoute } from "./artist-route";
-export { ChallengeRoute } from "./challenge-route";
+export { AuthedHomeRoute } from "./authed-home-route";
 export { HomeRoute } from "./home-route";
-export { LiveRoute } from "./live-route";
 export { NotFoundRoute } from "./not-found-route";
 export { ProfileRoute } from "./profile-route";
-export { PublicProfileRoute } from "./public-profile-route";
 export { PublicHomeRoute } from "./public-home-route";
-export { SongRoute } from "./song-route";
+export { PublicProfileRoute } from "./public-profile-route";

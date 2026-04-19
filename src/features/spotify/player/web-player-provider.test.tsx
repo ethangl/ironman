@@ -222,8 +222,6 @@ function renderProvider(children?: ReactNode) {
     <AppRuntimeProvider
       spotifyClient={createSpotifyClient({
         spotifyActivity: {
-          getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
-          getCachedPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
           getFavoriteArtists: vi.fn().mockResolvedValue([]),
           getRecentlyPlayed: vi
             .fn()
@@ -266,8 +264,6 @@ function renderProviderWithClient(
     <AppRuntimeProvider
       spotifyClient={createSpotifyClient({
         spotifyActivity: {
-          getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
-          getCachedPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
           getFavoriteArtists: vi.fn().mockResolvedValue([]),
           getRecentlyPlayed: vi
             .fn()
@@ -618,10 +614,6 @@ describe("WebPlayerProvider", () => {
         <AppRuntimeProvider
           spotifyClient={createSpotifyClient({
           spotifyActivity: {
-            getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
-            getCachedPlaylistsPage: vi
-              .fn()
-              .mockResolvedValue({ items: [], total: 0 }),
             getFavoriteArtists: vi.fn().mockResolvedValue([]),
               getRecentlyPlayed: vi
                 .fn()

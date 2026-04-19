@@ -1,7 +1,6 @@
 import { ChevronsUpIcon } from "lucide-react";
 
 import { AlbumArt } from "@/components/album-art";
-import { LockInButton } from "./lock-in-button";
 import { NextTrackButton } from "./next-track-button";
 import { PlayerWrapper } from "./player-wrapper";
 import { TogglePlayButton } from "./toggle-play-button";
@@ -48,7 +47,6 @@ export function MiniPlayer() {
           </div>
         </button>
         <nav className="flex flex-none items-center gap-1 mix-blend-plus-lighter">
-          <LockInButton />
           <TogglePlayButton />
           {hasQueue && <NextTrackButton />}
         </nav>

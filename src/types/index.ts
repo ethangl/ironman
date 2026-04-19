@@ -10,8 +10,6 @@ export interface Track {
 
 export interface SpotifyTrack extends Track {
   albumName: string;
-  topStreak?: { count: number; userName: string | null } | null;
-  difficulty?: number;
 }
 
 export interface SpotifyArtist {

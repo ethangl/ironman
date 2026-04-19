@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useAppAuth, useAppCapabilities } from "@/app";
 import { useSpotifyActivity } from "@/features/spotify/activity";
-import { useEnsureTrackAudioFeatures } from "@/features/reccobeats";
 import type { SpotifyTrack, Track } from "@/types";
 import { cn } from "@/lib/utils";
 import { useSpotify } from "../sdk/use-spotify";
@@ -20,7 +19,6 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   const { canControlPlayback } = useAppCapabilities();
   const { appendRecentTrack } = useSpotifyActivity();
   const tokenRef = useRef<string | null>(null);
-  const hasSession = !!session;
 
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [progressMs, setProgressMs] = useState(0);
@@ -101,7 +99,6 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
   const artworkUrl = currentTrack?.albumImage ?? null;
   const palette = usePlayerPalette(artworkUrl);
-  useEnsureTrackAudioFeatures(hasSession ? currentTrack?.id ?? null : null);
 
   const pendingRecentTrackRef = useRef<SpotifyTrack | null>(null);
   const prevCurrentTrackIdRef = useRef<string | null>(null);

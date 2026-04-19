@@ -1,13 +1,5 @@
 import { v } from "convex/values";
 
-export const topStreakValidator = v.union(
-  v.object({
-    count: v.number(),
-    userName: v.union(v.string(), v.null()),
-  }),
-  v.null(),
-);
-
 export const spotifyTrackValidator = v.object({
   id: v.string(),
   name: v.string(),
@@ -15,8 +7,6 @@ export const spotifyTrackValidator = v.object({
   albumName: v.string(),
   albumImage: v.union(v.string(), v.null()),
   durationMs: v.number(),
-  topStreak: v.optional(topStreakValidator),
-  difficulty: v.optional(v.number()),
 });
 
 export const spotifyArtistValidator = v.object({

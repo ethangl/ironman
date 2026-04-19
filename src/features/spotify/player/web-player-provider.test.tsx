@@ -40,10 +40,6 @@ vi.mock("../sdk/use-spotify", () => ({
   useSpotify: (...args: unknown[]) => mockUseSpotify(...args),
 }));
 
-vi.mock("@/features/reccobeats", () => ({
-  useEnsureTrackAudioFeatures: vi.fn(),
-}));
-
 vi.mock("./mini-player", () => ({
   MiniPlayer: () => null,
 }));

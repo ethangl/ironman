@@ -12,10 +12,8 @@ import type * as betterAuth from "../betterAuth.js";
 import type * as betterAuthCrossDomain from "../betterAuthCrossDomain.js";
 import type * as http from "../http.js";
 import type * as lastfm from "../lastfm.js";
-import type * as lib_reccobeats from "../lib/reccobeats.js";
 import type * as musicbrainz from "../musicbrainz.js";
 import type * as profile from "../profile.js";
-import type * as reccobeats from "../reccobeats.js";
 import type * as spotify from "../spotify.js";
 import type * as spotifyAuthCooldown from "../spotifyAuthCooldown.js";
 import type * as spotifyCaches from "../spotifyCaches.js";
@@ -34,10 +32,8 @@ declare const fullApi: ApiFromModules<{
   betterAuthCrossDomain: typeof betterAuthCrossDomain;
   http: typeof http;
   lastfm: typeof lastfm;
-  "lib/reccobeats": typeof lib_reccobeats;
   musicbrainz: typeof musicbrainz;
   profile: typeof profile;
-  reccobeats: typeof reccobeats;
   spotify: typeof spotify;
   spotifyAuthCooldown: typeof spotifyAuthCooldown;
   spotifyCaches: typeof spotifyCaches;
@@ -21418,11 +21414,9 @@ export declare const components: {
           albumImage: string | null;
           albumName: string;
           artist: string;
-          difficulty?: number;
           durationMs: number;
           id: string;
           name: string;
-          topStreak?: { count: number; userName: string | null } | null;
         }>
       >;
       recentlyPlayed: FunctionReference<
@@ -21436,11 +21430,9 @@ export declare const components: {
               albumImage: string | null;
               albumName: string;
               artist: string;
-              difficulty?: number;
               durationMs: number;
               id: string;
               name: string;
-              topStreak?: { count: number; userName: string | null } | null;
             };
           }>;
           rateLimited: boolean;
@@ -21523,11 +21515,9 @@ export declare const components: {
           albumImage: string | null;
           albumName: string;
           artist: string;
-          difficulty?: number;
           durationMs: number;
           id: string;
           name: string;
-          topStreak?: { count: number; userName: string | null } | null;
         }>
       >;
       artistPage: FunctionReference<
@@ -21562,11 +21552,9 @@ export declare const components: {
             albumImage: string | null;
             albumName: string;
             artist: string;
-            difficulty?: number;
             durationMs: number;
             id: string;
             name: string;
-            topStreak?: { count: number; userName: string | null } | null;
           }>;
         } | null
       >;
@@ -21595,11 +21583,9 @@ export declare const components: {
             albumImage: string | null;
             albumName: string;
             artist: string;
-            difficulty?: number;
             durationMs: number;
             id: string;
             name: string;
-            topStreak?: { count: number; userName: string | null } | null;
           }>;
         }
       >;
@@ -21611,11 +21597,9 @@ export declare const components: {
           albumImage: string | null;
           albumName: string;
           artist: string;
-          difficulty?: number;
           durationMs: number;
           id: string;
           name: string;
-          topStreak?: { count: number; userName: string | null } | null;
         }>
       >;
     };

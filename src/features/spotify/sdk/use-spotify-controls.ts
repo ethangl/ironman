@@ -44,16 +44,20 @@ export function useSpotifyControls({
   playerRef: MutableRefObject<SpotifyPlayer | null>;
 }) {
   const play = useCallback(
-    async (uri: string, deviceId?: string): Promise<PlayResult> => {
+    async (
+      uri: string,
+      deviceId?: string,
+      offsetMs?: number,
+    ): Promise<PlayResult> => {
       const startedAt = Date.now();
-      const res = await spotifyPlaybackClient.play(uri, deviceId);
+      const res = await spotifyPlaybackClient.play(uri, deviceId, offsetMs);
       logSpotifyControlWrite({
         action: "play",
         source: "api",
         status: res.status,
         durationMs: Date.now() - startedAt,
         endpoint: "/me/player/play",
-        extra: { device_id: deviceId ?? null, uri },
+        extra: { device_id: deviceId ?? null, position_ms: offsetMs ?? null, uri },
       });
       return res;
     },

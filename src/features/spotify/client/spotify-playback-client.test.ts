@@ -39,9 +39,17 @@ describe("spotifyPlaybackClient", () => {
     {
       name: "play",
       call: () =>
-        spotifyPlaybackClient.play("spotify:track:track-1", "device-1"),
+        spotifyPlaybackClient.play(
+          "spotify:track:track-1",
+          "device-1",
+          12_345,
+        ),
       ref: api.spotify.playbackPlay,
-      args: { uri: "spotify:track:track-1", deviceId: "device-1" },
+      args: {
+        uri: "spotify:track:track-1",
+        deviceId: "device-1",
+        offsetMs: 12_345,
+      },
       result: { ok: true, status: 204 },
     },
     {

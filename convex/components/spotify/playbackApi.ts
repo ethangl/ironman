@@ -7,6 +7,14 @@ function getRetryAfterSeconds(response: Response) {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
+function normalizePositionMs(positionMs?: number) {
+  if (typeof positionMs !== "number" || !Number.isFinite(positionMs)) {
+    return undefined;
+  }
+
+  return Math.max(0, Math.trunc(positionMs));
+}
+
 function normalizePlaybackState(raw: unknown): PlaybackState | null {
   if (!raw || typeof raw !== "object") {
     return null;
@@ -87,15 +95,24 @@ export async function getCurrentlyPlaying(
   }
 }
 
-export async function playUri(uri: string, token: string, deviceId?: string) {
+export async function playUri(
+  uri: string,
+  token: string,
+  deviceId?: string,
+  offsetMs?: number,
+) {
   const query = deviceId ? `?device_id=${deviceId}` : "";
+  const positionMs = normalizePositionMs(offsetMs);
   const res = await fetch(`${SPOTIFY_API}/me/player/play${query}`, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ uris: [uri] }),
+    body: JSON.stringify({
+      uris: [uri],
+      ...(positionMs === undefined ? {} : { position_ms: positionMs }),
+    }),
   });
   const retryAfterSeconds = getRetryAfterSeconds(res);
   return {

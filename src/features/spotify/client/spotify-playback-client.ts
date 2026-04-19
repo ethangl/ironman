@@ -9,7 +9,11 @@ type CurrentlyPlayingResult = {
 
 interface SpotifyPlaybackClient {
   getCurrentlyPlaying: () => Promise<CurrentlyPlayingResult>;
-  play: (uri: string, deviceId?: string) => Promise<PlayResult>;
+  play: (
+    uri: string,
+    deviceId?: string,
+    offsetMs?: number,
+  ) => Promise<PlayResult>;
   resume: () => Promise<PlayResult>;
   pause: () => Promise<PlayResult>;
   setRepeat: (
@@ -24,11 +28,12 @@ export const spotifyPlaybackClient: SpotifyPlaybackClient = {
     const client = await getAuthenticatedSpotifyConvexClient();
     return client.action(api.spotify.playbackCurrentlyPlaying, {});
   },
-  async play(uri, deviceId) {
+  async play(uri, deviceId, offsetMs) {
     const client = await getAuthenticatedSpotifyConvexClient();
     return client.action(api.spotify.playbackPlay, {
       uri,
       deviceId: deviceId ?? undefined,
+      offsetMs: offsetMs ?? undefined,
     });
   },
   async resume() {

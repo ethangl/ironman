@@ -22,6 +22,7 @@ function getPlaybackFailureMessage(status: number) {
 interface PlaybackStartRequest {
   track: Track;
   onAccepted: () => void;
+  offsetMs?: number;
 }
 
 export function usePlayerPlaybackTransport({
@@ -40,7 +41,7 @@ export function usePlayerPlaybackTransport({
   getAccessToken: () => Promise<string | null>;
   initSpotify: () => void;
   pause: () => Promise<PlayResult>;
-  play: (uri: string, deviceId?: string) => Promise<PlayResult>;
+  play: (uri: string, deviceId?: string, offsetMs?: number) => Promise<PlayResult>;
   resume: () => Promise<PlayResult>;
   sdkState: SdkPlaybackState | null;
   setSpotifyVolume: (val: number) => Promise<void>;
@@ -75,7 +76,7 @@ export function usePlayerPlaybackTransport({
       const uri = `spotify:track:${request.track.id}`;
       let initialPlayResult: PlayResult;
       try {
-        initialPlayResult = await play(uri);
+        initialPlayResult = await play(uri, undefined, request.offsetMs);
       } catch {
         if (isLatestAttempt()) {
           toast.error(getPlaybackFailureMessage(500));
@@ -113,7 +114,7 @@ export function usePlayerPlaybackTransport({
           }
 
           try {
-            const playResult = await play(uri, sdkDeviceId);
+            const playResult = await play(uri, sdkDeviceId, request.offsetMs);
             if (playResult.ok) {
               if (isLatestAttempt()) {
                 request.onAccepted();

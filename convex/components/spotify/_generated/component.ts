@@ -145,7 +145,12 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
       play: FunctionReference<
         "action",
         "internal",
-        { accessToken: string; deviceId?: string; uri: string },
+        {
+          accessToken: string;
+          deviceId?: string;
+          offsetMs?: number;
+          uri: string;
+        },
         { ok: boolean; retryAfterSeconds?: number; status: number },
         Name
       >;

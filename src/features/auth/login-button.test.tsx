@@ -135,10 +135,8 @@ describe("LoginButton", () => {
     );
     expect(mockReplaceBrowserUrl).toHaveBeenCalledWith("/?foo=bar");
     expect(
-      screen.getByText(
-        "Spotify asked us to slow down. Try reconnecting about a minute.",
-      ),
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: /Spotify cooling down/i }),
+    ).toBeDisabled();
   });
 
   it("uses the backend cooldown window when available", async () => {
@@ -162,10 +160,8 @@ describe("LoginButton", () => {
       "Spotify is cooling down. Try reconnecting about 2 hours.",
     );
     expect(
-      screen.getByText(
-        "Spotify asked us to slow down. Try reconnecting about 2 hours.",
-      ),
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: /Spotify cooling down/i }),
+    ).toBeDisabled();
   });
 
   it("preserves cooldown for reconnect flows when a session already exists", async () => {

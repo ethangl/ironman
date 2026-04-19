@@ -10,25 +10,17 @@
 
 import type * as betterAuth from "../betterAuth.js";
 import type * as betterAuthCrossDomain from "../betterAuthCrossDomain.js";
-import type * as feed from "../feed.js";
 import type * as http from "../http.js";
-import type * as ironman from "../ironman.js";
 import type * as lastfm from "../lastfm.js";
-import type * as leaderboards from "../leaderboards.js";
 import type * as lib_reccobeats from "../lib/reccobeats.js";
-import type * as lib_songSummaries from "../lib/songSummaries.js";
-import type * as lib_streak from "../lib/streak.js";
 import type * as musicbrainz from "../musicbrainz.js";
 import type * as profile from "../profile.js";
 import type * as reccobeats from "../reccobeats.js";
-import type * as songSummaries from "../songSummaries.js";
-import type * as songs from "../songs.js";
 import type * as spotify from "../spotify.js";
 import type * as spotifyAuthCooldown from "../spotifyAuthCooldown.js";
 import type * as spotifyCaches from "../spotifyCaches.js";
 import type * as spotifyLoaders from "../spotifyLoaders.js";
 import type * as spotifySession from "../spotifySession.js";
-import type * as streaks from "../streaks.js";
 import type * as users from "../users.js";
 
 import type {
@@ -40,25 +32,17 @@ import type {
 declare const fullApi: ApiFromModules<{
   betterAuth: typeof betterAuth;
   betterAuthCrossDomain: typeof betterAuthCrossDomain;
-  feed: typeof feed;
   http: typeof http;
-  ironman: typeof ironman;
   lastfm: typeof lastfm;
-  leaderboards: typeof leaderboards;
   "lib/reccobeats": typeof lib_reccobeats;
-  "lib/songSummaries": typeof lib_songSummaries;
-  "lib/streak": typeof lib_streak;
   musicbrainz: typeof musicbrainz;
   profile: typeof profile;
   reccobeats: typeof reccobeats;
-  songSummaries: typeof songSummaries;
-  songs: typeof songs;
   spotify: typeof spotify;
   spotifyAuthCooldown: typeof spotifyAuthCooldown;
   spotifyCaches: typeof spotifyCaches;
   spotifyLoaders: typeof spotifyLoaders;
   spotifySession: typeof spotifySession;
-  streaks: typeof streaks;
   users: typeof users;
 }>;
 

@@ -1,7 +1,7 @@
 import { LastFmApiError } from "./errors";
 
 const LASTFM_API = "https://ws.audioscrobbler.com/2.0/";
-const LASTFM_USER_AGENT = "ironman/0.1.0 (Last.fm artist enrichment lookup)";
+const LASTFM_USER_AGENT = "rooms/0.1.0 (Last.fm artist enrichment lookup)";
 const LASTFM_TAG_LIMIT = 8;
 const LASTFM_SIMILAR_ARTIST_LIMIT = 8;
 

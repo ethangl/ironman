@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 
-import { StreakData, Track } from "@/types";
+import { Track } from "@/types";
 import type { PlayResult, SdkPlaybackState } from "@/types/spotify-playback";
 
 /** Stable actions/state that rarely change — safe to consume without causing frequent re-renders. */
@@ -13,9 +13,6 @@ interface WebPlayerActionsValue {
   togglePlay: () => Promise<void>;
   toggleShuffle: () => void;
   setVolume: (val: number) => Promise<void>;
-  lockIn: () => Promise<void>;
-  activateHardcore: () => Promise<void>;
-  surrender: () => Promise<void>;
   setExpanded: (expanded: boolean) => void;
   spotify: {
     init: () => void;
@@ -33,8 +30,6 @@ interface WebPlayerStateValue {
   progressMs: number;
   durationMs: number;
   volume: number;
-  streak: StreakData | null;
-  count: number;
   expanded: boolean;
   palette: string[];
   queue: Track[];

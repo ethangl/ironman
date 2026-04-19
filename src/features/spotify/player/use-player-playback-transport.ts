@@ -32,9 +32,7 @@ export function usePlayerPlaybackTransport({
   play,
   resume,
   sdkState,
-  setRepeat,
   setSpotifyVolume,
-  streakTrackId,
   trackId,
   waitForReady,
 }: {
@@ -45,9 +43,7 @@ export function usePlayerPlaybackTransport({
   play: (uri: string, deviceId?: string) => Promise<PlayResult>;
   resume: () => Promise<PlayResult>;
   sdkState: SdkPlaybackState | null;
-  setRepeat: (state: string, deviceId?: string) => Promise<void>;
   setSpotifyVolume: (val: number) => Promise<void>;
-  streakTrackId: string | null;
   trackId: string | null;
   waitForReady: () => Promise<string | null>;
 }) {
@@ -220,11 +216,6 @@ export function usePlayerPlaybackTransport({
             }
 
             if (playResult.ok) {
-              if (streakTrackId) {
-                await setRepeat("track", deviceId).catch(() => {
-                  // Keep the resumed playback even if repeat restoration fails.
-                });
-              }
               setApiPaused(false);
               return;
             }
@@ -264,8 +255,6 @@ export function usePlayerPlaybackTransport({
     paused,
     play,
     resume,
-    setRepeat,
-    streakTrackId,
     trackId,
     waitForReady,
   ]);

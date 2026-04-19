@@ -26,11 +26,9 @@ export interface AppCapabilities {
   spotifyStatus: SpotifyStatus;
   canBrowsePersonalSpotify: boolean;
   canControlPlayback: boolean;
-  canUseIronman: boolean;
 }
 
 export interface AppRuntime {
   auth: AppAuthRuntime;
   capabilities: AppCapabilities;
-  ironmanClient: import("@/features/ironman").IronmanClient;
 }

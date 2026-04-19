@@ -11,7 +11,6 @@ import {
 } from "@/routes";
 import { AppShell } from "./app-shell";
 import { AuthedLayout } from "./authed-layout";
-import { PublicLayout } from "./public-layout";
 import { RequireAuthenticatedSession } from "./require-authenticated-session";
 
 export const router = createBrowserRouter([
@@ -19,7 +18,6 @@ export const router = createBrowserRouter([
     element: <AppShell />,
     children: [
       {
-        element: <PublicLayout />,
         children: [
           { index: true, element: <HomeRoute /> },
           { path: "profile/:userId", element: <PublicProfileRoute /> },

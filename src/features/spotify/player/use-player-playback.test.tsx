@@ -52,10 +52,7 @@ function createProps(overrides: Partial<UsePlayerPlaybackProps> = {}) {
     }),
     sdkState: null as SdkPlaybackState | null,
     setCurrentTrack: vi.fn(),
-    setRepeat: vi.fn().mockResolvedValue(undefined),
     setSpotifyVolume: vi.fn().mockResolvedValue(undefined),
-    streakActive: false,
-    streakTrackId: null,
     waitForReady: vi.fn().mockResolvedValue(null),
     ...overrides,
   };
@@ -113,11 +110,9 @@ describe("usePlayerPlayback", () => {
     );
   });
 
-  it("does not replace the queue while a streak is active", async () => {
+  it("does not start playback when playback control is unavailable", async () => {
     const props = createProps({
-      currentTrack: trackA,
-      streakActive: true,
-      streakTrackId: trackA.id,
+      canControlPlayback: false,
     });
 
     const { result } = renderHook(() => usePlayerPlayback(props));

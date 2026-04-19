@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  type MutableRefObject,
-} from "react";
+import { useCallback, useEffect, useRef, type MutableRefObject } from "react";
 
 import type {
   ReadyWaiter,
@@ -89,7 +84,7 @@ export function useSpotifySdk({
 
     console.log("[web-player] creating player");
     const player = new window.Spotify.Player({
-      name: "ironman.fm",
+      name: "rooms.fm",
       getOAuthToken: (cb: (token: string) => void) => {
         void getAccessToken()
           .then((token) => {

@@ -1,6 +1,5 @@
 import { createContext, ReactNode, useContext, useMemo } from "react";
 
-import { convexIronmanClient, type IronmanClient } from "@/features/ironman";
 import {
   SpotifyClient,
   SpotifyClientProvider,
@@ -25,7 +24,7 @@ export type {
 
 const AppRuntimeContext = createContext<AppRuntime | null>(null);
 
-function useAuthRuntimeValue(ironmanClient: IronmanClient): AppRuntime {
+function useAuthRuntimeValue(): AppRuntime {
   const { data: session, isPending } = useSession();
   const { effectiveSession, isSessionPending } = useSettledSession({
     isPending,
@@ -35,7 +34,6 @@ function useAuthRuntimeValue(ironmanClient: IronmanClient): AppRuntime {
   const {
     canBrowsePersonalSpotify,
     canControlPlayback,
-    canUseIronman,
     getSpotifyAccessToken,
     spotifyConnection,
   } = useSpotifyRuntimeCapabilities(sessionUserId);
@@ -64,17 +62,13 @@ function useAuthRuntimeValue(ironmanClient: IronmanClient): AppRuntime {
         spotifyStatus,
         canBrowsePersonalSpotify,
         canControlPlayback,
-        canUseIronman,
       },
-      ironmanClient,
     }),
     [
       canBrowsePersonalSpotify,
       canControlPlayback,
-      canUseIronman,
       effectiveSession,
       getSpotifyAccessToken,
-      ironmanClient,
       isSessionPending,
       spotifyStatus,
       spotifyConnection,
@@ -85,13 +79,11 @@ function useAuthRuntimeValue(ironmanClient: IronmanClient): AppRuntime {
 export function AppRuntimeProvider({
   children,
   spotifyClient,
-  ironmanClient = convexIronmanClient,
 }: {
   children: ReactNode;
   spotifyClient: SpotifyClient;
-  ironmanClient?: IronmanClient;
 }) {
-  const value = useAuthRuntimeValue(ironmanClient);
+  const value = useAuthRuntimeValue();
 
   return (
     <AppRuntimeContext.Provider value={value}>
@@ -117,8 +109,4 @@ export function useAppAuth() {
 
 export function useAppCapabilities() {
   return useAppRuntime().capabilities;
-}
-
-export function useIronmanClient() {
-  return useAppRuntime().ironmanClient;
 }

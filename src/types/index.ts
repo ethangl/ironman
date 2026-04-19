@@ -114,13 +114,3 @@ export interface LastFmArtistMatch {
 }
 
 export type { TrackSnapshot };
-
-export interface StreakData extends TrackSnapshot {
-  id: string;
-  count: number;
-  active: boolean;
-  hardcore?: boolean;
-  startedAt: string;
-  userName?: string;
-  userImage?: string;
-}

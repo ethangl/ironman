@@ -107,7 +107,6 @@ export function useSpotifyRuntimeCapabilities(sessionUserId: string | null) {
   return {
     canBrowsePersonalSpotify: canUsePersonalSpotify,
     canControlPlayback: canUsePersonalSpotify,
-    canUseIronman: canUsePersonalSpotify,
     getSpotifyAccessToken,
     spotifyConnection,
   };

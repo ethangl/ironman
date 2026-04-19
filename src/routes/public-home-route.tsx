@@ -1,3 +1,9 @@
+import { LoginButton } from "@/features/auth";
+
 export function PublicHomeRoute() {
-  return <main className="max-w-full px-3 py-0">eh</main>;
+  return (
+    <div className="flex h-dvh items-center justify-center w-dvw">
+      <LoginButton />
+    </div>
+  );
 }

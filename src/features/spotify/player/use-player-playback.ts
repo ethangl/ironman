@@ -15,7 +15,6 @@ import {
   createTrackListQueueState,
   getNextQueueSelection,
   getPrevQueueSelection,
-  getQueueIndexForTrack,
   shouldAutoAdvanceFromSdkState,
   toggleShuffleState,
 } from "./player-queue-state";
@@ -32,10 +31,7 @@ export function usePlayerPlayback({
   resume,
   sdkState,
   setCurrentTrack,
-  setRepeat,
   setSpotifyVolume,
-  streakActive,
-  streakTrackId,
   waitForReady,
 }: {
   canControlPlayback: boolean;
@@ -48,19 +44,14 @@ export function usePlayerPlayback({
   resume: () => Promise<PlayResult>;
   sdkState: SdkPlaybackState | null;
   setCurrentTrack: Dispatch<SetStateAction<Track | null>>;
-  setRepeat: (state: string, deviceId?: string) => Promise<void>;
   setSpotifyVolume: (val: number) => Promise<void>;
-  streakActive: boolean;
-  streakTrackId: string | null;
   waitForReady: () => Promise<string | null>;
 }) {
   const [queueState, setQueueState] = useState(EMPTY_PLAYER_QUEUE_STATE);
   const { queue, queueIndex, shuffled } = queueState;
   const hasQueue = queue.length > 1;
 
-  const trackId = streakTrackId ?? currentTrack?.id ?? null;
   const {
-    cancelPendingPlayback,
     paused,
     setVolume,
     startPlayback,
@@ -74,16 +65,14 @@ export function usePlayerPlayback({
     play,
     resume,
     sdkState,
-    setRepeat,
     setSpotifyVolume,
-    streakTrackId,
-    trackId,
+    trackId: currentTrack?.id ?? null,
     waitForReady,
   });
 
   const playTrack = useCallback(
     async (track: Track) => {
-      if (!canControlPlayback || streakActive) return;
+      if (!canControlPlayback) return;
 
       const nextQueueState = createSingleTrackQueueState(track);
       await startPlayback({
@@ -94,12 +83,12 @@ export function usePlayerPlayback({
         },
       });
     },
-    [canControlPlayback, setCurrentTrack, startPlayback, streakActive],
+    [canControlPlayback, setCurrentTrack, startPlayback],
   );
 
   const playTracks = useCallback(
     async (tracks: Track[], startIndex = 0) => {
-      if (!canControlPlayback || streakActive || tracks.length === 0) return;
+      if (!canControlPlayback || tracks.length === 0) return;
 
       const nextQueueState = createTrackListQueueState(
         tracks,
@@ -116,11 +105,11 @@ export function usePlayerPlayback({
         },
       });
     },
-    [canControlPlayback, setCurrentTrack, shuffled, startPlayback, streakActive],
+    [canControlPlayback, setCurrentTrack, shuffled, startPlayback],
   );
 
   const nextTrack = useCallback(async () => {
-    if (!canControlPlayback || streakActive || queue.length <= 1) return;
+    if (!canControlPlayback || queue.length <= 1) return;
 
     const selection = getNextQueueSelection(queueState);
     if (!selection) return;
@@ -138,7 +127,6 @@ export function usePlayerPlayback({
     queueState,
     setCurrentTrack,
     startPlayback,
-    streakActive,
   ]);
 
   const nextTrackRef = useRef(nextTrack);
@@ -147,7 +135,7 @@ export function usePlayerPlayback({
   }, [nextTrack]);
 
   const prevTrack = useCallback(async () => {
-    if (!canControlPlayback || streakActive || queue.length <= 1) return;
+    if (!canControlPlayback || queue.length <= 1) return;
 
     const pos = sdkState?.position ?? progressMs;
     const selection = getPrevQueueSelection(queueState, pos);
@@ -168,52 +156,24 @@ export function usePlayerPlayback({
     sdkState?.position,
     setCurrentTrack,
     startPlayback,
-    streakActive,
   ]);
 
   const toggleShuffle = useCallback(() => {
     setQueueState((current) => toggleShuffleState(current));
   }, []);
 
-  const clearPlaybackAfterBrokenStreak = useCallback(() => {
-    cancelPendingPlayback();
-    void pause().catch(() => {});
-    setCurrentTrack(null);
-    setQueueState(EMPTY_PLAYER_QUEUE_STATE);
-  }, [cancelPendingPlayback, pause, setCurrentTrack]);
-
-  const restoreTrackAfterSurrender = useCallback(
-    (track: Track) => {
-      setCurrentTrack(track);
-
-      setQueueState((current) => {
-        const restoredQueueIndex = getQueueIndexForTrack(current, track.id);
-        if (restoredQueueIndex === -1) {
-          return current;
-        }
-
-        return {
-          ...current,
-          queueIndex: restoredQueueIndex,
-        };
-      });
-    },
-    [setCurrentTrack],
-  );
-
   const prevSdkStateRef = useRef<SdkPlaybackState | null>(null);
   useEffect(() => {
     const prev = prevSdkStateRef.current;
     prevSdkStateRef.current = sdkState;
 
-    if (streakActive || queue.length <= 1 || !sdkState || !prev) return;
+    if (queue.length <= 1 || !sdkState || !prev) return;
     if (shouldAutoAdvanceFromSdkState(prev, sdkState)) {
       void nextTrackRef.current();
     }
-  }, [queue.length, sdkState, streakActive]);
+  }, [queue.length, sdkState]);
 
   return {
-    clearPlaybackAfterBrokenStreak,
     hasQueue,
     paused,
     playTrack,
@@ -221,7 +181,6 @@ export function usePlayerPlayback({
     prevTrack,
     queue,
     queueIndex,
-    restoreTrackAfterSurrender,
     setVolume,
     shuffled,
     togglePlay,

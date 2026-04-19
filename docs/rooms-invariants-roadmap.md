@@ -206,23 +206,6 @@ Exit condition:
 
 The room pivot is complete enough that a new user would describe the product as room-based listening, not as a stripped-down version of the old ironman mode.
 
-## Suggested Working Order
-
-If we want the cleanest sequence, do the work in this order:
-
-1. Gate 1
-2. Gate 2
-3. Gate 3
-4. Gate 4
-5. Gate 5
-6. Gate 6
-7. Gate 7
-8. Gate 8
-9. Gate 9
-10. Gate 10
-11. Gate 11
-12. Gate 12
-
 ## Things To Watch For
 
 - If we find ourselves adding compatibility glue, stop and ask whether Gate 2 is incomplete.

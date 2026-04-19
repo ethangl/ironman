@@ -1,7 +1,6 @@
 import type { LastFmSimilarArtist } from "@/types";
 
-const SIMILAR_ARTIST_SPOTIFY_ID_CACHE_PREFIX =
-  "ironman:artist-spotify-id-by-mbid:";
+const SIMILAR_ARTIST_SPOTIFY_ID_CACHE_PREFIX = "artist-spotify-id-by-mbid:";
 
 function getSimilarArtistSpotifyCacheKey(musicBrainzArtistId: string) {
   return `${SIMILAR_ARTIST_SPOTIFY_ID_CACHE_PREFIX}${musicBrainzArtistId}`;

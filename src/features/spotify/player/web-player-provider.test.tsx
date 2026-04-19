@@ -3,14 +3,10 @@ import { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppRuntimeProvider } from "@/app";
-import type { IronmanClient } from "@/features/ironman";
 import { SpotifyActivityProvider } from "@/features/spotify/activity";
-import {
-  createSpotifyClient,
-} from "@/features/spotify/client";
+import { createSpotifyClient } from "@/features/spotify/client";
 import { clearCachedSpotifyAccessToken } from "@/lib/spotify-access-token";
 import { clearCachedSpotifyAccountLink } from "@/lib/spotify-account-link";
-import { StreakData } from "@/types";
 import { usePlayerQueueListing } from "./use-player-queue-listing";
 import { useWebPlayerActions, useWebPlayerState } from "./use-web-player";
 import { WebPlayerProvider } from "./web-player-provider";
@@ -18,14 +14,9 @@ import { WebPlayerProvider } from "./web-player-provider";
 const mockUseSession = vi.fn();
 const mockGetAccessToken = vi.fn();
 const mockAuthFetch = vi.fn();
-const mockUseBrowserSearchParams = vi.fn();
-const mockUseSpotify = vi.fn();
 const mockSignOut = vi.fn();
+const mockUseSpotify = vi.fn();
 const mockToastError = vi.fn();
-
-vi.mock("@/hooks/use-browser-search-params", () => ({
-  useBrowserSearchParams: () => mockUseBrowserSearchParams(),
-}));
 
 vi.mock("@/lib/convex-auth-client", () => ({
   useConvexSession: () => mockUseSession(),
@@ -49,10 +40,6 @@ vi.mock("../sdk/use-spotify", () => ({
   useSpotify: (...args: unknown[]) => mockUseSpotify(...args),
 }));
 
-vi.mock("@/features/reccobeats", () => ({
-  useEnsureTrackAudioFeatures: vi.fn(),
-}));
-
 vi.mock("./mini-player", () => ({
   MiniPlayer: () => null,
 }));
@@ -60,62 +47,6 @@ vi.mock("./mini-player", () => ({
 vi.mock("./standard-player", () => ({
   StandardPlayer: () => null,
 }));
-
-vi.mock("@/features/ironman", async () => {
-  const actual =
-    await vi.importActual<typeof import("@/features/ironman")>(
-      "@/features/ironman",
-    );
-  return {
-    ...actual,
-    EnforcementEngine: () => null,
-  };
-});
-
-class FakeBroadcastChannel {
-  static channels = new Map<string, Set<FakeBroadcastChannel>>();
-
-  listeners = new Set<(event: MessageEvent) => void>();
-  closed = false;
-
-  constructor(public readonly name: string) {
-    const peers = FakeBroadcastChannel.channels.get(name) ?? new Set();
-    peers.add(this);
-    FakeBroadcastChannel.channels.set(name, peers);
-  }
-
-  addEventListener(_type: string, listener: (event: MessageEvent) => void) {
-    this.listeners.add(listener);
-  }
-
-  removeEventListener(_type: string, listener: (event: MessageEvent) => void) {
-    this.listeners.delete(listener);
-  }
-
-  postMessage(data: unknown) {
-    const peers = FakeBroadcastChannel.channels.get(this.name) ?? new Set();
-    for (const peer of peers) {
-      if (peer === this || peer.closed) continue;
-      peer.dispatch(data);
-    }
-  }
-
-  dispatch(data: unknown) {
-    const event = { data } as MessageEvent;
-    for (const listener of this.listeners) {
-      listener(event);
-    }
-  }
-
-  close() {
-    this.closed = true;
-    FakeBroadcastChannel.channels.get(this.name)?.delete(this);
-  }
-
-  static reset() {
-    FakeBroadcastChannel.channels.clear();
-  }
-}
 
 const baseSpotifyMock = {
   sdkState: null,
@@ -126,29 +57,13 @@ const baseSpotifyMock = {
   pause: vi.fn().mockResolvedValue({ ok: true, status: 200 }),
   setVolume: vi.fn().mockResolvedValue(undefined),
   setRepeat: vi.fn().mockResolvedValue(undefined),
-  getCurrentlyPlaying: vi
-    .fn()
-    .mockResolvedValue({ status: 204, playback: null }),
 };
 
-function createDeferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason?: unknown) => void;
-
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-
-  return { promise, resolve, reject };
-}
-
 function PlayerProbe() {
-  const { streak, count, paused } = useWebPlayerState();
+  const { currentTrack, paused } = useWebPlayerState();
   return (
     <div>
-      <div data-testid="track">{streak?.trackName ?? "none"}</div>
-      <div data-testid="count">{String(count)}</div>
+      <div data-testid="track">{currentTrack?.name ?? "none"}</div>
       <div data-testid="paused">{String(paused)}</div>
     </div>
   );
@@ -167,11 +82,6 @@ function PlayActionProbe({
 }) {
   const { playTrack } = useWebPlayerActions();
   return <button onClick={() => void playTrack(track)}>play-track</button>;
-}
-
-function SurrenderActionProbe() {
-  const { surrender } = useWebPlayerActions();
-  return <button onClick={() => void surrender()}>surrender</button>;
 }
 
 function PlayTracksActionProbe({
@@ -193,6 +103,11 @@ function PlayTracksActionProbe({
       play-tracks
     </button>
   );
+}
+
+function TogglePlayProbe() {
+  const { togglePlay } = useWebPlayerActions();
+  return <button onClick={() => void togglePlay()}>toggle-play</button>;
 }
 
 function QueueListingProbe() {
@@ -217,57 +132,14 @@ function QueueListingProbe() {
   );
 }
 
-function renderProvider(children?: ReactNode) {
-  return render(
-    <AppRuntimeProvider
-      spotifyClient={createSpotifyClient({
-        spotifyActivity: {
-          getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
-          getCachedPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
-          getFavoriteArtists: vi.fn().mockResolvedValue([]),
-          getRecentlyPlayed: vi
-            .fn()
-            .mockResolvedValue({ items: [], rateLimited: false }),
-          getPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
-          getPlaylistTracks: vi.fn().mockResolvedValue([]),
-          getTopArtists: vi.fn().mockResolvedValue([]),
-        },
-      })}
-    >
-      <SpotifyActivityProvider>
-        <WebPlayerProvider>{children ?? <PlayerProbe />}</WebPlayerProvider>
-      </SpotifyActivityProvider>
-    </AppRuntimeProvider>,
-  );
-}
-
-function createMockIronmanClient() {
-  return {
-    getStatus: vi.fn().mockResolvedValue(null),
-    start: vi.fn(),
-    activateHardcore: vi.fn(),
-    surrender: vi.fn(),
-    reportWeakness: vi.fn().mockResolvedValue(null),
-    poll: vi.fn().mockResolvedValue({ count: 0 }),
-  } satisfies IronmanClient;
-}
-
-function renderProviderWithClient(
-  {
-    spotifyClient,
-    ironmanClient,
-  }: {
-    spotifyClient?: Parameters<typeof createSpotifyClient>[0];
-    ironmanClient?: IronmanClient;
-  },
+function renderProvider(
+  spotifyClient?: Parameters<typeof createSpotifyClient>[0],
   children?: ReactNode,
 ) {
   return render(
     <AppRuntimeProvider
       spotifyClient={createSpotifyClient({
         spotifyActivity: {
-          getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
-          getCachedPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
           getFavoriteArtists: vi.fn().mockResolvedValue([]),
           getRecentlyPlayed: vi
             .fn()
@@ -279,7 +151,6 @@ function renderProviderWithClient(
         },
         ...spotifyClient,
       })}
-      ironmanClient={ironmanClient}
     >
       <SpotifyActivityProvider>
         <WebPlayerProvider>{children ?? <PlayerProbe />}</WebPlayerProvider>
@@ -288,45 +159,12 @@ function renderProviderWithClient(
   );
 }
 
-function buildStreak(overrides: Partial<StreakData> = {}): StreakData {
-  return {
-    id: "streak-1",
-    trackId: "track-1",
-    trackName: "Test Track",
-    trackArtist: "Test Artist",
-    trackImage: null,
-    trackDuration: 123000,
-    count: 7,
-    active: true,
-    hardcore: false,
-    startedAt: "2026-04-07T00:00:00.000Z",
-    ...overrides,
-  };
-}
-
 describe("WebPlayerProvider", () => {
   beforeEach(() => {
-    FakeBroadcastChannel.reset();
     vi.restoreAllMocks();
     clearCachedSpotifyAccountLink();
     clearCachedSpotifyAccessToken();
     mockToastError.mockReset();
-
-    Object.defineProperty(window, "BroadcastChannel", {
-      configurable: true,
-      writable: true,
-      value: FakeBroadcastChannel,
-    });
-
-    Object.defineProperty(globalThis, "crypto", {
-      configurable: true,
-      value: { randomUUID: () => "self-tab" },
-    });
-
-    Object.defineProperty(document, "visibilityState", {
-      configurable: true,
-      value: "visible",
-    });
 
     mockUseSession.mockReturnValue({
       data: { user: { id: "user-1" } },
@@ -340,9 +178,6 @@ describe("WebPlayerProvider", () => {
       },
     ]);
     mockGetAccessToken.mockResolvedValue({ data: { accessToken: "token" } });
-    mockUseBrowserSearchParams.mockReturnValue({
-      get: () => null,
-    });
     mockUseSpotify.mockReturnValue({
       ...baseSpotifyMock,
     });
@@ -352,91 +187,38 @@ describe("WebPlayerProvider", () => {
     vi.unstubAllGlobals();
   });
 
-  it("refreshes streak status on mount, focus, and visible-tab transitions", async () => {
-    const ironman = createMockIronmanClient();
-    renderProviderWithClient({ ironmanClient: ironman });
-
-    await waitFor(() => {
-      expect(ironman.getStatus).toHaveBeenCalledTimes(1);
-    });
-
-    Object.defineProperty(document, "visibilityState", {
-      configurable: true,
-      value: "hidden",
-    });
-    act(() => {
-      document.dispatchEvent(new Event("visibilitychange"));
-    });
-    expect(ironman.getStatus).toHaveBeenCalledTimes(1);
-
-    Object.defineProperty(document, "visibilityState", {
-      configurable: true,
-      value: "visible",
-    });
-    act(() => {
-      document.dispatchEvent(new Event("visibilitychange"));
-    });
-    await waitFor(() => {
-      expect(ironman.getStatus).toHaveBeenCalledTimes(2);
-    });
-
-    act(() => {
-      window.dispatchEvent(new Event("focus"));
-    });
-    await waitFor(() => {
-      expect(ironman.getStatus).toHaveBeenCalledTimes(3);
-    });
-  });
-
-  it("updates streak state from other tabs but ignores its own broadcasts", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
-      new Response("null", {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+  it("tracks the current track after a successful play request", async () => {
+    renderProvider(
+      undefined,
+      <>
+        <PlayerProbe />
+        <PlayActionProbe
+          track={{
+            id: "track-1",
+            name: "Track One",
+            artist: "Artist One",
+            albumImage: null,
+            durationMs: 123000,
+          }}
+        />
+      </>,
     );
 
-    renderProvider();
-
     await waitFor(() => {
-      expect(screen.getByTestId("track")).toHaveTextContent("none");
+      expect(mockAuthFetch).toHaveBeenCalled();
     });
 
-    const channel = new FakeBroadcastChannel("ironman-streak");
-
-    act(() => {
-      channel.postMessage({
-        type: "streak_state",
-        source: "other-tab",
-        streak: buildStreak({ count: 11, trackName: "Remote Track" }),
-      });
+    await act(async () => {
+      screen.getByRole("button", { name: "play-track" }).click();
+      await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("track")).toHaveTextContent("Remote Track");
+      expect(screen.getByTestId("track")).toHaveTextContent("Track One");
     });
-    expect(screen.getByTestId("count")).toHaveTextContent("11");
-
-    act(() => {
-      channel.postMessage({
-        type: "streak_state",
-        source: "self-tab",
-        streak: buildStreak({ count: 99, trackName: "Should Ignore" }),
-      });
-    });
-
-    expect(screen.getByTestId("track")).toHaveTextContent("Remote Track");
-    expect(screen.getByTestId("count")).toHaveTextContent("11");
   });
 
   it("deduplicates same-track playback requests while a start is already in flight", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValue(
-      new Response("null", {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-
     let resolvePlay: ((value: { ok: boolean; status: number }) => void) | null =
       null;
     const playMock = vi.fn().mockImplementation(
@@ -452,6 +234,7 @@ describe("WebPlayerProvider", () => {
     });
 
     renderProvider(
+      undefined,
       <PlayActionProbe
         track={{
           id: "track-1",
@@ -496,6 +279,7 @@ describe("WebPlayerProvider", () => {
 
   it("exposes the current queue listing for multi-track playback", async () => {
     renderProvider(
+      undefined,
       <>
         <QueueListingProbe />
         <PlayTracksActionProbe
@@ -529,10 +313,6 @@ describe("WebPlayerProvider", () => {
     });
 
     await act(async () => {
-      await Promise.resolve();
-    });
-
-    await act(async () => {
       screen.getByRole("button", { name: "play-tracks" }).click();
       await Promise.resolve();
     });
@@ -556,41 +336,6 @@ describe("WebPlayerProvider", () => {
     expect(
       screen.getByTestId("queue-listing-playback-index"),
     ).toHaveTextContent("1");
-  });
-
-  it("clears the local streak immediately after surrender without waiting for repeat cleanup", async () => {
-    const ironman = createMockIronmanClient();
-    ironman.getStatus.mockResolvedValue(buildStreak());
-    ironman.surrender.mockResolvedValue(undefined);
-
-    const repeatDeferred = createDeferred<void>();
-    mockUseSpotify.mockReturnValue({
-      ...baseSpotifyMock,
-      setRepeat: vi.fn().mockImplementation(() => repeatDeferred.promise),
-    });
-
-    renderProviderWithClient(
-      { ironmanClient: ironman },
-      <>
-        <PlayerProbe />
-        <SurrenderActionProbe />
-      </>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId("track")).toHaveTextContent("Test Track");
-    });
-
-    act(() => {
-      screen.getByRole("button", { name: "surrender" }).click();
-    });
-
-    await waitFor(() => {
-      expect(ironman.surrender).toHaveBeenCalledTimes(1);
-      expect(screen.getByTestId("track")).toHaveTextContent("none");
-    });
-
-    repeatDeferred.resolve(undefined);
   });
 
   it("refreshes the cached Spotify token after the signed-in user changes", async () => {
@@ -617,16 +362,14 @@ describe("WebPlayerProvider", () => {
       rerender(
         <AppRuntimeProvider
           spotifyClient={createSpotifyClient({
-          spotifyActivity: {
-            getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
-            getCachedPlaylistsPage: vi
-              .fn()
-              .mockResolvedValue({ items: [], total: 0 }),
-            getFavoriteArtists: vi.fn().mockResolvedValue([]),
+            spotifyActivity: {
+              getFavoriteArtists: vi.fn().mockResolvedValue([]),
               getRecentlyPlayed: vi
                 .fn()
                 .mockResolvedValue({ items: [], rateLimited: false }),
-              getPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+              getPlaylistsPage: vi
+                .fn()
+                .mockResolvedValue({ items: [], total: 0 }),
               getPlaylistTracks: vi.fn().mockResolvedValue([]),
               getTopArtists: vi.fn().mockResolvedValue([]),
             },
@@ -654,8 +397,10 @@ describe("WebPlayerProvider", () => {
   });
 
   it("shows an error when resume fallback playback fails on the SDK device", async () => {
-    const ironman = createMockIronmanClient();
-    ironman.getStatus.mockResolvedValue(buildStreak());
+    const playMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 200 })
+      .mockResolvedValueOnce({ ok: false, status: 429 });
 
     mockUseSpotify.mockReturnValue({
       ...baseSpotifyMock,
@@ -667,24 +412,37 @@ describe("WebPlayerProvider", () => {
       },
       resume: vi.fn().mockResolvedValue({ ok: false, status: 404 }),
       waitForReady: vi.fn().mockResolvedValue("device-1"),
-      play: vi.fn().mockResolvedValue({ ok: false, status: 429 }),
+      play: playMock,
     });
 
-    function TogglePlayProbe() {
-      const { togglePlay } = useWebPlayerActions();
-      return <button onClick={() => void togglePlay()}>toggle-play</button>;
-    }
-
-    renderProviderWithClient(
-      { ironmanClient: ironman },
+    renderProvider(
+      undefined,
       <>
-        <TogglePlayProbe />
         <PlayerProbe />
+        <PlayActionProbe
+          track={{
+            id: "track-1",
+            name: "Track One",
+            artist: "Artist One",
+            albumImage: null,
+            durationMs: 123000,
+          }}
+        />
+        <TogglePlayProbe />
       </>,
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("track")).toHaveTextContent("Test Track");
+      expect(mockAuthFetch).toHaveBeenCalled();
+    });
+
+    await act(async () => {
+      screen.getByRole("button", { name: "play-track" }).click();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("track")).toHaveTextContent("Track One");
     });
 
     await act(async () => {

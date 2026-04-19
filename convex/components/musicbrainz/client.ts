@@ -2,7 +2,7 @@ import { MusicBrainzApiError } from "./errors";
 
 const MUSICBRAINZ_API = "https://musicbrainz.org/ws/2";
 const MUSICBRAINZ_USER_AGENT =
-  "ironman/0.1.0 (MusicBrainz artist enrichment lookup)";
+  "rooms/0.1.0 (MusicBrainz artist enrichment lookup)";
 
 export interface MusicBrainzArtist {
   id: string;

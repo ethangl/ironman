@@ -2,17 +2,16 @@ import { Clock3Icon } from "lucide-react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
+import { useAppAuth } from "@/app";
+import { Button } from "@/components/ui/button";
 import {
   replaceBrowserUrl,
   useBrowserSearchParams,
 } from "@/hooks/use-browser-search-params";
-import { Button } from "@/components/ui/button";
 import {
   convexLinkSocialAccount,
   fetchSpotifyAuthCooldown,
 } from "@/lib/convex-auth-client";
-import { cn } from "@/lib/utils";
-import { useAppAuth } from "@/app";
 
 const SPOTIFY_AUTH_PROVIDER = "spotify";
 const SPOTIFY_AUTH_COOLDOWN_KEY = "spotify-auth-cooldown-until";
@@ -71,11 +70,7 @@ function subscribeToSpotifyCooldown(onStoreChange: () => void) {
   };
 }
 
-export function LoginButton({
-  align = "end",
-}: {
-  align?: "start" | "end";
-}) {
+export function LoginButton() {
   const { session, isPending, signIn } = useAppAuth();
   const searchParams = useBrowserSearchParams();
   const [now, setNow] = useState(() => Date.now());
@@ -159,6 +154,7 @@ export function LoginButton({
   }
 
   const buttonLabel = session ? "Reconnect Spotify" : "Sign in with Spotify";
+
   const startSpotifyAuth = () => {
     const payload = {
       provider: "spotify" as const,
@@ -174,34 +170,19 @@ export function LoginButton({
   };
 
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-1.5",
-        align === "start" ? "items-start" : "items-end",
-      )}
+    <Button
+      disabled={isCoolingDown}
+      onClick={startSpotifyAuth}
+      className=" bg-[#1DB954] font-semibold gap-2.5 pr-4 text-sm text-mist-950 hover:bg-[#1ed760] disabled:bg-[#1DB954]/45 disabled:text-mist-950/80"
     >
-      <Button
-        disabled={isCoolingDown}
-        onClick={startSpotifyAuth}
-        className=" bg-[#1DB954] font-semibold gap-2.5 pr-4 text-sm text-mist-950 hover:bg-[#1ed760] disabled:bg-[#1DB954]/45 disabled:text-mist-950/80"
-      >
-        {isCoolingDown ? (
-          <Clock3Icon className="h-4 w-4" />
-        ) : (
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-          </svg>
-        )}
-        {isCoolingDown
-          ? (cooldownLabel ?? "Spotify cooling down")
-          : buttonLabel}
-      </Button>
-      {isCoolingDown && (
-        <p className="text-[11px] text-muted-foreground">
-          Spotify asked us to slow down. Try reconnecting{" "}
-          {formatCooldownWindow(cooldownRemainingMs)}.
-        </p>
+      {isCoolingDown ? (
+        <Clock3Icon className="h-4 w-4" />
+      ) : (
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+        </svg>
       )}
-    </div>
+      {isCoolingDown ? (cooldownLabel ?? "Spotify cooling down") : buttonLabel}
+    </Button>
   );
 }

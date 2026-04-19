@@ -1,43 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useSpotifyClient } from "@/features/spotify/client";
-import { EnforcementEngine, useIronmanPlayerActions } from "@/features/ironman";
-import { useBrowserSearchParams } from "@/hooks/use-browser-search-params";
+import { useAppAuth, useAppCapabilities } from "@/app";
+import { useSpotifyActivity } from "@/features/spotify/activity";
+import type { SpotifyTrack, Track } from "@/types";
+import { cn } from "@/lib/utils";
+import { useSpotify } from "../sdk/use-spotify";
+import { MiniPlayer } from "./mini-player";
+import { StandardPlayer } from "./standard-player";
+import { usePlayerPalette } from "./use-player-palette";
+import { usePlayerPlayback } from "./use-player-playback";
 import {
   WebPlayerActionsContext,
   WebPlayerStateContext,
 } from "./use-web-player";
-import { cn } from "@/lib/utils";
-import { useAppAuth, useAppCapabilities, useIronmanClient } from "@/app";
-import { useEnsureTrackAudioFeatures } from "@/features/reccobeats";
-import { useSpotifyActivity } from "@/features/spotify/activity";
-import { StreakData, Track } from "@/types";
-import type { SpotifyTrack } from "@/types";
-import { MiniPlayer } from "./mini-player";
-import { StandardPlayer } from "./standard-player";
-import { useChallengeAutoplay } from "./use-challenge-autoplay";
-import { usePlayerPalette } from "./use-player-palette";
-import { usePlayerPlayback } from "./use-player-playback";
-import { useSpotify } from "../sdk/use-spotify";
-import { useStreakSync } from "./use-streak-sync";
 
 export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
-  const spotifyClient = useSpotifyClient();
-  const ironmanClient = useIronmanClient();
   const { session, getSpotifyAccessToken } = useAppAuth();
-  const { canControlPlayback, canUseIronman } = useAppCapabilities();
+  const { canControlPlayback } = useAppCapabilities();
   const { appendRecentTrack } = useSpotifyActivity();
   const tokenRef = useRef<string | null>(null);
-  const searchParams = useBrowserSearchParams();
-  const hasSession = !!session;
 
-  // Track & streak state
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
-  const [streak, setStreak] = useState<StreakData | null>(null);
-  const [count, setCount] = useState(0);
-  const streakRef = useRef<StreakData | null>(null);
-
-  // Playback state
   const [progressMs, setProgressMs] = useState(0);
   const [durationMs, setDurationMs] = useState(0);
   const [expanded, setExpanded] = useState(false);
@@ -59,14 +42,11 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
     return refreshAccessToken();
   }, [refreshAccessToken]);
-  const isStreakActive = !!streak?.active;
-  const trackId = streak?.trackId ?? currentTrack?.id ?? null;
-  const lockInTrackId = searchParams.get("lockIn");
 
   const spotify = useSpotify({
     getAccessToken: refreshAccessToken,
     tokenRef,
-    trackId,
+    trackId: currentTrack?.id ?? null,
   });
   const {
     sdkState,
@@ -77,10 +57,18 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     pause,
     setVolume: setSpotifyVolume,
     setRepeat,
-    getCurrentlyPlaying,
   } = spotify;
+
+  useEffect(() => {
+    if (!sdkState) {
+      return;
+    }
+
+    setProgressMs(sdkState.position);
+    setDurationMs(sdkState.duration);
+  }, [sdkState]);
+
   const {
-    clearPlaybackAfterBrokenStreak,
     hasQueue,
     nextTrack,
     paused,
@@ -89,7 +77,6 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     prevTrack,
     queue,
     queueIndex,
-    restoreTrackAfterSurrender,
     setVolume,
     shuffled,
     togglePlay,
@@ -106,39 +93,12 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     resume,
     sdkState,
     setCurrentTrack,
-    setRepeat,
     setSpotifyVolume,
-    streakActive: isStreakActive,
-    streakTrackId: streak?.trackId ?? null,
     waitForReady,
   });
-  const artworkUrl = streak?.trackImage ?? currentTrack?.albumImage ?? null;
+
+  const artworkUrl = currentTrack?.albumImage ?? null;
   const palette = usePlayerPalette(artworkUrl);
-  useEnsureTrackAudioFeatures(hasSession ? trackId : null);
-
-  const applyStreakState = useCallback((nextStreak: StreakData | null) => {
-    streakRef.current = nextStreak;
-    setStreak(nextStreak);
-    if (nextStreak) {
-      setCount(nextStreak.count);
-      setDurationMs(nextStreak.trackDuration);
-      return;
-    }
-
-    setCount(0);
-    setDurationMs(0);
-  }, []);
-
-  const fetchStreakStatus =
-    useCallback(async (): Promise<StreakData | null> => {
-      return ironmanClient.getStatus();
-    }, [ironmanClient]);
-
-  const { broadcastStreakState } = useStreakSync({
-    applyStreakState,
-    getStatus: fetchStreakStatus,
-    hasSession,
-  });
 
   const pendingRecentTrackRef = useRef<SpotifyTrack | null>(null);
   const prevCurrentTrackIdRef = useRef<string | null>(null);
@@ -172,47 +132,6 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     }
   }, [appendRecentTrack, sdkState]);
 
-  // --- Enforcement callbacks ---
-
-  const handleCountUpdate = useCallback(
-    (newCount: number) => {
-      if (!streakRef.current) return;
-
-      const nextStreak = { ...streakRef.current, count: newCount };
-      applyStreakState(nextStreak);
-      broadcastStreakState(nextStreak);
-    },
-    [applyStreakState, broadcastStreakState],
-  );
-
-  const handleProgress = useCallback((p: number, d: number) => {
-    setProgressMs(p);
-    setDurationMs(d);
-  }, []);
-
-  const { activateHardcore, handleBroken, lockIn, surrender } =
-    useIronmanPlayerActions({
-      applyStreakState,
-      broadcastStreakState,
-      canUseIronman,
-      clearPlaybackAfterBrokenStreak,
-      currentTrack,
-      getAccessToken,
-      ironmanClient,
-      restoreTrackAfterSurrender,
-      setCurrentTrack,
-      setRepeat,
-      streak,
-    });
-
-  useChallengeAutoplay({
-    canControlPlayback,
-    hasSession,
-    lockInTrackId,
-    playTrack,
-    searchTracks: spotifyClient.search.searchTracks,
-  });
-
   const actions = useMemo(
     () => ({
       isAuthenticated: canControlPlayback,
@@ -223,9 +142,6 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
       togglePlay,
       toggleShuffle,
       setVolume,
-      lockIn,
-      activateHardcore,
-      surrender,
       setExpanded,
       spotify: {
         init: initSpotify,
@@ -243,9 +159,6 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
       togglePlay,
       toggleShuffle,
       setVolume,
-      lockIn,
-      activateHardcore,
-      surrender,
       setExpanded,
       initSpotify,
       waitForReady,
@@ -262,8 +175,6 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
       progressMs,
       durationMs,
       volume,
-      streak,
-      count,
       expanded,
       palette,
       queue,
@@ -278,8 +189,6 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
       progressMs,
       durationMs,
       volume,
-      streak,
-      count,
       expanded,
       palette,
       queue,
@@ -292,19 +201,6 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   return (
     <WebPlayerActionsContext.Provider value={actions}>
       <WebPlayerStateContext.Provider value={state}>
-        {isStreakActive && (
-          <EnforcementEngine
-            streak={streak}
-            getCurrentlyPlaying={getCurrentlyPlaying}
-            play={play}
-            setRepeat={setRepeat}
-            onCountUpdate={handleCountUpdate}
-            onProgress={handleProgress}
-            onWeakness={() => {}}
-            onBroken={handleBroken}
-            sdkState={sdkState}
-          />
-        )}
         {children}
         <div
           className={cn(

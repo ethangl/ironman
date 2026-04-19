@@ -74,11 +74,9 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           albumImage: string | null;
           albumName: string;
           artist: string;
-          difficulty?: number;
           durationMs: number;
           id: string;
           name: string;
-          topStreak?: { count: number; userName: string | null } | null;
         }>,
         Name
       >;
@@ -93,11 +91,9 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
               albumImage: string | null;
               albumName: string;
               artist: string;
-              difficulty?: number;
               durationMs: number;
               id: string;
               name: string;
-              topStreak?: { count: number; userName: string | null } | null;
             };
           }>;
           rateLimited: boolean;
@@ -188,11 +184,9 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           albumImage: string | null;
           albumName: string;
           artist: string;
-          difficulty?: number;
           durationMs: number;
           id: string;
           name: string;
-          topStreak?: { count: number; userName: string | null } | null;
         }>,
         Name
       >;
@@ -228,11 +222,9 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             albumImage: string | null;
             albumName: string;
             artist: string;
-            difficulty?: number;
             durationMs: number;
             id: string;
             name: string;
-            topStreak?: { count: number; userName: string | null } | null;
           }>;
         } | null,
         Name
@@ -262,11 +254,9 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             albumImage: string | null;
             albumName: string;
             artist: string;
-            difficulty?: number;
             durationMs: number;
             id: string;
             name: string;
-            topStreak?: { count: number; userName: string | null } | null;
           }>;
         },
         Name
@@ -279,11 +269,9 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           albumImage: string | null;
           albumName: string;
           artist: string;
-          difficulty?: number;
           durationMs: number;
           id: string;
           name: string;
-          topStreak?: { count: number; userName: string | null } | null;
         }>,
         Name
       >;

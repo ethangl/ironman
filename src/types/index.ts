@@ -10,8 +10,6 @@ export interface Track {
 
 export interface SpotifyTrack extends Track {
   albumName: string;
-  topStreak?: { count: number; userName: string | null } | null;
-  difficulty?: number;
 }
 
 export interface SpotifyArtist {
@@ -114,13 +112,3 @@ export interface LastFmArtistMatch {
 }
 
 export type { TrackSnapshot };
-
-export interface StreakData extends TrackSnapshot {
-  id: string;
-  count: number;
-  active: boolean;
-  hardcore?: boolean;
-  startedAt: string;
-  userName?: string;
-  userImage?: string;
-}

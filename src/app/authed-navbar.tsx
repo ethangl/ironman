@@ -53,11 +53,6 @@ export function AuthedNavbar() {
 
   return (
     <header className="backdrop-blur-lg backdrop-brightness-25 bottom-auto fixed flex inset-0 items-center h-16 justify-between px-4 top-0 z-20">
-      <AppLink href="/home" className="flex items-center gap-2">
-        <span className="text-xl font-black tracking-tighter text-foreground">
-          ironman<span className="text-red-500">.fm</span>
-        </span>
-      </AppLink>
       <div className="flex items-center gap-3">
         <div className="hidden max-w-xs text-right md:block">
           <p className="text-xs font-semibold text-foreground">

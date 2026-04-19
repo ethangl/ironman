@@ -73,7 +73,6 @@ describe("AppRuntimeProvider", () => {
     expect(result.current.capabilities.spotifyStatus.code).toBe("signed_out");
     expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(false);
     expect(result.current.capabilities.canControlPlayback).toBe(false);
-    expect(result.current.capabilities.canUseIronman).toBe(false);
     expect(mockAuthFetch).not.toHaveBeenCalled();
     expect(mockGetAccessToken).not.toHaveBeenCalled();
     vi.useRealTimers();
@@ -97,7 +96,6 @@ describe("AppRuntimeProvider", () => {
     expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
     expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(false);
     expect(result.current.capabilities.canControlPlayback).toBe(false);
-    expect(result.current.capabilities.canUseIronman).toBe(false);
     expect(mockGetAccessToken).not.toHaveBeenCalled();
 
     deferred.resolve([
@@ -132,7 +130,6 @@ describe("AppRuntimeProvider", () => {
 
     expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(true);
     expect(result.current.capabilities.canControlPlayback).toBe(true);
-    expect(result.current.capabilities.canUseIronman).toBe(true);
     expect(mockGetAccessToken).not.toHaveBeenCalled();
   });
 
@@ -174,7 +171,6 @@ describe("AppRuntimeProvider", () => {
     });
     expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(false);
     expect(result.current.capabilities.canControlPlayback).toBe(false);
-    expect(result.current.capabilities.canUseIronman).toBe(false);
 
     accessToken = "fresh-token";
 
@@ -188,7 +184,6 @@ describe("AppRuntimeProvider", () => {
       expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
     });
     expect(result.current.capabilities.canControlPlayback).toBe(true);
-    expect(result.current.capabilities.canUseIronman).toBe(true);
   });
 
   it("does not bounce back to checking when the same session user re-renders", async () => {
@@ -260,7 +255,6 @@ describe("AppRuntimeProvider", () => {
     expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
     expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(true);
     expect(result.current.capabilities.canControlPlayback).toBe(true);
-    expect(result.current.capabilities.canUseIronman).toBe(true);
   });
 
   it("does not flash signed_out if a session appears during the settle window", async () => {

@@ -62,8 +62,6 @@ vi.mock("@/features/spotify/player", () => ({
     progressMs: 0,
     durationMs: 0,
     volume: 1,
-    streak: null,
-    count: 0,
     expanded: false,
     palette: [],
     queue: [],
@@ -76,9 +74,6 @@ vi.mock("@/features/spotify/player", () => ({
     togglePlay: vi.fn(),
     toggleShuffle: vi.fn(),
     setVolume: vi.fn(),
-    lockIn: vi.fn(),
-    activateHardcore: vi.fn(),
-    surrender: vi.fn(),
     setExpanded: vi.fn(),
     spotify: {
       init: vi.fn(),
@@ -242,8 +237,6 @@ describe("search", () => {
         searchTracks: vi.fn().mockResolvedValue([]),
       },
       spotifyActivity: {
-        getCachedFavoriteArtists: vi.fn().mockResolvedValue([]),
-        getCachedPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
         getFavoriteArtists: vi.fn().mockResolvedValue([]),
         getRecentlyPlayed: vi
           .fn()

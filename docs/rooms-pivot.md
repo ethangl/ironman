@@ -292,38 +292,17 @@ This likely requires replacing the current feed event schema in `convex/feed.ts`
 
 ## Migration Strategy
 
-Because this is a true pivot, we should optimize for clean replacement rather than compatibility scaffolding.
-
 ### Phase 1: Remove old model and surfaces
 
 Status: complete
-
-- remove streak, weakness, hardcore, surrender, and challenge language from the main app direction
-- delete or disable old player controls tied to lock-in behavior
-- remove old song-board and song-stats product surfaces
-- treat any remaining old code as temporary cleanup debt, not active product code
-
-Deliverable:
-
-- the app no longer presents the song-streak loop as a live product feature
 
 ### Phase 2: Delete legacy backend and frontend code
 
 Status: complete
 
-- remove `convex/ironman.ts`
-- remove `convex/songSummaries.ts`
-- remove `convex/streaks.ts`
-- remove `convex/leaderboards.ts`
-- remove `convex/songs.ts`
-- remove `src/features/ironman/*`
-- remove old tests for streak, weakness, hardcore, and song-board behavior
-
-Deliverable:
-
-- no active product-critical code depends on the streak model
-
 ### Phase 3: Add room backend foundations
+
+Status: complete
 
 - add `rooms`
 - add `roomMemberships`
@@ -351,14 +330,11 @@ Deliverable:
 - replace lock-in flow with join room flow
 - build room queue UI
 - add room playback sync behavior
-- replace old home leaderboard content
-- replace song and challenge routes
-- update live feed to room events
-- remove streak-specific player UI
+- display live feed of room events
 
 Deliverable:
 
-- user can join a room, hear the room's current track, and the app no longer exposes the old ironman loop in the main UI
+- user can join a room and hear the room's current track
 
 ## Definition Of Done
 

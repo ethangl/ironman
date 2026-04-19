@@ -1,4 +1,4 @@
-# IRONMAN.fm
+# rooms.fm
 
 This project uses a Vite + React Router frontend with Convex for backend data, auth, and server-side actions.
 

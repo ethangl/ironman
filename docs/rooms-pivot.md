@@ -399,6 +399,8 @@ That is acceptable if we want the cleanest architecture and the clearest product
 
 ### Phase 1: Remove old model and surfaces
 
+Status: complete
+
 - remove streak, weakness, hardcore, surrender, and challenge language from the main app direction
 - delete or disable old player controls tied to lock-in behavior
 - remove old song-board and song-stats product surfaces
@@ -409,6 +411,8 @@ Deliverable:
 - the app no longer presents the song-streak loop as a live product feature
 
 ### Phase 2: Delete legacy backend and frontend code
+
+Status: complete
 
 - remove `convex/ironman.ts`
 - remove `convex/songSummaries.ts`

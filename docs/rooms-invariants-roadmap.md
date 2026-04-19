@@ -28,10 +28,10 @@ If an invariant in an earlier section is not true yet, we should avoid building 
 
 These boxes make the old model no longer the active product.
 
-- [ ] The app no longer presents song lock-in as the main gameplay loop.
-- [ ] The app no longer presents weakness, hardcore, surrender, or challenge as active product concepts.
-- [ ] Old song-board and song-stats surfaces are removed or disabled as product destinations.
-- [ ] We are no longer making implementation decisions in order to preserve streak compatibility.
+- [x] The app no longer presents song lock-in as the main gameplay loop.
+- [x] The app no longer presents weakness, hardcore, surrender, or challenge as active product concepts.
+- [x] Old song-board and song-stats surfaces are removed or disabled as product destinations.
+- [x] We are no longer making implementation decisions in order to preserve streak compatibility.
 
 Exit condition:
 
@@ -41,14 +41,14 @@ The old model is not the product we are actively shipping, even if some cleanup 
 
 These boxes ensure we are not carrying the old product as hidden runtime dependency.
 
-- [ ] `convex/ironman.ts` is removed or no longer part of the active app path.
-- [ ] `convex/songSummaries.ts` is removed or no longer part of the active app path.
-- [ ] `convex/streaks.ts` is removed or no longer part of the active app path.
-- [ ] `convex/leaderboards.ts` is removed or no longer part of the active app path.
-- [ ] `convex/songs.ts` is removed or no longer part of the active app path.
-- [ ] `src/features/ironman/*` is removed or no longer part of the active app path.
-- [ ] Player UI no longer depends on lock-in-only controls.
-- [ ] Legacy tests that only verify streak mechanics are removed or replaced.
+- [x] `convex/ironman.ts` is removed or no longer part of the active app path.
+- [x] `convex/songSummaries.ts` is removed or no longer part of the active app path.
+- [x] `convex/streaks.ts` is removed or no longer part of the active app path.
+- [x] `convex/leaderboards.ts` is removed or no longer part of the active app path.
+- [x] `convex/songs.ts` is removed or no longer part of the active app path.
+- [x] `src/features/ironman/*` is removed or no longer part of the active app path.
+- [x] Player UI no longer depends on lock-in-only controls.
+- [x] Legacy tests that only verify streak mechanics are removed or replaced.
 
 Exit condition:
 

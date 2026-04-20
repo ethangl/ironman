@@ -38,7 +38,7 @@ export const PlaylistCell: FC<PlaylistCellProps> = ({
 
   return (
     <>
-      <div className="flex gap-3 items-center">
+      <div className="flex gap-2 items-center">
         {count && (
           <div className="bg-black/25 font-bold flex items-center justify-center rounded-3xl text-xs text-white size-8">
             {count}

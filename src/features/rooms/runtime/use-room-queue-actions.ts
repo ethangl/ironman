@@ -9,6 +9,7 @@ import { reportRoomError } from "./room-runtime-utils";
 
 export function useRoomQueueActions(activeRoomId: RoomId | null) {
   const enqueueTrackMutation = useMutation(api.rooms.enqueueTrack);
+  const enqueueTracksMutation = useMutation(api.rooms.enqueueTracks);
   const removeQueueItemMutation = useMutation(api.rooms.removeQueueItem);
   const moveQueueItemMutation = useMutation(api.rooms.moveQueueItem);
   const clearQueueMutation = useMutation(api.rooms.clearQueue);
@@ -35,6 +36,37 @@ export function useRoomQueueActions(activeRoomId: RoomId | null) {
       }
     },
     [activeRoomId, enqueueTrackMutation],
+  );
+
+  const enqueueTracks = useCallback(
+    async (tracks: SpotifyTrack[], roomId?: RoomId | null) => {
+      const nextRoomId = roomId ?? activeRoomId;
+      if (!nextRoomId) {
+        toast.error("Join a room before you add tracks.");
+        return;
+      }
+
+      if (tracks.length === 0) {
+        toast.error("That playlist does not have any playable tracks.");
+        return;
+      }
+
+      try {
+        await enqueueTracksMutation({
+          roomId: nextRoomId,
+          tracks: tracks.map((track) => ({
+            trackId: track.id,
+            trackName: track.name,
+            trackArtists: [track.artist],
+            trackImageUrl: track.albumImage ?? undefined,
+            trackDurationMs: track.durationMs,
+          })),
+        });
+      } catch (error) {
+        reportRoomError(error);
+      }
+    },
+    [activeRoomId, enqueueTracksMutation],
   );
 
   const removeQueueItem = useCallback(
@@ -78,9 +110,10 @@ export function useRoomQueueActions(activeRoomId: RoomId | null) {
     () => ({
       clearQueue,
       enqueueTrack,
+      enqueueTracks,
       moveQueueItem,
       removeQueueItem,
     }),
-    [clearQueue, enqueueTrack, moveQueueItem, removeQueueItem],
+    [clearQueue, enqueueTrack, enqueueTracks, moveQueueItem, removeQueueItem],
   );
 }

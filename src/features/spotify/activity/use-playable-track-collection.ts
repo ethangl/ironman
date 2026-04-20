@@ -25,38 +25,48 @@ export function usePlayableTrackCollection<TItem extends Identifiable>({
     return tracksByIdRef.current.get(itemId) ?? [];
   }, []);
 
+  const loadItemTracks = useCallback(
+    async (item: TItem) => {
+      const cached = tracksByIdRef.current.get(item.id);
+      if (cached) {
+        return cached;
+      }
+
+      setLoadingItemId(item.id);
+      try {
+        const tracks = await loadTracks(item);
+        tracksByIdRef.current.set(item.id, tracks);
+        return tracks;
+      } finally {
+        setLoadingItemId((current) => (current === item.id ? null : current));
+      }
+    },
+    [loadTracks],
+  );
+
   const playItem = useCallback(
     async (item: TItem) => {
       try {
-        const cached = tracksByIdRef.current.get(item.id);
-        if (cached) {
-          await playTracks(cached);
-          return;
-        }
-
-        setLoadingItemId(item.id);
-        const tracks = await loadTracks(item);
+        const tracks = await loadItemTracks(item);
 
         if (tracks.length === 0) {
           toast.error(emptyMessage);
           return;
         }
 
-        tracksByIdRef.current.set(item.id, tracks);
         await playTracks(tracks);
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : fallbackErrorMessage,
         );
-      } finally {
-        setLoadingItemId((current) => (current === item.id ? null : current));
       }
     },
-    [emptyMessage, fallbackErrorMessage, loadTracks, playTracks],
+    [emptyMessage, fallbackErrorMessage, loadItemTracks, playTracks],
   );
 
   return {
     getCachedTracks,
+    loadItemTracks,
     loadingItemId,
     playItem,
   };

@@ -86,6 +86,23 @@ export function usePlayerPlayback({
     [canControlPlayback, setCurrentTrack, startPlayback],
   );
 
+  const syncTrack = useCallback(
+    async (track: Track, offsetMs = 0) => {
+      if (!canControlPlayback) return;
+
+      const nextQueueState = createSingleTrackQueueState(track);
+      await startPlayback({
+        track,
+        offsetMs,
+        onAccepted: () => {
+          setCurrentTrack(track);
+          setQueueState(nextQueueState);
+        },
+      });
+    },
+    [canControlPlayback, setCurrentTrack, startPlayback],
+  );
+
   const playTracks = useCallback(
     async (tracks: Track[], startIndex = 0) => {
       if (!canControlPlayback || tracks.length === 0) return;
@@ -183,6 +200,7 @@ export function usePlayerPlayback({
     queueIndex,
     setVolume,
     shuffled,
+    syncTrack,
     togglePlay,
     toggleShuffle,
     nextTrack,

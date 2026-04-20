@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 
-import { Section } from "@/components/section";
+import { Section, SectionHeader } from "@/components/section";
 import { Spinner } from "@/components/ui/spinner";
 import {
   ArtistExternalLinks,
@@ -49,12 +49,9 @@ export function ArtistRoute() {
   const { artist, albums, singles, topTracks } = data;
 
   return (
-    <main className="gap-3 grid md:grid-cols-2 items-start m-3 max-w-none p-0">
-      <Section
-        color="--color-lime-400"
-        className="relative self-stretch"
-        title={artist.name}
-      >
+    <>
+      <Section className="relative self-stretch">
+        <SectionHeader title={artist.name} />
         {artist.image && (
           <div className="absolute inset-0 mix-blend-overlay opacity-33 overflow-hidden rounded-3xl size-full">
             <Shader className="absolute inset-0">
@@ -74,6 +71,6 @@ export function ArtistRoute() {
       <Tracks title="Top Tracks" tracks={topTracks} />
       <Releases title="Singles" releases={singles} />
       <Releases title="Albums" releases={albums} />
-    </main>
+    </>
   );
 }

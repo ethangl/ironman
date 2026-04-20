@@ -1,4 +1,4 @@
-import { RefreshCw } from "lucide-react";
+import { RefreshCwIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useSpotifyActivity } from "@/features/spotify/activity";
@@ -21,7 +21,7 @@ export function SpotifyActivity() {
   const hasFavoriteArtists = favoriteArtists.length > 0;
 
   return (
-    <div className="m-3 space-y-3">
+    <>
       <Tracks
         title="Recent Tracks"
         tracks={recentTracks.map(({ track }) => track)}
@@ -29,19 +29,17 @@ export function SpotifyActivity() {
       />
       <Playlists
         title="Your Playlists"
-        display="thumbnails"
         playlists={playlists}
         action={
           <Button
             variant="ghost"
-            size="xs"
+            size="icon"
             disabled={playlistsLoading}
             onClick={() => void loadPlaylists(hasPlaylists)}
           >
-            <RefreshCw
+            <RefreshCwIcon
               className={playlistsLoading ? "animate-spin" : undefined}
             />
-            Refresh
           </Button>
         }
       />
@@ -51,17 +49,16 @@ export function SpotifyActivity() {
         action={
           <Button
             variant="ghost"
-            size="xs"
+            size="icon"
             disabled={favoriteArtistsLoading}
             onClick={() => void loadFavoriteArtists(hasFavoriteArtists)}
           >
-            <RefreshCw
+            <RefreshCwIcon
               className={favoriteArtistsLoading ? "animate-spin" : undefined}
             />
-            Refresh
           </Button>
         }
       />
-    </div>
+    </>
   );
 }

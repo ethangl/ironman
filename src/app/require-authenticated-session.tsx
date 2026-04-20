@@ -1,5 +1,9 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
+import { RoomsProvider } from "@/features/rooms";
+import { SearchProvider } from "@/features/search";
+import { SpotifyActivityProvider } from "@/features/spotify/activity";
+import { WebPlayerProvider } from "@/features/spotify/player";
 import { useAppAuth } from "./app-runtime";
 import { AuthPendingState } from "./auth-pending-state";
 
@@ -28,5 +32,15 @@ export function RequireAuthenticatedSession() {
     );
   }
 
-  return <Outlet />;
+  return (
+    <SpotifyActivityProvider>
+      <WebPlayerProvider>
+        <RoomsProvider>
+          <SearchProvider>
+            <Outlet />
+          </SearchProvider>
+        </RoomsProvider>
+      </WebPlayerProvider>
+    </SpotifyActivityProvider>
+  );
 }

@@ -1,36 +1,65 @@
-import { ComponentProps, CSSProperties, FC, ReactNode } from "react";
+import { ComponentProps, FC } from "react";
 
-import { BackgroundOverlay } from "@/components/background-overlay";
 import { cn } from "@/lib/utils";
 
-export type SectionProps = ComponentProps<"section"> & {
-  action?: ReactNode;
-  color?: string;
-  title?: string;
-};
-
-export const Section: FC<SectionProps> = ({
-  action,
+export const Section: FC<ComponentProps<"section">> = ({
   children,
   className,
-  color = "--color-emerald-400",
-  title,
-  ...props
 }) => {
   return (
     <section
-      className={cn("relative select-none", className)}
-      style={{ "--section-color": `var(${color})` } as CSSProperties}
-      {...props}
-    >
-      <BackgroundOverlay className="dark:bg-(--section-color)/50 backdrop-brightness-600 backdrop-contrast-600 mix-blend-exclusion rounded-[2rem]" />
-      {title && (
-        <header className="flex items-center justify-between gap-3 p-6 pb-2 relative text-(--section-color) z-10">
-          <h2 className="font-medium text-3xl tracking-[0.015em]">{title}</h2>
-          {action}
-        </header>
+      className={cn(
+        "relative select-none shadow-[0_1px_0_--alpha(var(--color-background)/33%)]",
+        className,
       )}
+    >
       {children}
     </section>
   );
 };
+
+export const SectionHeader: FC<ComponentProps<"header">> = ({
+  className,
+  ...props
+}) => <header className={cn("p-6 pb-0 space-y-2", className)} {...props} />;
+
+export const SectionTitle: FC<ComponentProps<"h2">> = ({
+  className,
+  ...props
+}) => (
+  <h2
+    className={cn(
+      "flex gap-3 font-medium items-center justify-between text-2xl tracking-[0.015em]",
+      className,
+    )}
+    {...props}
+  />
+);
+
+export const SectionDescription: FC<ComponentProps<"h4">> = ({
+  className,
+  ...props
+}) => (
+  <h4
+    className={cn("font-medium text-muted-foreground text-sm", className)}
+    {...props}
+  />
+);
+
+export const SectionContent: FC<ComponentProps<"div">> = ({
+  className,
+  ...props
+}) => <div className={cn("p-6", className)} {...props} />;
+
+export const SectionFooter: FC<ComponentProps<"header">> = ({
+  className,
+  ...props
+}) => (
+  <footer
+    className={cn(
+      "flex gap-3 items-center justify-between p-6 pt-0",
+      className,
+    )}
+    {...props}
+  />
+);

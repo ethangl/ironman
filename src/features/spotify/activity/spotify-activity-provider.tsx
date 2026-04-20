@@ -6,8 +6,7 @@ import {
   RECENTLY_PLAYED_LIMIT,
   useSpotifyClient,
 } from "@/features/spotify/client";
-import type { SpotifyTrack } from "@/types";
-import type { SpotifyArtist } from "@/types";
+import type { SpotifyArtist, SpotifyTrack } from "@/types";
 import type { Playlist, RecentTrack } from "@/types/spotify-activity";
 import { SpotifyActivityContext } from "./use-spotify-activity";
 import { useSpotifyPlaylistTracks } from "./use-spotify-playlist-tracks";
@@ -45,6 +44,7 @@ export function SpotifyActivityProvider({
   const loadingPlaylistOffsetsRef = useRef(new Set<number>());
   const playlistsGenerationRef = useRef(0);
   const recentlyPlayedRequestVersionRef = useRef(0);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [recentTracks, setRecentTracksState] = useState<RecentTrack[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [playlistsTotal, setPlaylistsTotal] = useState(0);
@@ -159,7 +159,10 @@ export function SpotifyActivityProvider({
               0,
               true,
             )
-          : await client.spotifyActivity.getPlaylistsPage(PLAYLIST_PAGE_SIZE, 0);
+          : await client.spotifyActivity.getPlaylistsPage(
+              PLAYLIST_PAGE_SIZE,
+              0,
+            );
         applyPlaylistsPage(nextPlaylistsPage.items, nextPlaylistsPage.total);
       } finally {
         setPlaylistsLoading(false);
@@ -205,11 +208,7 @@ export function SpotifyActivityProvider({
 
     void loadPlaylists();
     void loadFavoriteArtists();
-  }, [
-    canBrowsePersonalSpotify,
-    loadFavoriteArtists,
-    loadPlaylists,
-  ]);
+  }, [canBrowsePersonalSpotify, loadFavoriteArtists, loadPlaylists]);
 
   const refresh = useCallback(() => {
     if (!canBrowsePersonalSpotify) {
@@ -266,6 +265,7 @@ export function SpotifyActivityProvider({
   return (
     <SpotifyActivityContext.Provider
       value={{
+        isExpanded,
         recentTracks,
         playlists,
         playlistsTotal,
@@ -279,6 +279,7 @@ export function SpotifyActivityProvider({
         refresh,
         loadMorePlaylists,
         getPlaylistTracks,
+        setIsExpanded,
       }}
     >
       {children}

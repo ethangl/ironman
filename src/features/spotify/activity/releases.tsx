@@ -1,7 +1,7 @@
 import { FC, useCallback } from "react";
 
 import { List, ListItem } from "@/components/list";
-import { Section, SectionProps } from "@/components/section";
+import { Section, SectionContent, SectionHeader } from "@/components/section";
 import { useSpotifyClient } from "@/features/spotify/client";
 import type { SpotifyAlbumRelease, Track } from "@/types";
 import { PlaylistCell } from "./playlist-cell";
@@ -25,9 +25,12 @@ function formatReleaseMeta(release: SpotifyAlbumRelease) {
   ].join(" • ");
 }
 
-export type ReleasesProps = SectionProps & { releases: SpotifyAlbumRelease[] };
+export type ReleasesProps = {
+  releases: SpotifyAlbumRelease[];
+  title: string;
+};
 
-export const Releases: FC<ReleasesProps> = ({ releases, ...props }) => {
+export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
   const client = useSpotifyClient();
   const loadTracks = useCallback(
     async (release: SpotifyAlbumRelease): Promise<Track[]> => {
@@ -47,22 +50,25 @@ export const Releases: FC<ReleasesProps> = ({ releases, ...props }) => {
   }
 
   return (
-    <Section {...props}>
-      <List count={releases.length} className="p-4">
-        {releases.map((release, i) => (
-          <ListItem key={release.id}>
-            <PlaylistCell
-              count={i + 1}
-              disabled={loadingItemId === release.id}
-              image={release.image}
-              name={release.name}
-              subtitle={formatReleaseMeta(release)}
-              tracks={getCachedTracks(release.id)}
-              onPlay={() => void playItem(release)}
-            />
-          </ListItem>
-        ))}
-      </List>
+    <Section>
+      <SectionHeader>{title}</SectionHeader>
+      <SectionContent>
+        <List count={releases.length}>
+          {releases.map((release, i) => (
+            <ListItem key={release.id}>
+              <PlaylistCell
+                count={i + 1}
+                disabled={loadingItemId === release.id}
+                image={release.image}
+                name={release.name}
+                subtitle={formatReleaseMeta(release)}
+                tracks={getCachedTracks(release.id)}
+                onPlay={() => void playItem(release)}
+              />
+            </ListItem>
+          ))}
+        </List>
+      </SectionContent>
     </Section>
   );
 };

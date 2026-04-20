@@ -1,9 +1,23 @@
-import { ChevronsDownIcon, Volume2Icon, VolumeIcon } from "lucide-react";
+import {
+  ChevronsDownIcon,
+  PauseIcon,
+  PlayIcon,
+  SkipForwardIcon,
+  Volume2Icon,
+  VolumeIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { AlbumArt } from "@/components/album-art";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import {
+  formatRoomSyncLabel,
+  toRoomTrack,
+  useOptionalRooms,
+} from "@/features/rooms";
+import { RoomPlayerPanel } from "@/features/rooms/ui/room-player-panel";
+import { RoomStatusBadge } from "@/features/rooms/ui/room-status-badge";
 import { AlbumButton } from "./album-button";
 import { NextTrackButton } from "./next-track-button";
 import { PlayerWrapper } from "./player-wrapper";
@@ -22,20 +36,50 @@ function formatTime(ms: number) {
 }
 
 export function StandardPlayer() {
-  const {
-    displayArtist,
-    displayDuration,
-    displayImage,
-    displayName,
-    displayProgress,
-    expanded,
-    hasQueue,
-    palette,
-    pct,
-    volume,
-    setExpanded,
-    setVolume,
-  } = useNowPlaying();
+  const nowPlaying = useNowPlaying();
+  const rooms = useOptionalRooms();
+  const activeRoom = rooms?.activeRoom ?? null;
+  const isListeningToRoom = rooms?.isListeningToRoom ?? true;
+  const repairSync = rooms?.repairSync;
+  const resolvedPlayback = rooms?.resolvedPlayback ?? null;
+  const skipRoom = rooms?.skipRoom;
+  const stopListening = rooms?.stopListening;
+  const syncState = rooms?.syncState ?? {
+    code: "idle",
+    label: "Not listening to a room",
+    driftMs: null,
+  };
+  const roomTrack = toRoomTrack(resolvedPlayback?.currentQueueItem ?? null);
+  const isRoomMode = activeRoom !== null;
+  const roomPaused = resolvedPlayback?.paused ?? false;
+  const canControlPlayback = !!activeRoom?.playback.canControlPlayback;
+  const hasRoomTrack = !!resolvedPlayback?.currentQueueItem;
+  const canToggleListening =
+    hasRoomTrack && !roomPaused;
+  const displayArtist = activeRoom
+    ? roomTrack
+      ? `${activeRoom.room.name} • ${roomTrack.artist}`
+      : activeRoom.room.name
+    : nowPlaying.displayArtist;
+  const displayDuration = activeRoom
+    ? roomTrack?.durationMs ?? 0
+    : nowPlaying.displayDuration;
+  const displayImage = activeRoom
+    ? roomTrack?.albumImage ?? null
+    : nowPlaying.displayImage;
+  const displayName = activeRoom
+    ? roomTrack?.name ?? activeRoom.room.name
+    : nowPlaying.displayName;
+  const displayProgress = activeRoom
+    ? resolvedPlayback?.currentOffsetMs ?? 0
+    : nowPlaying.displayProgress;
+  const expanded = nowPlaying.expanded;
+  const hasQueue = isRoomMode ? activeRoom.queue.length > 1 : nowPlaying.hasQueue;
+  const palette = nowPlaying.palette;
+  const pct = displayDuration > 0 ? (displayProgress / displayDuration) * 100 : 0;
+  const volume = nowPlaying.volume;
+  const setExpanded = nowPlaying.setExpanded;
+  const setVolume = nowPlaying.setVolume;
   const [draftVolume, setDraftVolume] = useState(volume);
 
   useEffect(() => {
@@ -45,6 +89,32 @@ export function StandardPlayer() {
   const commitVolume = async (nextVolume: number) => {
     if (nextVolume === volume) return;
     await setVolume(nextVolume);
+  };
+
+  const handleRoomToggle = () => {
+    if (!activeRoom) {
+      return;
+    }
+
+    if (!resolvedPlayback?.currentQueueItem) {
+      return;
+    }
+
+    if (roomPaused) {
+      repairSync?.();
+      return;
+    }
+
+    if (isListeningToRoom) {
+      if (!stopListening) {
+        return;
+      }
+
+      void stopListening();
+      return;
+    }
+
+    repairSync?.();
   };
 
   return (
@@ -67,6 +137,12 @@ export function StandardPlayer() {
                 {displayArtist}
               </h5>
             </div>
+            {activeRoom ? (
+              <RoomStatusBadge
+                syncState={syncState}
+                label={formatRoomSyncLabel(syncState)}
+              />
+            ) : null}
           </div>
           <div className="space-y-2 ">
             <div className="h-1 relative">
@@ -85,21 +161,48 @@ export function StandardPlayer() {
 
         <nav className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center mb-8 mix-blend-plus-darker dark:mix-blend-plus-lighter">
           <div className="flex flex-auto gap-3 items-center justify-end">
-            {hasQueue && (
+            {!isRoomMode && hasQueue && (
               <>
                 <ShuffleButton />
                 <PrevTrackButton />
               </>
             )}
           </div>
-          <TogglePlayButton size="icon-2xl" />
+          {isRoomMode ? (
+            <Button
+              size="icon-2xl"
+              className="bg-white/10 hover:bg-white/5"
+              disabled={!canToggleListening}
+              onClick={handleRoomToggle}
+            >
+              {roomPaused || !isListeningToRoom ? (
+                <PlayIcon fill="currentColor" strokeWidth={0} />
+              ) : (
+                <PauseIcon fill="currentColor" strokeWidth={0} />
+              )}
+            </Button>
+          ) : (
+            <TogglePlayButton size="icon-2xl" />
+          )}
           <div className="flex flex-auto gap-3 items-center justify-start">
-            {hasQueue && (
+            {isRoomMode ? (
+              canControlPlayback && hasRoomTrack ? (
+                <Button
+                  size="icon-lg"
+                  className="bg-white/10 hover:bg-white/5"
+                  onClick={() =>
+                    skipRoom ? void skipRoom(activeRoom.room._id) : undefined
+                  }
+                >
+                  <SkipForwardIcon />
+                </Button>
+              ) : null
+            ) : hasQueue ? (
               <>
                 <NextTrackButton />
                 <RepeatButton />
               </>
-            )}
+            ) : null}
           </div>
         </nav>
 
@@ -132,10 +235,19 @@ export function StandardPlayer() {
             <ChevronsDownIcon />
           </Button>
           <div className="flex gap-1 items-center justify-end">
-            <AlbumButton />
-            <QueueButton />
+            {isRoomMode ? (
+              <Button variant="overlay" size="sm" onClick={repairSync}>
+                Sync
+              </Button>
+            ) : (
+              <>
+                <AlbumButton />
+                <QueueButton />
+              </>
+            )}
           </div>
         </footer>
+        {isRoomMode ? <RoomPlayerPanel /> : null}
       </div>
     </PlayerWrapper>
   );

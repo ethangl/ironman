@@ -1,22 +1,29 @@
-import { FC } from "react";
+import { FC, ReactNode } from "react";
 
 import { List, ListItem } from "@/components/list";
-import { Section, SectionProps } from "@/components/section";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Section,
+  SectionContent,
+  SectionHeader,
+  SectionTitle,
+} from "@/components/section";
 import { Thumbnail } from "@/features/spotify/activity/thumbnail";
 import { SpotifyTrack } from "@/types";
 import { useWebPlayerActions } from "../player";
 import { TrackCell } from "./track-cell";
 
-export type TracksProps = SectionProps & {
+export type TracksProps = {
   display?: "list" | "thumbnails";
+  renderTrackAction?: (track: SpotifyTrack) => ReactNode;
   tracks: SpotifyTrack[];
+  title: string;
 };
 
 export const Tracks: FC<TracksProps> = ({
   display = "list",
+  renderTrackAction,
+  title,
   tracks,
-  ...props
 }) => {
   const { playTrack } = useWebPlayerActions();
 
@@ -25,30 +32,36 @@ export const Tracks: FC<TracksProps> = ({
   }
 
   return (
-    <Section {...props}>
+    <Section>
+      <SectionHeader>
+        <SectionTitle>{title}</SectionTitle>
+      </SectionHeader>
       {display === "list" ? (
-        <List count={tracks.length} className="p-4">
-          {tracks.map((song, i) => (
-            <ListItem key={song.id}>
-              <TrackCell count={i + 1} track={song} />
-            </ListItem>
-          ))}
-        </List>
-      ) : (
-        <ScrollArea>
-          <ol className="flex gap-4 p-4 w-max">
-            {tracks.map((track) => (
-              <li key={track.id}>
-                <Thumbnail
-                  description={track.artist}
-                  handlePlay={() => playTrack(track)}
-                  name={track.name}
-                  src={track.albumImage}
-                />
-              </li>
+        <SectionContent>
+          <List count={tracks.length}>
+            {tracks.map((song, i) => (
+              <ListItem key={song.id}>
+                <TrackCell count={i + 1} track={song}>
+                  {renderTrackAction?.(song)}
+                </TrackCell>
+              </ListItem>
             ))}
-          </ol>
-        </ScrollArea>
+          </List>
+        </SectionContent>
+      ) : (
+        <div className="overflow-x-scroll scrollbar-none">
+          <SectionContent className="flex gap-4 w-max">
+            {tracks.map((track) => (
+              <Thumbnail
+                key={track.id}
+                description={track.artist}
+                handlePlay={() => playTrack(track)}
+                name={track.name}
+                src={track.albumImage}
+              />
+            ))}
+          </SectionContent>
+        </div>
       )}
     </Section>
   );

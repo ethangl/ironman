@@ -8,6 +8,7 @@ interface WebPlayerActionsValue {
   isAuthenticated: boolean;
   playTrack: (track: Track) => Promise<void>;
   playTracks: (tracks: Track[], startIndex?: number) => Promise<void>;
+  syncTrack: (track: Track, offsetMs?: number) => Promise<void>;
   nextTrack: () => Promise<void>;
   prevTrack: () => Promise<void>;
   togglePlay: () => Promise<void>;

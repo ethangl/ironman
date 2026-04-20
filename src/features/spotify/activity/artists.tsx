@@ -1,26 +1,39 @@
 import { FC } from "react";
 
 import { AppLink } from "@/components/app-link";
-import { Section, SectionProps } from "@/components/section";
+import {
+  Section,
+  SectionContent,
+  SectionHeader,
+  SectionTitle,
+} from "@/components/section";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Thumbnail } from "@/features/spotify/activity/thumbnail";
 import { SpotifyArtist } from "@/types";
 
-export type ArtistsProps = SectionProps & { artists: SpotifyArtist[] };
+export type ArtistsProps = {
+  action: React.ReactNode;
+  artists: SpotifyArtist[];
+  title: string;
+};
 
-export const Artists: FC<ArtistsProps> = ({ artists, ...props }) => {
+export const Artists: FC<ArtistsProps> = ({ action, artists, title }) => {
   return (
-    <Section {...props}>
+    <Section>
+      <SectionHeader>
+        <SectionTitle>
+          {title}
+          {action}
+        </SectionTitle>
+      </SectionHeader>
       <ScrollArea>
-        <ol className="flex gap-4 p-4 w-max">
+        <SectionContent className="flex gap-4 w-max">
           {artists.map((artist) => (
-            <li key={artist.id}>
-              <AppLink href={`/artist/${artist.id}`}>
-                <Thumbnail name={artist.name} src={artist.image} />
-              </AppLink>
-            </li>
+            <AppLink key={artist.id} href={`/artist/${artist.id}`}>
+              <Thumbnail name={artist.name} src={artist.image} />
+            </AppLink>
           ))}
-        </ol>
+        </SectionContent>
       </ScrollArea>
     </Section>
   );

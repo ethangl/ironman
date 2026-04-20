@@ -1,20 +1,44 @@
 import { Outlet } from "react-router-dom";
 
-import { SearchProvider, SearchResults } from "@/features/search";
-import { SpotifyActivityProvider } from "@/features/spotify/activity";
-import { WebPlayerProvider } from "@/features/spotify/player";
-import { AuthedNavbar } from "./authed-navbar";
+import { BackgroundOverlay } from "@/components/background-overlay";
+import { Section } from "@/components/section";
+import { RoomsNavbar } from "@/features/rooms/ui/rooms-navbar";
+import { SearchResults } from "@/features/search";
+import { useSpotifyActivity } from "@/features/spotify/activity";
+import { SpotifyActivity } from "@/features/spotify/activity/spotify-activity";
+import { SpotifyFooter } from "@/features/spotify/activity/spotify-footer";
+import { SpotifyNavbar } from "@/features/spotify/activity/spotify-navbar";
+import { cn } from "@/lib/utils";
 
 export function AuthedLayout() {
+  const { isExpanded } = useSpotifyActivity();
   return (
-    <SpotifyActivityProvider>
-      <WebPlayerProvider>
-        <SearchProvider>
-          <AuthedNavbar />
-          <SearchResults />
+    <div
+      className={cn(
+        "absolute gap-3 grid grid-cols-[calc(--spacing(112))_1fr] inset-0 items-stretch py-3",
+        isExpanded ? "left-0" : "-left-96",
+      )}
+    >
+      <aside className="flex flex-col gap-px max-h-full overflow-hidden relative rounded-r-3xl text-emerald-300">
+        <BackgroundOverlay className="dark:bg-emerald-400/50 backdrop-brightness-600 backdrop-contrast-600 mix-blend-exclusion" />
+        <SpotifyNavbar />
+        {isExpanded ? (
+          <div className="flex-auto overflow-y-auto scrollbar-none space-y-px transition-opacity">
+            <SearchResults />
+            <SpotifyActivity />
+          </div>
+        ) : (
+          <Section className="flex-auto" />
+        )}
+        <SpotifyFooter />
+      </aside>
+      <main className="flex flex-col gap-px max-h-full overflow-hidden relative rounded-l-3xl text-red-300">
+        <BackgroundOverlay className="dark:bg-red-400/50 backdrop-brightness-600 backdrop-contrast-600 mix-blend-exclusion" />
+        <RoomsNavbar />
+        <div className="flex-auto overflow-y-auto scrollbar-none space-y-px">
           <Outlet />
-        </SearchProvider>
-      </WebPlayerProvider>
-    </SpotifyActivityProvider>
+        </div>
+      </main>
+    </div>
   );
 }

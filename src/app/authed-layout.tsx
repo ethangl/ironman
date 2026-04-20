@@ -3,9 +3,9 @@ import { Outlet } from "react-router-dom";
 import { BackgroundOverlay } from "@/components/background-overlay";
 import { Section } from "@/components/section";
 import { RoomsNavbar } from "@/features/rooms/ui/rooms-navbar";
+import { RoomsSurface } from "@/features/rooms/ui/rooms-surface";
 import { SearchResults } from "@/features/search";
 import { useSpotifyActivity } from "@/features/spotify/activity";
-import { SpotifyActivity } from "@/features/spotify/activity/spotify-activity";
 import { SpotifyFooter } from "@/features/spotify/activity/spotify-footer";
 import { SpotifyNavbar } from "@/features/spotify/activity/spotify-navbar";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,7 @@ export function AuthedLayout() {
         {isExpanded ? (
           <div className="flex-auto overflow-y-auto scrollbar-none space-y-px transition-opacity">
             <SearchResults />
-            <SpotifyActivity />
+            <Outlet />
           </div>
         ) : (
           <Section className="flex-auto" />
@@ -36,7 +36,7 @@ export function AuthedLayout() {
         <BackgroundOverlay className="dark:bg-red-400/50 backdrop-brightness-600 backdrop-contrast-600 mix-blend-exclusion" />
         <RoomsNavbar />
         <div className="flex-auto overflow-y-auto scrollbar-none space-y-px">
-          <Outlet />
+          <RoomsSurface />
         </div>
       </main>
     </div>

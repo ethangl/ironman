@@ -49,14 +49,16 @@ export const TrackCell: FC<TrackCellProps> = ({
 
   return (
     <>
-      {count && (
-        <div className="bg-black/25 font-bold flex items-center justify-center rounded-3xl text-xs text-white size-8">
-          {count}
-        </div>
-      )}
-      {normalizedTrack.albumImage && (
-        <AlbumArt src={normalizedTrack.albumImage} className="size-10" />
-      )}
+      <div className="flex gap-3 items-center">
+        {count && (
+          <div className="bg-black/25 font-bold flex items-center justify-center rounded-3xl text-xs text-white size-8">
+            {count}
+          </div>
+        )}
+        {normalizedTrack.albumImage && (
+          <AlbumArt src={normalizedTrack.albumImage} className="size-10" />
+        )}
+      </div>
       <div className="space-y-0.5">
         <h3 className="font-medium text-sm truncate">{normalizedTrack.name}</h3>
         <h5 className="text-muted-foreground text-xs truncate">

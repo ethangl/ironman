@@ -13,7 +13,7 @@ export type ListProps = ComponentProps<"section"> & {
 };
 
 const listItemClassName =
-  "group gap-4 grid grid-cols-[max-content_max-content_minmax(0,1fr)_max-content] items-center px-3 py-2.5 relative rounded-xl";
+  "group gap-3 grid grid-cols-[max-content_minmax(0,1fr)_max-content] items-center px-3 py-2.5 relative rounded-xl";
 
 const List: FC<ListProps> = ({
   children,

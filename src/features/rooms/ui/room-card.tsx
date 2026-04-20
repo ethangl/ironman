@@ -1,11 +1,11 @@
 import { RadioTowerIcon, SparklesIcon } from "lucide-react";
 
-import { AppLink } from "@/components/app-link";
 import { BackgroundOverlay } from "@/components/background-overlay";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { RoomSummary } from "../client/room-types";
 import { useRooms } from "../runtime/rooms-provider";
+import { RoomLink } from "./room-link";
 
 export function RoomCard({
   active,
@@ -57,7 +57,7 @@ export function RoomCard({
           <Button
             variant="ghost"
             nativeButton={false}
-            render={<AppLink href={`/rooms/${roomSummary.room._id}`} />}
+            render={<RoomLink roomId={roomSummary.room._id} />}
           >
             Open room
           </Button>

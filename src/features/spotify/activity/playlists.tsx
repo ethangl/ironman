@@ -52,10 +52,9 @@ export const Playlists: FC<PlaylistsProps> = ({
       {display === "list" ? (
         <SectionContent>
           <List count={playlists.length}>
-            {playlists.map((playlist, i) => (
+            {playlists.map((playlist) => (
               <ListItem key={playlist.id}>
                 <PlaylistCell
-                  count={i + 1}
                   disabled={loadingItemId === playlist.id}
                   image={playlist.image}
                   name={playlist.name}

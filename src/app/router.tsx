@@ -8,7 +8,7 @@ import {
   ProfileRoute,
   PublicProfileRoute,
   RoomRoute,
-  RoomsRoute,
+  SpotifyHomeRoute,
 } from "@/routes";
 import { AppShell } from "./app-shell";
 import { AuthedLayout } from "./authed-layout";
@@ -22,6 +22,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <HomeRoute /> },
           { path: "profile/:userId", element: <PublicProfileRoute /> },
+          { path: "rooms/:roomId", element: <RoomRoute /> },
           { path: "*", element: <NotFoundRoute /> },
         ],
       },
@@ -31,8 +32,7 @@ export const router = createBrowserRouter([
           {
             element: <AuthedLayout />,
             children: [
-              { path: "home", element: <RoomsRoute /> },
-              { path: "rooms/:roomId", element: <RoomRoute /> },
+              { path: "home", element: <SpotifyHomeRoute /> },
               {
                 path: "artist/resolve/:musicBrainzArtistId",
                 element: <ArtistResolveRoute />,

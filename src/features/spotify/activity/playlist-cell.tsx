@@ -38,12 +38,14 @@ export const PlaylistCell: FC<PlaylistCellProps> = ({
 
   return (
     <>
-      {count && (
-        <div className="bg-black/25 font-bold flex items-center justify-center rounded-3xl text-xs text-white size-8">
-          {count}
-        </div>
-      )}
-      {image ? <AlbumArt src={image} className="size-10" /> : null}
+      <div className="flex gap-3 items-center">
+        {count && (
+          <div className="bg-black/25 font-bold flex items-center justify-center rounded-3xl text-xs text-white size-8">
+            {count}
+          </div>
+        )}
+        {image ? <AlbumArt src={image} className="size-10" /> : null}
+      </div>
       <div className="space-y-0.5">
         <h3 className="font-medium text-sm truncate">{name}</h3>
         {subtitle && (

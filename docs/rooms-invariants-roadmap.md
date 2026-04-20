@@ -174,7 +174,7 @@ These boxes make the new product visible and usable.
 - [x] The UI can show whether this device is listening live or detached from the room.
 - [x] Room controls are shown or hidden based on role.
 - [x] There is a room discovery or room list surface.
-- [x] There is a room detail route such as `rooms/:roomId`.
+- [x] There is a shareable room detail URL such as `?roomId=<roomId>`, with legacy `rooms/:roomId` links redirected intentionally.
 - [x] Old routes like `song/:trackId` and `challenge/:trackId` are removed or redirected intentionally.
 
 Exit condition:

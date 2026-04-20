@@ -3,6 +3,7 @@ import type { RoomSyncState } from "../client/room-types";
 
 const toneClassNames: Record<RoomSyncState["code"], string> = {
   idle: "bg-white/10 text-muted-foreground",
+  detached: "bg-white/10 text-muted-foreground",
   queue_empty: "bg-white/10 text-muted-foreground",
   paused: "bg-amber-400/15 text-amber-200",
   syncing: "bg-sky-400/15 text-sky-200",

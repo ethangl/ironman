@@ -14,6 +14,7 @@ export interface RoomsContextValue {
   activeRoom: RoomDetails | null;
   activeRoomId: RoomId | null;
   activeRoomLoading: boolean;
+  isListeningToRoom: boolean;
   resolvedPlayback: ResolvedRoomPlayback | null;
   rooms: RoomSummary[];
   roomsLoading: boolean;
@@ -41,6 +42,7 @@ export interface RoomsContextValue {
   resumeRoom: (roomId: RoomId) => Promise<void>;
   skipRoom: (roomId: RoomId) => Promise<void>;
   repairSync: () => void;
+  stopListening: () => Promise<void>;
 }
 
 export const RoomsContext = createContext<RoomsContextValue | null>(null);

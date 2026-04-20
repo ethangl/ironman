@@ -14,8 +14,10 @@ interface UseRoomSyncControllerOptions {
 }
 
 interface RoomSyncController {
+  isListeningToRoom: boolean;
   repairSync: () => void;
   requestSync: (roomId?: string | null) => void;
+  stopListening: () => Promise<void>;
   syncState: RoomSyncState;
 }
 
@@ -25,6 +27,7 @@ export function useRoomSyncController({
 }: UseRoomSyncControllerOptions): RoomSyncController {
   const { syncTrack, togglePlay } = useWebPlayerActions();
   const { sdkState } = useWebPlayerState();
+  const [isListeningToRoom, setIsListeningToRoom] = useState(true);
   const [syncNonce, setSyncNonce] = useState(0);
   const lastJoinRoomIdRef = useRef<string | null>(null);
   const lastRequestedSyncKeyRef = useRef<string | null>(null);
@@ -45,12 +48,15 @@ export function useRoomSyncController({
     () =>
       getRoomSyncState({
         hasActiveMembership,
+        isListeningToRoom,
         resolvedPlayback,
       }),
-    [hasActiveMembership, resolvedPlayback],
+    [hasActiveMembership, isListeningToRoom, resolvedPlayback],
   );
 
   const requestSync = useCallback((roomId?: string | null) => {
+    setIsListeningToRoom(true);
+
     if (roomId && lastJoinRoomIdRef.current === roomId) {
       return;
     }
@@ -66,10 +72,25 @@ export function useRoomSyncController({
     if (activeRoomId !== lastJoinRoomIdRef.current) {
       lastJoinRoomIdRef.current = null;
     }
+
+    setIsListeningToRoom(true);
   }, [activeRoomId]);
 
+  const stopListening = useCallback(async () => {
+    setIsListeningToRoom(false);
+
+    if (!sdkPaused) {
+      await togglePlay();
+    }
+  }, [sdkPaused, togglePlay]);
+
   const runSyncToRoom = useCallback(async () => {
-    if (!hasActiveMembership || !currentQueueItem || roomPaused) {
+    if (
+      !hasActiveMembership ||
+      !isListeningToRoom ||
+      !currentQueueItem ||
+      roomPaused
+    ) {
       return;
     }
 
@@ -83,12 +104,19 @@ export function useRoomSyncController({
     currentOffsetMs,
     currentQueueItem,
     hasActiveMembership,
+    isListeningToRoom,
     roomPaused,
     syncTrack,
   ]);
 
   useEffect(() => {
-    if (!activeRoomId || !hasActiveMembership || !currentQueueItemId || roomPaused) {
+    if (
+      !activeRoomId ||
+      !hasActiveMembership ||
+      !isListeningToRoom ||
+      !currentQueueItemId ||
+      roomPaused
+    ) {
       return;
     }
 
@@ -110,6 +138,7 @@ export function useRoomSyncController({
     activeRoomId,
     currentQueueItemId,
     hasActiveMembership,
+    isListeningToRoom,
     roomPaused,
     runSyncToRoom,
     startOffsetMs,
@@ -120,6 +149,7 @@ export function useRoomSyncController({
   useEffect(() => {
     if (
       !hasActiveMembership ||
+      !isListeningToRoom ||
       !currentTrackId ||
       !sdkTrackId ||
       sdkPaused ||
@@ -136,6 +166,7 @@ export function useRoomSyncController({
   }, [
     currentTrackId,
     hasActiveMembership,
+    isListeningToRoom,
     roomPaused,
     sdkPaused,
     sdkTrackId,
@@ -144,10 +175,12 @@ export function useRoomSyncController({
 
   return useMemo(
     () => ({
+      isListeningToRoom,
       repairSync: () => requestSync(),
       requestSync,
+      stopListening,
       syncState,
     }),
-    [requestSync, syncState],
+    [isListeningToRoom, requestSync, stopListening, syncState],
   );
 }

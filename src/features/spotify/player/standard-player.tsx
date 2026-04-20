@@ -39,12 +39,13 @@ export function StandardPlayer() {
   const nowPlaying = useNowPlaying();
   const rooms = useOptionalRooms();
   const activeRoom = rooms?.activeRoom ?? null;
-  const pauseRoom = rooms?.pauseRoom;
+  const isListeningToRoom = rooms?.isListeningToRoom ?? true;
   const playRoom = rooms?.playRoom;
   const repairSync = rooms?.repairSync;
   const resolvedPlayback = rooms?.resolvedPlayback ?? null;
   const resumeRoom = rooms?.resumeRoom;
   const skipRoom = rooms?.skipRoom;
+  const stopListening = rooms?.stopListening;
   const syncState = rooms?.syncState ?? {
     code: "idle",
     label: "Not listening to a room",
@@ -52,6 +53,7 @@ export function StandardPlayer() {
   };
   const roomTrack = toRoomTrack(resolvedPlayback?.currentQueueItem ?? null);
   const isRoomMode = activeRoom !== null;
+  const roomPaused = resolvedPlayback?.paused ?? false;
   const displayArtist = activeRoom
     ? roomTrack
       ? `${activeRoom.room.name} • ${roomTrack.artist}`
@@ -88,27 +90,38 @@ export function StandardPlayer() {
   };
 
   const handleRoomToggle = () => {
-    if (
-      !activeRoom ||
-      !activeRoom.playback.canControlPlayback ||
-      !pauseRoom ||
-      !playRoom ||
-      !resumeRoom
-    ) {
+    if (!activeRoom) {
       return;
     }
 
     if (!resolvedPlayback?.currentQueueItem) {
+      if (!activeRoom.playback.canControlPlayback || !playRoom) {
+        return;
+      }
+
       void playRoom(activeRoom.room._id);
       return;
     }
 
-    if (resolvedPlayback.paused) {
+    if (roomPaused) {
+      if (!activeRoom.playback.canControlPlayback || !resumeRoom) {
+        return;
+      }
+
       void resumeRoom(activeRoom.room._id);
       return;
     }
 
-    void pauseRoom(activeRoom.room._id);
+    if (isListeningToRoom) {
+      if (!stopListening) {
+        return;
+      }
+
+      void stopListening();
+      return;
+    }
+
+    repairSync?.();
   };
 
   return (
@@ -169,7 +182,7 @@ export function StandardPlayer() {
                 className="bg-white/10 hover:bg-white/5"
                 onClick={handleRoomToggle}
               >
-                {resolvedPlayback?.paused ? (
+                {roomPaused || !isListeningToRoom ? (
                   <PlayIcon fill="currentColor" strokeWidth={0} />
                 ) : (
                   <PauseIcon fill="currentColor" strokeWidth={0} />

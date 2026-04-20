@@ -84,11 +84,14 @@ function buildMembershipSnapshot(membership: RoomMembershipDoc | null) {
   };
 }
 
-function buildQueueItemSnapshot(queueItem: RoomQueueItemDoc) {
+function buildQueueItemSnapshot(
+  queueItem: RoomQueueItemDoc,
+  position: number = queueItem.position,
+) {
   return {
     _id: queueItem._id,
     roomId: queueItem.roomId,
-    position: queueItem.position,
+    position,
     trackId: queueItem.trackId,
     trackName: queueItem.trackName,
     trackArtists: queueItem.trackArtists,
@@ -101,6 +104,12 @@ function buildQueueItemSnapshot(queueItem: RoomQueueItemDoc) {
 
 function isModeratorRole(membership: RoomMembershipDoc | null) {
   return membership?.role === "owner" || membership?.role === "moderator";
+}
+
+function hasStartedRoomPlayback(
+  playbackState: Pick<RoomPlaybackStateDoc, "currentQueueItemId" | "startedAt">,
+) {
+  return playbackState.currentQueueItemId !== null || playbackState.startedAt !== null;
 }
 
 async function requireRoomAuth(ctx: RoomCtx) {
@@ -291,6 +300,135 @@ async function normalizeQueuePositions(
   }
 }
 
+function resolveRoomPlaybackProjection(
+  queueItems: readonly RoomQueueItemDoc[],
+  playbackState: Pick<
+    RoomPlaybackStateDoc,
+    "currentQueueItemId" | "startedAt" | "startOffsetMs" | "paused" | "pausedAt"
+  >,
+  now: number,
+) {
+  const resolvedPlaybackState = resolveRoomPlaybackState(
+    queueItems,
+    playbackState,
+    now,
+  );
+
+  if (!hasStartedRoomPlayback(playbackState)) {
+    return {
+      currentQueueItem: null,
+      currentQueueItemId: null,
+      currentQueueItemIndex: -1,
+      playedQueueItems: [] as RoomQueueItemDoc[],
+      resolvedPlaybackState,
+      visibleQueueItems: [...queueItems],
+    };
+  }
+
+  const currentQueueItemIndex = queueItems.findIndex(
+    (queueItem) => queueItem._id === resolvedPlaybackState.currentQueueItemId,
+  );
+
+  if (currentQueueItemIndex < 0) {
+    return {
+      currentQueueItem: null,
+      currentQueueItemId: null,
+      currentQueueItemIndex: -1,
+      playedQueueItems: [...queueItems],
+      resolvedPlaybackState,
+      visibleQueueItems: [] as RoomQueueItemDoc[],
+    };
+  }
+
+  return {
+    currentQueueItem: queueItems[currentQueueItemIndex] ?? null,
+    currentQueueItemId: queueItems[currentQueueItemIndex]?._id ?? null,
+    currentQueueItemIndex,
+    playedQueueItems: queueItems.slice(0, currentQueueItemIndex),
+    resolvedPlaybackState,
+    visibleQueueItems: queueItems.slice(currentQueueItemIndex + 1),
+  };
+}
+
+async function compactRoomQueuePlayback(
+  ctx: MutationCtx,
+  playbackState: RoomPlaybackStateDoc,
+  queueItems: readonly RoomQueueItemDoc[],
+  now: number,
+) {
+  const projection = resolveRoomPlaybackProjection(queueItems, playbackState, now);
+
+  if (!hasStartedRoomPlayback(playbackState)) {
+    return {
+      ...projection,
+      queueItems: [...queueItems],
+    };
+  }
+
+  for (const playedQueueItem of projection.playedQueueItems) {
+    await ctx.db.patch(playedQueueItem._id, {
+      removedAt: now,
+    });
+  }
+
+  const retainedQueueItems = projection.currentQueueItem
+    ? [projection.currentQueueItem, ...projection.visibleQueueItems]
+    : [];
+  await normalizeQueuePositions(ctx, retainedQueueItems);
+
+  const desiredCurrentQueueItemId = projection.currentQueueItem?._id ?? null;
+  const desiredStartedAt = projection.currentQueueItem
+    ? projection.resolvedPlaybackState.startedAt
+    : null;
+  const desiredStartOffsetMs = projection.currentQueueItem
+    ? projection.resolvedPlaybackState.startOffsetMs
+    : 0;
+  const desiredPaused = projection.currentQueueItem
+    ? projection.resolvedPlaybackState.paused
+    : true;
+  const desiredPausedAt = projection.currentQueueItem
+    ? projection.resolvedPlaybackState.pausedAt
+    : now;
+
+  if (
+    playbackState.currentQueueItemId !== desiredCurrentQueueItemId ||
+    playbackState.startedAt !== desiredStartedAt ||
+    playbackState.startOffsetMs !== desiredStartOffsetMs ||
+    playbackState.paused !== desiredPaused ||
+    playbackState.pausedAt !== desiredPausedAt
+  ) {
+    await syncRoomPlaybackState(ctx, playbackState, {
+      currentQueueItemId: desiredCurrentQueueItemId,
+      startedAt: desiredStartedAt,
+      startOffsetMs: desiredStartOffsetMs,
+      paused: desiredPaused,
+      pausedAt: desiredPausedAt,
+      updatedAt: now,
+    });
+  }
+
+  return {
+    ...projection,
+    currentQueueItemIndex: projection.currentQueueItem ? 0 : -1,
+    currentQueueItemId: desiredCurrentQueueItemId,
+    queueItems: retainedQueueItems,
+    resolvedPlaybackState: {
+      ...projection.resolvedPlaybackState,
+      currentQueueItemId: desiredCurrentQueueItemId,
+      startedAt: desiredStartedAt,
+      startOffsetMs: desiredStartOffsetMs,
+      paused: desiredPaused,
+      pausedAt: desiredPausedAt,
+      currentOffsetMs: projection.currentQueueItem
+        ? projection.resolvedPlaybackState.currentOffsetMs
+        : 0,
+    },
+    visibleQueueItems: projection.currentQueueItem
+      ? retainedQueueItems.slice(1)
+      : retainedQueueItems,
+  };
+}
+
 async function pauseRoomPlayback(
   ctx: MutationCtx,
   roomId: Id<"rooms">,
@@ -300,16 +438,17 @@ async function pauseRoomPlayback(
     getActiveQueueItems(ctx, roomId),
     getPlaybackStateDoc(ctx, roomId),
   ]);
-  const resolvedPlaybackState = resolveRoomPlaybackState(
-    queueItems,
+  const projection = await compactRoomQueuePlayback(
+    ctx,
     playbackState,
+    queueItems,
     now,
   );
 
   await syncRoomPlaybackState(ctx, playbackState, {
-    currentQueueItemId: resolvedPlaybackState.currentQueueItemId,
-    startedAt: resolvedPlaybackState.currentQueueItemId ? now : null,
-    startOffsetMs: resolvedPlaybackState.currentOffsetMs,
+    currentQueueItemId: projection.currentQueueItemId,
+    startedAt: projection.currentQueueItemId ? now : null,
+    startOffsetMs: projection.resolvedPlaybackState.currentOffsetMs,
     paused: true,
     pausedAt: now,
     updatedAt: now,
@@ -384,29 +523,28 @@ export const get = query({
       getPlaybackStateDoc(ctx, visibleRoomContext.room._id),
       getActiveRoomMemberships(ctx, visibleRoomContext.room._id),
     ]);
-    const resolvedPlaybackState = resolveRoomPlaybackState(
+    const projection = resolveRoomPlaybackProjection(
       queueItems,
       playbackState,
       Date.now(),
     );
-    const currentQueueItem =
-      queueItems.find(
-        (queueItem) =>
-          queueItem._id === resolvedPlaybackState.currentQueueItemId,
-      ) ?? null;
 
     return {
       room: buildRoomSnapshot(visibleRoomContext.room),
       viewerMembership: buildMembershipSnapshot(visibleRoomContext.membership),
       memberCount: activeMemberships.length,
-      queueLength: queueItems.length,
+      queueLength: projection.visibleQueueItems.length,
       playback: {
-        currentQueueItemId: resolvedPlaybackState.currentQueueItemId,
-        currentQueueItem: currentQueueItem
-          ? buildQueueItemSnapshot(currentQueueItem)
+        currentQueueItemId: projection.currentQueueItemId,
+        currentQueueItem: projection.currentQueueItem
+          ? buildQueueItemSnapshot(projection.currentQueueItem)
           : null,
-        expectedOffsetMs: resolvedPlaybackState.currentOffsetMs,
-        paused: resolvedPlaybackState.paused,
+        expectedOffsetMs: projection.currentQueueItem
+          ? projection.resolvedPlaybackState.currentOffsetMs
+          : 0,
+        paused: projection.currentQueueItem
+          ? projection.resolvedPlaybackState.paused
+          : true,
       },
     };
   },
@@ -422,11 +560,21 @@ export const getQueue = query({
       return null;
     }
 
-    const queueItems = await getActiveQueueItems(ctx, visibleRoomContext.room._id);
+    const [queueItems, playbackState] = await Promise.all([
+      getActiveQueueItems(ctx, visibleRoomContext.room._id),
+      getPlaybackStateDoc(ctx, visibleRoomContext.room._id),
+    ]);
+    const projection = resolveRoomPlaybackProjection(
+      queueItems,
+      playbackState,
+      Date.now(),
+    );
     return {
       room: buildRoomSnapshot(visibleRoomContext.room),
       viewerMembership: buildMembershipSnapshot(visibleRoomContext.membership),
-      queue: queueItems.map(buildQueueItemSnapshot),
+      queue: projection.visibleQueueItems.map((queueItem, index) =>
+        buildQueueItemSnapshot(queueItem, index),
+      ),
     };
   },
 });
@@ -446,29 +594,36 @@ export const getPlaybackState = query({
       getPlaybackStateDoc(ctx, visibleRoomContext.room._id),
       getActiveRoomMemberships(ctx, visibleRoomContext.room._id),
     ]);
-    const resolvedPlaybackState = resolveRoomPlaybackState(
+    const projection = resolveRoomPlaybackProjection(
       queueItems,
       playbackState,
       Date.now(),
     );
-    const currentQueueItem =
-      queueItems.find(
-        (queueItem) =>
-          queueItem._id === resolvedPlaybackState.currentQueueItemId,
-      ) ?? null;
 
     return {
       room: buildRoomSnapshot(visibleRoomContext.room),
       viewerMembership: buildMembershipSnapshot(visibleRoomContext.membership),
       memberCount: activeMemberships.length,
-      queueLength: queueItems.length,
-      currentQueueItemId: resolvedPlaybackState.currentQueueItemId,
-      currentQueueItem: currentQueueItem ? buildQueueItemSnapshot(currentQueueItem) : null,
-      expectedOffsetMs: resolvedPlaybackState.currentOffsetMs,
-      startedAt: resolvedPlaybackState.startedAt,
-      startOffsetMs: resolvedPlaybackState.startOffsetMs,
-      paused: resolvedPlaybackState.paused,
-      pausedAt: resolvedPlaybackState.pausedAt,
+      queueLength: projection.visibleQueueItems.length,
+      currentQueueItemId: projection.currentQueueItemId,
+      currentQueueItem: projection.currentQueueItem
+        ? buildQueueItemSnapshot(projection.currentQueueItem)
+        : null,
+      expectedOffsetMs: projection.currentQueueItem
+        ? projection.resolvedPlaybackState.currentOffsetMs
+        : 0,
+      startedAt: projection.currentQueueItem
+        ? projection.resolvedPlaybackState.startedAt
+        : null,
+      startOffsetMs: projection.currentQueueItem
+        ? projection.resolvedPlaybackState.startOffsetMs
+        : 0,
+      paused: projection.currentQueueItem
+        ? projection.resolvedPlaybackState.paused
+        : true,
+      pausedAt: projection.currentQueueItem
+        ? projection.resolvedPlaybackState.pausedAt
+        : playbackState.pausedAt,
       updatedAt: playbackState.updatedAt,
       canEnqueue: !!visibleRoomContext.membership,
       canManageQueue: isModeratorRole(visibleRoomContext.membership),
@@ -620,6 +775,17 @@ export const enqueueTrack = mutation({
   args: enqueueTrackArgsValidator,
   handler: async (ctx, args) => {
     const memberContext = await requireActiveMemberContext(ctx, args.roomId);
+    const [queueItems, playbackState] = await Promise.all([
+      getActiveQueueItems(ctx, memberContext.room._id),
+      getPlaybackStateDoc(ctx, memberContext.room._id),
+    ]);
+    const now = Date.now();
+    const projection = await compactRoomQueuePlayback(
+      ctx,
+      playbackState,
+      queueItems,
+      now,
+    );
     const trackId = args.trackId.trim();
     const trackName = args.trackName.trim();
     if (!trackId || !trackName) {
@@ -630,14 +796,9 @@ export const enqueueTrack = mutation({
       throw new Error("Track duration must be greater than zero.");
     }
 
-    const [queueItems, playbackState] = await Promise.all([
-      getActiveQueueItems(ctx, memberContext.room._id),
-      getPlaybackStateDoc(ctx, memberContext.room._id),
-    ]);
-    const now = Date.now();
     const queueItemId = await ctx.db.insert("roomQueueItems", {
       roomId: memberContext.room._id,
-      position: queueItems.length,
+      position: projection.queueItems.length,
       trackId,
       trackName,
       trackArtists: args.trackArtists,
@@ -649,21 +810,10 @@ export const enqueueTrack = mutation({
       removedAt: null,
     });
 
-    if (playbackState.currentQueueItemId === null) {
-      await syncRoomPlaybackState(ctx, playbackState, {
-        currentQueueItemId: queueItemId,
-        startedAt: now,
-        startOffsetMs: 0,
-        paused: true,
-        pausedAt: now,
-        updatedAt: now,
-      });
-    }
-
     return {
       roomId: memberContext.room._id,
       queueItemId,
-      position: queueItems.length,
+      position: projection.visibleQueueItems.length,
     };
   },
 });
@@ -679,8 +829,21 @@ export const removeQueueItem = mutation({
       getActiveQueueItems(ctx, memberContext.room._id),
       getPlaybackStateDoc(ctx, memberContext.room._id),
     ]);
-    const queueItem = queueItems.find((item) => item._id === args.queueItemId);
+    const now = Date.now();
+    const projection = await compactRoomQueuePlayback(
+      ctx,
+      playbackState,
+      queueItems,
+      now,
+    );
+    const queueItem = projection.visibleQueueItems.find(
+      (item) => item._id === args.queueItemId,
+    );
     if (!queueItem) {
+      if (projection.currentQueueItem?._id === args.queueItemId) {
+        throw new Error("Remove tracks from the up-next queue, not the current track.");
+      }
+
       throw new Error("Queue item not found.");
     }
 
@@ -691,50 +854,24 @@ export const removeQueueItem = mutation({
       throw new Error("Only the user who enqueued this track can remove it.");
     }
 
-    const now = Date.now();
-    const resolvedPlaybackState = resolveRoomPlaybackState(
-      queueItems,
-      playbackState,
-      now,
-    );
-    const currentQueueItemIndex = queueItems.findIndex(
-      (item) => item._id === resolvedPlaybackState.currentQueueItemId,
-    );
-
     await ctx.db.patch(queueItem._id, {
       removedAt: now,
     });
 
-    const remainingQueueItems = queueItems.filter(
+    const remainingVisibleQueueItems = projection.visibleQueueItems.filter(
       (item) => item._id !== queueItem._id,
     );
-    await normalizeQueuePositions(ctx, remainingQueueItems);
-
-    if (resolvedPlaybackState.currentQueueItemId !== queueItem._id) {
-      return {
-        roomId: memberContext.room._id,
-        queueItemId: queueItem._id,
-      };
-    }
-
-    const nextQueueItem =
-      currentQueueItemIndex >= 0
-        ? remainingQueueItems[currentQueueItemIndex] ?? null
-        : remainingQueueItems[0] ?? null;
-
-    await syncRoomPlaybackState(ctx, playbackState, {
-      currentQueueItemId: nextQueueItem?._id ?? null,
-      startedAt: nextQueueItem ? now : null,
-      startOffsetMs: 0,
-      paused: resolvedPlaybackState.paused || !nextQueueItem,
-      pausedAt: resolvedPlaybackState.paused || !nextQueueItem ? now : null,
-      updatedAt: now,
-    });
+    await normalizeQueuePositions(
+      ctx,
+      projection.currentQueueItem
+        ? [projection.currentQueueItem, ...remainingVisibleQueueItems]
+        : remainingVisibleQueueItems,
+    );
 
     return {
       roomId: memberContext.room._id,
       queueItemId: queueItem._id,
-      nextQueueItemId: nextQueueItem?._id ?? null,
+      nextQueueItemId: remainingVisibleQueueItems[0]?._id ?? null,
     };
   },
 });
@@ -751,23 +888,22 @@ export const moveQueueItem = mutation({
       getActiveQueueItems(ctx, moderatorContext.room._id),
       getPlaybackStateDoc(ctx, moderatorContext.room._id),
     ]);
-    const resolvedPlaybackState = resolveRoomPlaybackState(
-      queueItems,
+    const projection = await compactRoomQueuePlayback(
+      ctx,
       playbackState,
+      queueItems,
       Date.now(),
     );
 
-    if (resolvedPlaybackState.currentQueueItemId === args.queueItemId) {
-      throw new Error("Move the up-next queue, not the room's current track.");
-    }
-
     const reorderedQueueItemIds = moveRoomQueueItemIds(
-      queueItems.map((queueItem) => queueItem._id),
+      projection.visibleQueueItems.map((queueItem) => queueItem._id),
       args.queueItemId,
       args.targetIndex,
     );
     const reorderedQueueItems = reorderedQueueItemIds.map((queueItemId) => {
-      const queueItem = queueItems.find((item) => item._id === queueItemId);
+      const queueItem = projection.visibleQueueItems.find(
+        (item) => item._id === queueItemId,
+      );
       if (!queueItem) {
         throw new Error("Queue item not found.");
       }
@@ -775,7 +911,12 @@ export const moveQueueItem = mutation({
       return queueItem;
     });
 
-    await normalizeQueuePositions(ctx, reorderedQueueItems);
+    await normalizeQueuePositions(
+      ctx,
+      projection.currentQueueItem
+        ? [projection.currentQueueItem, ...reorderedQueueItems]
+        : reorderedQueueItems,
+    );
 
     return {
       roomId: moderatorContext.room._id,
@@ -799,25 +940,33 @@ export const clearQueue = mutation({
       getPlaybackStateDoc(ctx, moderatorContext.room._id),
     ]);
     const now = Date.now();
+    const projection = await compactRoomQueuePlayback(
+      ctx,
+      playbackState,
+      queueItems,
+      now,
+    );
 
-    for (const queueItem of queueItems) {
+    for (const queueItem of projection.visibleQueueItems) {
       await ctx.db.patch(queueItem._id, {
         removedAt: now,
       });
     }
 
-    await syncRoomPlaybackState(ctx, playbackState, {
-      currentQueueItemId: null,
-      startedAt: null,
-      startOffsetMs: 0,
-      paused: true,
-      pausedAt: now,
-      updatedAt: now,
-    });
+    if (!projection.currentQueueItem) {
+      await syncRoomPlaybackState(ctx, playbackState, {
+        currentQueueItemId: null,
+        startedAt: null,
+        startOffsetMs: 0,
+        paused: true,
+        pausedAt: now,
+        updatedAt: now,
+      });
+    }
 
     return {
       roomId: moderatorContext.room._id,
-      removedCount: queueItems.length,
+      removedCount: projection.visibleQueueItems.length,
     };
   },
 });
@@ -835,32 +984,51 @@ export const play = mutation({
       getPlaybackStateDoc(ctx, moderatorContext.room._id),
     ]);
     const now = Date.now();
-    const resolvedPlaybackState = resolveRoomPlaybackState(
-      queueItems,
+    const projection = await compactRoomQueuePlayback(
+      ctx,
       playbackState,
+      queueItems,
       now,
     );
+    const playbackQueueItems = projection.currentQueueItem
+      ? [projection.currentQueueItem, ...projection.visibleQueueItems]
+      : projection.visibleQueueItems;
     const currentQueueItemId =
       args.queueItemId ??
-      resolvedPlaybackState.currentQueueItemId ??
-      (playbackState.currentQueueItemId === null ? (queueItems[0]?._id ?? null) : null);
+      projection.currentQueueItem?._id ??
+      (playbackQueueItems[0]?._id ?? null);
 
     if (!currentQueueItemId) {
       throw new Error("Select a queued track to restart room playback.");
     }
 
-    const currentQueueItem = queueItems.find(
+    const currentQueueItemIndex = playbackQueueItems.findIndex(
       (queueItem) => queueItem._id === currentQueueItemId,
     );
+    const currentQueueItem =
+      currentQueueItemIndex >= 0
+        ? playbackQueueItems[currentQueueItemIndex] ?? null
+        : null;
+
     if (!currentQueueItem) {
       throw new Error("Queue item not found.");
     }
 
     const offsetMs = clampPlaybackOffset(
       args.offsetMs ??
-        (args.queueItemId ? 0 : resolvedPlaybackState.currentOffsetMs),
+        (projection.currentQueueItem?._id === currentQueueItemId
+          ? projection.resolvedPlaybackState.currentOffsetMs
+          : 0),
       currentQueueItem.trackDurationMs,
     );
+
+    for (const skippedQueueItem of playbackQueueItems.slice(0, currentQueueItemIndex)) {
+      await ctx.db.patch(skippedQueueItem._id, {
+        removedAt: now,
+      });
+    }
+
+    await normalizeQueuePositions(ctx, playbackQueueItems.slice(currentQueueItemIndex));
 
     await syncRoomPlaybackState(ctx, playbackState, {
       currentQueueItemId,
@@ -890,16 +1058,20 @@ export const pause = mutation({
       getPlaybackStateDoc(ctx, moderatorContext.room._id),
     ]);
     const now = Date.now();
-    const resolvedPlaybackState = resolveRoomPlaybackState(
-      queueItems,
+    const projection = await compactRoomQueuePlayback(
+      ctx,
       playbackState,
+      queueItems,
       now,
     );
+    const currentQueueItemId = projection.currentQueueItemId;
 
     await syncRoomPlaybackState(ctx, playbackState, {
-      currentQueueItemId: resolvedPlaybackState.currentQueueItemId,
-      startedAt: resolvedPlaybackState.currentQueueItemId ? now : null,
-      startOffsetMs: resolvedPlaybackState.currentOffsetMs,
+      currentQueueItemId,
+      startedAt: currentQueueItemId ? now : null,
+      startOffsetMs: currentQueueItemId
+        ? projection.resolvedPlaybackState.currentOffsetMs
+        : 0,
       paused: true,
       pausedAt: now,
       updatedAt: now,
@@ -907,8 +1079,10 @@ export const pause = mutation({
 
     return {
       roomId: moderatorContext.room._id,
-      currentQueueItemId: resolvedPlaybackState.currentQueueItemId,
-      offsetMs: resolvedPlaybackState.currentOffsetMs,
+      currentQueueItemId,
+      offsetMs: projection.currentQueueItem
+        ? projection.resolvedPlaybackState.currentOffsetMs
+        : 0,
     };
   },
 });
@@ -924,13 +1098,13 @@ export const resume = mutation({
       getPlaybackStateDoc(ctx, moderatorContext.room._id),
     ]);
     const now = Date.now();
-    const resolvedPlaybackState = resolveRoomPlaybackState(
-      queueItems,
+    const projection = await compactRoomQueuePlayback(
+      ctx,
       playbackState,
+      queueItems,
       now,
     );
-    const currentQueueItemId =
-      resolvedPlaybackState.currentQueueItemId;
+    const currentQueueItemId = projection.currentQueueItemId;
 
     if (!currentQueueItemId) {
       throw new Error("There is no active room track to resume.");
@@ -939,7 +1113,7 @@ export const resume = mutation({
     await syncRoomPlaybackState(ctx, playbackState, {
       currentQueueItemId,
       startedAt: now,
-      startOffsetMs: resolvedPlaybackState.currentOffsetMs,
+      startOffsetMs: projection.resolvedPlaybackState.currentOffsetMs,
       paused: false,
       pausedAt: null,
       updatedAt: now,
@@ -948,7 +1122,7 @@ export const resume = mutation({
     return {
       roomId: moderatorContext.room._id,
       currentQueueItemId,
-      offsetMs: resolvedPlaybackState.currentOffsetMs,
+      offsetMs: projection.resolvedPlaybackState.currentOffsetMs,
     };
   },
 });
@@ -964,25 +1138,34 @@ export const skip = mutation({
       getPlaybackStateDoc(ctx, moderatorContext.room._id),
     ]);
     const now = Date.now();
-    const resolvedPlaybackState = resolveRoomPlaybackState(
-      queueItems,
+    const projection = await compactRoomQueuePlayback(
+      ctx,
       playbackState,
+      queueItems,
       now,
     );
-    const currentQueueItemIndex = queueItems.findIndex(
-      (queueItem) => queueItem._id === resolvedPlaybackState.currentQueueItemId,
+    const nextQueueItem = projection.visibleQueueItems[0] ?? null;
+
+    if (projection.currentQueueItem) {
+      await ctx.db.patch(projection.currentQueueItem._id, {
+        removedAt: now,
+      });
+    }
+
+    await normalizeQueuePositions(
+      ctx,
+      nextQueueItem
+        ? [nextQueueItem, ...projection.visibleQueueItems.slice(1)]
+        : [],
     );
-    const nextQueueItem =
-      currentQueueItemIndex >= 0
-        ? queueItems[currentQueueItemIndex + 1] ?? null
-        : null;
 
     await syncRoomPlaybackState(ctx, playbackState, {
       currentQueueItemId: nextQueueItem?._id ?? null,
       startedAt: nextQueueItem ? now : null,
       startOffsetMs: 0,
-      paused: resolvedPlaybackState.paused || !nextQueueItem,
-      pausedAt: resolvedPlaybackState.paused || !nextQueueItem ? now : null,
+      paused: projection.resolvedPlaybackState.paused || !nextQueueItem,
+      pausedAt:
+        projection.resolvedPlaybackState.paused || !nextQueueItem ? now : null,
       updatedAt: now,
     });
 

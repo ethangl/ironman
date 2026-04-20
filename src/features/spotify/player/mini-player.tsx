@@ -18,11 +18,13 @@ export function MiniPlayer() {
   const nowPlaying = useNowPlaying();
   const rooms = useOptionalRooms();
   const activeRoom = rooms?.activeRoom ?? null;
-  const pauseRoom = rooms?.pauseRoom;
+  const isListeningToRoom = rooms?.isListeningToRoom ?? true;
   const playRoom = rooms?.playRoom;
+  const repairSync = rooms?.repairSync;
   const resolvedPlayback = rooms?.resolvedPlayback ?? null;
   const resumeRoom = rooms?.resumeRoom;
   const skipRoom = rooms?.skipRoom;
+  const stopListening = rooms?.stopListening;
   const syncState = rooms?.syncState ?? {
     code: "idle",
     label: "Not listening to a room",
@@ -31,6 +33,7 @@ export function MiniPlayer() {
   const roomTrack = toRoomTrack(resolvedPlayback?.currentQueueItem ?? null);
   const isRoomMode = activeRoom !== null;
   const canControlPlayback = !!activeRoom?.playback.canControlPlayback;
+  const roomPaused = resolvedPlayback?.paused ?? false;
   const displayImage = activeRoom
     ? roomTrack?.albumImage ?? null
     : nowPlaying.displayImage;
@@ -44,27 +47,38 @@ export function MiniPlayer() {
     : nowPlaying.displayArtist;
 
   const handleRoomToggle = () => {
-    if (
-      !activeRoom ||
-      !canControlPlayback ||
-      !pauseRoom ||
-      !playRoom ||
-      !resumeRoom
-    ) {
+    if (!activeRoom) {
       return;
     }
 
     if (!resolvedPlayback?.currentQueueItem) {
+      if (!canControlPlayback || !playRoom) {
+        return;
+      }
+
       void playRoom(activeRoom.room._id);
       return;
     }
 
-    if (resolvedPlayback.paused) {
+    if (roomPaused) {
+      if (!canControlPlayback || !resumeRoom) {
+        return;
+      }
+
       void resumeRoom(activeRoom.room._id);
       return;
     }
 
-    void pauseRoom(activeRoom.room._id);
+    if (isListeningToRoom) {
+      if (!stopListening) {
+        return;
+      }
+
+      void stopListening();
+      return;
+    }
+
+    repairSync?.();
   };
 
   return (
@@ -116,7 +130,7 @@ export function MiniPlayer() {
                 <PlayButton
                   size="icon-sm"
                   className="bg-white/10 hover:bg-white/5"
-                  playing={!resolvedPlayback?.paused}
+                  playing={roomPaused ? false : isListeningToRoom}
                   onClick={handleRoomToggle}
                 />
                 <Button

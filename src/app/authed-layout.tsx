@@ -15,7 +15,7 @@ export function AuthedLayout() {
   return (
     <div
       className={cn(
-        "absolute gap-2 grid grid-cols-[calc(--spacing(112))_1fr] inset-0 items-stretch py-2",
+        "absolute gap-3 grid grid-cols-[calc(--spacing(112))_1fr] inset-0 items-stretch py-3",
         isExpanded ? "left-0" : "-left-96",
       )}
     >

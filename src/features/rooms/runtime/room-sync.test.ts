@@ -131,4 +131,53 @@ describe("room-sync", () => {
       label: "Following room",
     });
   });
+
+  it("resolves the current track even when the queue only contains up-next songs", () => {
+    const separatedCurrentRoomDetails: RoomDetails = {
+      ...roomDetails,
+      queueLength: 1,
+      queue: [roomDetails.queue[1]!],
+      playback: {
+        ...roomDetails.playback,
+        currentQueueItem: roomDetails.queue[0]!,
+        currentQueueItemId: roomDetails.queue[0]!._id,
+      },
+    };
+
+    const resolvedPlayback = resolveRoomPlayback(
+      separatedCurrentRoomDetails,
+      40_000,
+    );
+
+    expect(resolvedPlayback).toMatchObject({
+      currentQueueItemId: "queue-1",
+      currentOffsetMs: 30_000,
+    });
+    expect(resolvedPlayback?.currentQueueItem?.trackId).toBe("track-1");
+  });
+
+  it("does not invent a current track before room playback starts", () => {
+    const queuedRoomDetails: RoomDetails = {
+      ...roomDetails,
+      playback: {
+        ...roomDetails.playback,
+        currentQueueItemId: null,
+        currentQueueItem: null,
+        expectedOffsetMs: 0,
+        startedAt: null,
+        startOffsetMs: 0,
+        paused: true,
+        pausedAt: 10_000,
+      },
+    };
+
+    const resolvedPlayback = resolveRoomPlayback(queuedRoomDetails, 40_000);
+
+    expect(resolvedPlayback).toMatchObject({
+      currentQueueItem: null,
+      currentQueueItemId: null,
+      currentOffsetMs: 0,
+      paused: true,
+    });
+  });
 });

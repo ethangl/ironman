@@ -4,14 +4,17 @@ import { AlbumArt } from "@/components/album-art";
 import { BackgroundOverlay } from "@/components/background-overlay";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { RoomId, RoomQueueItem, RoomQueueItemId } from "../client/room-types";
+import type {
+  RoomId,
+  RoomQueueItem,
+  RoomQueueItemId,
+} from "../client/room-types";
 
 export function RoomQueueList({
   canManageQueue,
   canRemoveQueueItem,
   compact = false,
   currentQueueItemId,
-  emptyLabel = "Use the search bar to add the first track.",
   limit,
   onMove,
   onRemove,
@@ -24,7 +27,11 @@ export function RoomQueueList({
   currentQueueItemId: RoomQueueItemId | null;
   emptyLabel?: string;
   limit?: number;
-  onMove?: (roomId: RoomId, queueItemId: RoomQueueItemId, targetIndex: number) => void;
+  onMove?: (
+    roomId: RoomId,
+    queueItemId: RoomQueueItemId,
+    targetIndex: number,
+  ) => void;
   onRemove?: (roomId: RoomId, queueItemId: RoomQueueItemId) => void;
   queue: RoomQueueItem[];
   roomId: RoomId;
@@ -32,11 +39,7 @@ export function RoomQueueList({
   const visibleQueue = limit ? queue.slice(0, limit) : queue;
 
   if (visibleQueue.length === 0) {
-    return (
-      <div className="rounded-3xl bg-white/5 px-4 py-3 text-sm text-muted-foreground">
-        {emptyLabel}
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -81,7 +84,9 @@ export function RoomQueueList({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  onClick={() => onMove?.(roomId, queueItem._id, queueItem.position - 1)}
+                  onClick={() =>
+                    onMove?.(roomId, queueItem._id, queueItem.position - 1)
+                  }
                 >
                   <ArrowUpIcon />
                 </Button>
@@ -90,7 +95,9 @@ export function RoomQueueList({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  onClick={() => onMove?.(roomId, queueItem._id, queueItem.position + 1)}
+                  onClick={() =>
+                    onMove?.(roomId, queueItem._id, queueItem.position + 1)
+                  }
                 >
                   <ArrowDownIcon />
                 </Button>

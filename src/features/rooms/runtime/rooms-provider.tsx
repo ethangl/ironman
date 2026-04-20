@@ -31,6 +31,7 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
       clearQueue: queue.clearQueue,
       createRoom: membership.createRoom,
       enqueueTrack: queue.enqueueTrack,
+      isListeningToRoom: sync.isListeningToRoom,
       joinRoom: membership.joinRoom,
       leaveRoom: membership.leaveRoom,
       moveQueueItem: queue.moveQueueItem,
@@ -44,6 +45,7 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
       roomsLoading: runtime.roomsLoading,
       selectActiveRoom: runtime.selectActiveRoom,
       skipRoom: playback.skipRoom,
+      stopListening: sync.stopListening,
       syncState: sync.syncState,
     }),
     [
@@ -65,7 +67,9 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
       runtime.rooms,
       runtime.roomsLoading,
       runtime.selectActiveRoom,
+      sync.isListeningToRoom,
       sync.repairSync,
+      sync.stopListening,
       sync.syncState,
     ],
   );

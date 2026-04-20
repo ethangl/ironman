@@ -72,6 +72,7 @@ export interface RoomDetails {
 
 export type RoomSyncCode =
   | "idle"
+  | "detached"
   | "queue_empty"
   | "paused"
   | "syncing"

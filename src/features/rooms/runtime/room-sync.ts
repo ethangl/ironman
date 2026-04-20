@@ -105,7 +105,7 @@ export function getRoomSyncState({
   if (resolvedPlayback.paused) {
     return {
       code: "paused",
-      label: "Room paused",
+      label: "Playback stopped",
       driftMs: null,
     };
   }

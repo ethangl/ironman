@@ -2,7 +2,6 @@ import { SkipForwardIcon } from "lucide-react";
 
 import { useAppAuth } from "@/app";
 import { AppLink } from "@/components/app-link";
-import { PlayButton } from "@/components/play-button";
 import { Button } from "@/components/ui/button";
 import { formatRoomSyncLabel } from "../client/room-utils";
 import { useRooms } from "../runtime/rooms-provider";
@@ -14,12 +13,9 @@ export function RoomPlayerPanel() {
     activeRoom,
     leaveRoom,
     moveQueueItem,
-    pauseRoom,
-    playRoom,
     removeQueueItem,
     repairSync,
     resolvedPlayback,
-    resumeRoom,
     skipRoom,
     syncState,
   } = useRooms();
@@ -31,24 +27,6 @@ export function RoomPlayerPanel() {
 
   const canControlPlayback = activeRoom.playback.canControlPlayback;
   const currentQueueItem = resolvedPlayback?.currentQueueItem ?? null;
-
-  const handleTogglePlay = () => {
-    if (!canControlPlayback) {
-      return;
-    }
-
-    if (!currentQueueItem) {
-      void playRoom(activeRoom.room._id);
-      return;
-    }
-
-    if (resolvedPlayback?.paused) {
-      void resumeRoom(activeRoom.room._id);
-      return;
-    }
-
-    void pauseRoom(activeRoom.room._id);
-  };
 
   return (
     <section className="mt-5 rounded-[2rem] bg-white/5 p-4 text-left">
@@ -72,25 +50,19 @@ export function RoomPlayerPanel() {
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {canControlPlayback ? (
-          <>
-            <PlayButton
-              size="icon-lg"
-              className="bg-white/10 hover:bg-white/15"
-              playing={!resolvedPlayback?.paused}
-              onClick={handleTogglePlay}
-            />
+          currentQueueItem ? (
             <Button
               variant="ghost"
-              size="icon-lg"
-              className="bg-white/10 hover:bg-white/15"
+              size="sm"
               onClick={() => void skipRoom(activeRoom.room._id)}
             >
               <SkipForwardIcon />
+              Skip
             </Button>
-          </>
+          ) : null
         ) : (
           <p className="text-xs text-muted-foreground">
-            Only the room owner or a moderator can steer playback.
+            Only the room owner or a moderator can steer the room stream.
           </p>
         )}
         <Button variant="ghost" size="sm" onClick={repairSync}>

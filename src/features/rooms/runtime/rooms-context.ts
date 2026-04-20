@@ -37,9 +37,6 @@ export interface RoomsContextValue {
     targetIndex: number,
   ) => Promise<void>;
   clearQueue: (roomId: RoomId) => Promise<void>;
-  playRoom: (roomId: RoomId, queueItemId?: RoomQueueItemId) => Promise<void>;
-  pauseRoom: (roomId: RoomId) => Promise<void>;
-  resumeRoom: (roomId: RoomId) => Promise<void>;
   skipRoom: (roomId: RoomId) => Promise<void>;
   repairSync: () => void;
   stopListening: () => Promise<void>;

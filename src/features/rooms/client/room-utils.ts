@@ -42,10 +42,12 @@ export function buildRoomActivityEntries(roomDetails: RoomDetails) {
       at: roomDetails.room.createdAt,
     },
     ...(roomDetails.playback.currentQueueItem
-      ? [
+        ? [
           {
             id: `playback:${roomDetails.playback.updatedAt}`,
-            title: roomDetails.playback.paused ? "Room paused" : "Now playing",
+            title: roomDetails.playback.paused
+              ? "Playback stopped"
+              : "Now playing",
             detail: roomDetails.playback.currentQueueItem.trackName,
             at: roomDetails.playback.updatedAt,
           },

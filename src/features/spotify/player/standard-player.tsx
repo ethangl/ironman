@@ -40,10 +40,8 @@ export function StandardPlayer() {
   const rooms = useOptionalRooms();
   const activeRoom = rooms?.activeRoom ?? null;
   const isListeningToRoom = rooms?.isListeningToRoom ?? true;
-  const playRoom = rooms?.playRoom;
   const repairSync = rooms?.repairSync;
   const resolvedPlayback = rooms?.resolvedPlayback ?? null;
-  const resumeRoom = rooms?.resumeRoom;
   const skipRoom = rooms?.skipRoom;
   const stopListening = rooms?.stopListening;
   const syncState = rooms?.syncState ?? {
@@ -54,6 +52,10 @@ export function StandardPlayer() {
   const roomTrack = toRoomTrack(resolvedPlayback?.currentQueueItem ?? null);
   const isRoomMode = activeRoom !== null;
   const roomPaused = resolvedPlayback?.paused ?? false;
+  const canControlPlayback = !!activeRoom?.playback.canControlPlayback;
+  const hasRoomTrack = !!resolvedPlayback?.currentQueueItem;
+  const canToggleListening =
+    hasRoomTrack && !roomPaused;
   const displayArtist = activeRoom
     ? roomTrack
       ? `${activeRoom.room.name} • ${roomTrack.artist}`
@@ -95,20 +97,11 @@ export function StandardPlayer() {
     }
 
     if (!resolvedPlayback?.currentQueueItem) {
-      if (!activeRoom.playback.canControlPlayback || !playRoom) {
-        return;
-      }
-
-      void playRoom(activeRoom.room._id);
       return;
     }
 
     if (roomPaused) {
-      if (!activeRoom.playback.canControlPlayback || !resumeRoom) {
-        return;
-      }
-
-      void resumeRoom(activeRoom.room._id);
+      repairSync?.();
       return;
     }
 
@@ -176,34 +169,24 @@ export function StandardPlayer() {
             )}
           </div>
           {isRoomMode ? (
-            activeRoom.playback.canControlPlayback ? (
-              <Button
-                size="icon-2xl"
-                className="bg-white/10 hover:bg-white/5"
-                onClick={handleRoomToggle}
-              >
-                {roomPaused || !isListeningToRoom ? (
-                  <PlayIcon fill="currentColor" strokeWidth={0} />
-                ) : (
-                  <PauseIcon fill="currentColor" strokeWidth={0} />
-                )}
-              </Button>
-            ) : (
-              <Button
-                size="lg"
-                variant="ghost"
-                className="bg-white/10 hover:bg-white/5"
-                onClick={repairSync}
-              >
-                Sync to room
-              </Button>
-            )
+            <Button
+              size="icon-2xl"
+              className="bg-white/10 hover:bg-white/5"
+              disabled={!canToggleListening}
+              onClick={handleRoomToggle}
+            >
+              {roomPaused || !isListeningToRoom ? (
+                <PlayIcon fill="currentColor" strokeWidth={0} />
+              ) : (
+                <PauseIcon fill="currentColor" strokeWidth={0} />
+              )}
+            </Button>
           ) : (
             <TogglePlayButton size="icon-2xl" />
           )}
           <div className="flex flex-auto gap-3 items-center justify-start">
             {isRoomMode ? (
-              activeRoom.playback.canControlPlayback && hasQueue ? (
+              canControlPlayback && hasRoomTrack ? (
                 <Button
                   size="icon-lg"
                   className="bg-white/10 hover:bg-white/5"

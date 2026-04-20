@@ -9,6 +9,7 @@ import {
 } from "./_generated/server";
 import {
   moveRoomQueueItemIds,
+  normalizeRoomPlaybackForContinuousStream,
   resolveRoomPlaybackState,
 } from "../shared/rooms-state";
 import { requireAuthUser } from "./spotifySession";
@@ -308,13 +309,18 @@ function resolveRoomPlaybackProjection(
   >,
   now: number,
 ) {
-  const resolvedPlaybackState = resolveRoomPlaybackState(
+  const effectivePlaybackState = normalizeRoomPlaybackForContinuousStream(
     queueItems,
     playbackState,
     now,
   );
+  const resolvedPlaybackState = resolveRoomPlaybackState(
+    queueItems,
+    effectivePlaybackState,
+    now,
+  );
 
-  if (!hasStartedRoomPlayback(playbackState)) {
+  if (!hasStartedRoomPlayback(effectivePlaybackState)) {
     return {
       currentQueueItem: null,
       currentQueueItemId: null,
@@ -427,32 +433,6 @@ async function compactRoomQueuePlayback(
       ? retainedQueueItems.slice(1)
       : retainedQueueItems,
   };
-}
-
-async function pauseRoomPlayback(
-  ctx: MutationCtx,
-  roomId: Id<"rooms">,
-  now: number,
-) {
-  const [queueItems, playbackState] = await Promise.all([
-    getActiveQueueItems(ctx, roomId),
-    getPlaybackStateDoc(ctx, roomId),
-  ]);
-  const projection = await compactRoomQueuePlayback(
-    ctx,
-    playbackState,
-    queueItems,
-    now,
-  );
-
-  await syncRoomPlaybackState(ctx, playbackState, {
-    currentQueueItemId: projection.currentQueueItemId,
-    startedAt: projection.currentQueueItemId ? now : null,
-    startOffsetMs: projection.resolvedPlaybackState.currentOffsetMs,
-    paused: true,
-    pausedAt: now,
-    updatedAt: now,
-  });
 }
 
 async function uniqueRoomSlug(ctx: MutationCtx, preferredSlug: string) {
@@ -756,14 +736,6 @@ export const leave = mutation({
       leftAt: now,
     });
 
-    const remainingMemberships = await getActiveRoomMemberships(
-      ctx,
-      memberContext.room._id,
-    );
-    if (remainingMemberships.length === 0) {
-      await pauseRoomPlayback(ctx, memberContext.room._id, now);
-    }
-
     return {
       roomId: memberContext.room._id,
       leftAt: now,
@@ -809,6 +781,17 @@ export const enqueueTrack = mutation({
       addedAt: now,
       removedAt: null,
     });
+
+    if (projection.queueItems.length === 0) {
+      await syncRoomPlaybackState(ctx, playbackState, {
+        currentQueueItemId: queueItemId,
+        startedAt: now,
+        startOffsetMs: 0,
+        paused: false,
+        pausedAt: null,
+        updatedAt: now,
+      });
+    }
 
     return {
       roomId: memberContext.room._id,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   moveRoomQueueItemIds,
+  normalizeRoomPlaybackForContinuousStream,
   resolveRoomPlaybackState,
   sortRoomQueueItems,
 } from "../shared/rooms-state";
@@ -79,6 +80,50 @@ describe("roomsState", () => {
       currentQueueItemId: null,
       currentOffsetMs: 0,
       paused: true,
+    });
+  });
+
+  it("keeps a paused room advancing as a continuous stream", () => {
+    const resolved = normalizeRoomPlaybackForContinuousStream(
+      queueItems,
+      {
+        currentQueueItemId: "queue-1",
+        startedAt: 0,
+        startOffsetMs: 30_000,
+        paused: true,
+        pausedAt: 20_000,
+      },
+      160_000,
+    );
+
+    expect(resolved).toMatchObject({
+      currentQueueItemId: "queue-2",
+      startedAt: 90_000,
+      startOffsetMs: 0,
+      paused: false,
+      pausedAt: null,
+    });
+  });
+
+  it("starts the first queued track immediately when playback has not started", () => {
+    const resolved = normalizeRoomPlaybackForContinuousStream(
+      queueItems,
+      {
+        currentQueueItemId: null,
+        startedAt: null,
+        startOffsetMs: 0,
+        paused: true,
+        pausedAt: 10_000,
+      },
+      40_000,
+    );
+
+    expect(resolved).toMatchObject({
+      currentQueueItemId: "queue-1",
+      startedAt: 40_000,
+      startOffsetMs: 0,
+      paused: false,
+      pausedAt: null,
     });
   });
 

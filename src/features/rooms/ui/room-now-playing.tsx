@@ -1,6 +1,6 @@
 import { AlbumArt } from "@/components/album-art";
 import { Button } from "@/components/ui/button";
-import { MetronomeIcon, PauseIcon, PlayIcon } from "lucide-react";
+import { MetronomeIcon, SkipForwardIcon } from "lucide-react";
 import type { RoomDetails } from "../client/room-types";
 import { formatRoomDuration, toRoomTrack } from "../client/room-utils";
 import { ResolvedRoomPlayback } from "../runtime/room-sync";
@@ -15,16 +15,15 @@ export function RoomNowPlaying({
 }) {
   const {
     activeRoomId,
-    playRoom,
-    pauseRoom,
     repairSync,
-    resumeRoom,
     selectActiveRoom,
+    skipRoom,
   } = useRooms();
 
   const currentQueueItem = resolvedPlayback?.currentQueueItem ?? null;
   const currentTrack = toRoomTrack(currentQueueItem);
   const isActiveRoom = activeRoomId === room.room._id;
+  const canControlPlayback = room.playback.canControlPlayback;
 
   return (
     <div className="flex gap-4 items-center rounded-2xl bg-white/5 p-4">
@@ -42,29 +41,21 @@ export function RoomNowPlaying({
         </p>
       </div>
       {isActiveRoom ? (
-        <Button variant="ghost" size="icon-sm" onClick={repairSync}>
+        <Button variant="ghost" size="sm" onClick={repairSync}>
           <MetronomeIcon />
+          Sync to room
         </Button>
       ) : (
         <Button onClick={() => selectActiveRoom(room.room._id)}>
-          Listen here
+          Listen live
         </Button>
       )}
-      <Button
-        onClick={() =>
-          currentQueueItem
-            ? resolvedPlayback?.paused
-              ? void resumeRoom(room.room._id)
-              : void pauseRoom(room.room._id)
-            : void playRoom(room.room._id)
-        }
-      >
-        {!currentQueueItem || resolvedPlayback?.paused ? (
-          <PlayIcon />
-        ) : (
-          <PauseIcon />
-        )}
-      </Button>
+      {canControlPlayback && currentQueueItem ? (
+        <Button onClick={() => void skipRoom(room.room._id)}>
+          <SkipForwardIcon />
+          Skip
+        </Button>
+      ) : null}
     </div>
   );
 }

@@ -161,6 +161,44 @@ export function resolveRoomPlaybackState<TId extends string>(
   };
 }
 
+export function normalizeRoomPlaybackForContinuousStream<TId extends string>(
+  queueItems: readonly RoomQueueItemSnapshot<TId>[],
+  playbackState: RoomPlaybackStateSnapshot<TId>,
+  now: number,
+): RoomPlaybackStateSnapshot<TId> {
+  const orderedQueueItems = sortRoomQueueItems(queueItems);
+
+  if (orderedQueueItems.length === 0) {
+    return playbackState;
+  }
+
+  if (
+    !playbackState.paused &&
+    playbackState.currentQueueItemId !== null &&
+    playbackState.startedAt !== null
+  ) {
+    return playbackState;
+  }
+
+  const resumedPlaybackState = resolveRoomPlaybackState(
+    orderedQueueItems,
+    {
+      ...playbackState,
+      paused: false,
+      pausedAt: null,
+    },
+    now,
+  );
+
+  return {
+    currentQueueItemId: resumedPlaybackState.currentQueueItemId,
+    startedAt: resumedPlaybackState.startedAt ?? now,
+    startOffsetMs: resumedPlaybackState.startOffsetMs,
+    paused: false,
+    pausedAt: null,
+  };
+}
+
 export function moveRoomQueueItemIds<TId extends string>(
   queueItemIds: readonly TId[],
   queueItemId: TId,

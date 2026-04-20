@@ -2,14 +2,17 @@ import { useAppAuth } from "@/app";
 import {
   Section,
   SectionContent,
+  SectionDescription,
+  SectionFooter,
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
 import { Button } from "@/components/ui/button";
-import { Trash2Icon } from "lucide-react";
+import { HeartCrackIcon, HeartIcon, Trash2Icon } from "lucide-react";
 import type { RoomDetails, RoomQueueItemId } from "../client/room-types";
 import { ResolvedRoomPlayback } from "../runtime/room-sync";
 import { useRooms } from "../runtime/rooms-provider";
+import { RoomNowPlaying } from "./room-now-playing";
 import { RoomQueueList } from "./room-queue-list";
 
 export function RoomQueue({
@@ -20,31 +23,44 @@ export function RoomQueue({
   resolvedPlayback: ResolvedRoomPlayback | null;
 }) {
   const { session } = useAppAuth();
-  const { clearQueue, moveQueueItem, removeQueueItem } = useRooms();
+  const { clearQueue, joinRoom, leaveRoom, moveQueueItem, removeQueueItem } =
+    useRooms();
   const canControlPlayback = room.playback.canControlPlayback;
 
   return (
     <Section>
       <SectionHeader>
         <SectionTitle>
-          Queue
+          {room.room.name}
           <nav className="flex gap-3 items-center">
             <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-              {room.queueLength} queued
+              {room.memberCount} listening
             </span>
-            {canControlPlayback && (
+            {room.viewerMembership ? (
               <Button
                 variant="ghost"
-                size="icon-xs"
-                onClick={() => void clearQueue(room.room._id)}
+                size="icon-sm"
+                onClick={() => void leaveRoom(room.room._id)}
               >
-                <Trash2Icon />
+                <HeartIcon />
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => void joinRoom(room.room._id)}
+              >
+                <HeartCrackIcon />
               </Button>
             )}
           </nav>
         </SectionTitle>
+        {room.room.description && (
+          <SectionDescription>{room.room.description}</SectionDescription>
+        )}
       </SectionHeader>
-      <SectionContent>
+      <SectionContent className="space-y-2">
+        <RoomNowPlaying resolvedPlayback={resolvedPlayback} room={room} />
         <RoomQueueList
           roomId={room.room._id}
           queue={room.queue}
@@ -64,6 +80,17 @@ export function RoomQueue({
           }
         />
       </SectionContent>
+      {canControlPlayback && (
+        <SectionFooter>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void clearQueue(room.room._id)}
+          >
+            <Trash2Icon /> Clear Queue
+          </Button>
+        </SectionFooter>
+      )}
     </Section>
   );
 }

@@ -1,12 +1,27 @@
+import { useEffect, useMemo, useState } from "react";
+
 import { api } from "@api";
 
 import { useStableQuery } from "@/hooks/use-stable-query";
-import type { RoomDetails, RoomId, RoomPlaybackSnapshot, RoomSummary } from "./room-types";
+import {
+  type ResolvedRoomPlayback,
+  resolveRoomPlayback,
+} from "../runtime/room-sync";
+import type {
+  RoomDetails,
+  RoomId,
+  RoomPlaybackSnapshot,
+  RoomSummary,
+} from "./room-types";
 
 interface QueryState<TData> {
   data: TData | null;
   loading: boolean;
   notFound: boolean;
+}
+
+interface RoomDetailsQueryState extends QueryState<RoomDetails> {
+  resolvedPlayback: ResolvedRoomPlayback | null;
 }
 
 export function useRoomList(): QueryState<RoomSummary[]> {
@@ -19,11 +34,10 @@ export function useRoomList(): QueryState<RoomSummary[]> {
   };
 }
 
-export function useRoomDetails(roomId: RoomId | null): QueryState<RoomDetails> {
-  const summary = useStableQuery(
-    api.rooms.get,
-    roomId ? { roomId } : "skip",
-  );
+export function useRoomDetails(
+  roomId: RoomId | undefined,
+): RoomDetailsQueryState {
+  const summary = useStableQuery(api.rooms.get, roomId ? { roomId } : "skip");
   const queue = useStableQuery(
     api.rooms.getQueue,
     roomId ? { roomId } : "skip",
@@ -33,32 +47,60 @@ export function useRoomDetails(roomId: RoomId | null): QueryState<RoomDetails> {
     roomId ? { roomId } : "skip",
   );
 
-  if (!roomId) {
-    return { data: null, loading: false, notFound: false };
-  }
-
   const loading =
-    summary === undefined || queue === undefined || playback === undefined;
-  const notFound = summary === null || queue === null || playback === null;
+    !!roomId &&
+    (summary === undefined || queue === undefined || playback === undefined);
+  const notFound =
+    !!roomId && (summary === null || queue === null || playback === null);
+  const data = useMemo(
+    () =>
+      !roomId || loading || notFound || !summary || !queue || !playback
+        ? null
+        : {
+            room: summary.room,
+            viewerMembership: summary.viewerMembership,
+            memberCount: summary.memberCount,
+            queueLength: summary.queueLength,
+            queue: queue.queue,
+            playback: playback as RoomPlaybackSnapshot,
+          },
+    [loading, notFound, playback, queue, summary],
+  );
+  const [now, setNow] = useState(() => Date.now());
+  const hasRoomData = data !== null;
+  const roomPlaybackPaused = data?.playback.paused ?? true;
 
-  if (loading || notFound || !summary || !queue || !playback) {
+  useEffect(() => {
+    if (!hasRoomData || roomPlaybackPaused) {
+      setNow(Date.now());
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [hasRoomData, roomId, roomPlaybackPaused]);
+
+  const resolvedPlayback = useMemo(
+    () => resolveRoomPlayback(data, now),
+    [data, now],
+  );
+
+  if (!roomId || loading || notFound || !data) {
     return {
       data: null,
-      loading,
-      notFound,
+      loading: roomId ? loading : false,
+      notFound: roomId ? notFound : false,
+      resolvedPlayback: null,
     };
   }
 
   return {
-    data: {
-      room: summary.room,
-      viewerMembership: summary.viewerMembership,
-      memberCount: summary.memberCount,
-      queueLength: summary.queueLength,
-      queue: queue.queue,
-      playback: playback as RoomPlaybackSnapshot,
-    },
+    data,
     loading: false,
     notFound: false,
+    resolvedPlayback,
   };
 }

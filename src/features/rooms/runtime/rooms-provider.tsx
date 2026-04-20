@@ -13,15 +13,12 @@ import {
 import { toast } from "sonner";
 
 import { useAppAuth } from "@/app";
-import { useWebPlayerActions, useWebPlayerState } from "@/features/spotify/player";
+import {
+  useWebPlayerActions,
+  useWebPlayerState,
+} from "@/features/spotify/player";
 import type { SpotifyTrack } from "@/types";
-import {
-  toRoomTrack,
-} from "../client/room-utils";
-import {
-  useRoomDetails,
-  useRoomList,
-} from "../client/room-hooks";
+import { useRoomDetails, useRoomList } from "../client/room-hooks";
 import type {
   RoomDetails,
   RoomId,
@@ -29,10 +26,8 @@ import type {
   RoomSummary,
   RoomSyncState,
 } from "../client/room-types";
-import {
-  getRoomSyncState,
-  resolveRoomPlayback,
-} from "./room-sync";
+import { toRoomTrack } from "../client/room-utils";
+import { getRoomSyncState, type ResolvedRoomPlayback } from "./room-sync";
 
 const ACTIVE_ROOM_STORAGE_KEY = "rooms.activeRoomId";
 
@@ -40,16 +35,22 @@ interface RoomsContextValue {
   activeRoom: RoomDetails | null;
   activeRoomId: RoomId | null;
   activeRoomLoading: boolean;
-  resolvedPlayback: ReturnType<typeof resolveRoomPlayback>;
+  resolvedPlayback: ResolvedRoomPlayback | null;
   rooms: RoomSummary[];
   roomsLoading: boolean;
   syncState: RoomSyncState;
-  createRoom: (input: { name: string; description?: string }) => Promise<RoomId | null>;
+  createRoom: (input: {
+    name: string;
+    description?: string;
+  }) => Promise<RoomId | null>;
   joinRoom: (roomId: RoomId) => Promise<void>;
   leaveRoom: (roomId?: RoomId | null) => Promise<void>;
   selectActiveRoom: (roomId: RoomId | null) => void;
   enqueueTrack: (track: SpotifyTrack, roomId?: RoomId | null) => Promise<void>;
-  removeQueueItem: (roomId: RoomId, queueItemId: RoomQueueItemId) => Promise<void>;
+  removeQueueItem: (
+    roomId: RoomId,
+    queueItemId: RoomQueueItemId,
+  ) => Promise<void>;
   moveQueueItem: (
     roomId: RoomId,
     queueItemId: RoomQueueItemId,
@@ -104,8 +105,10 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
   const resumeRoomMutation = useMutation(api.rooms.resume);
   const skipRoomMutation = useMutation(api.rooms.skip);
 
-  const activeRoom =
-    activeRoomQuery.data?.viewerMembership ? activeRoomQuery.data : null;
+  const activeRoom = activeRoomQuery.data?.viewerMembership
+    ? activeRoomQuery.data
+    : null;
+  const resolvedPlayback = activeRoomQuery.resolvedPlayback;
 
   useEffect(() => {
     if (!session) {
@@ -141,25 +144,6 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
       setActiveRoomId(null);
     }
   }, [activeRoomQuery.data, activeRoomQuery.loading]);
-
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!activeRoom || activeRoom.playback.paused) {
-      setNow(Date.now());
-      return;
-    }
-
-    const interval = window.setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
-
-    return () => window.clearInterval(interval);
-  }, [activeRoom]);
-
-  const resolvedPlayback = useMemo(
-    () => resolveRoomPlayback(activeRoom, now),
-    [activeRoom, now],
-  );
 
   const syncState = useMemo(
     () =>
@@ -325,7 +309,11 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
   );
 
   const moveQueueItem = useCallback(
-    async (roomId: RoomId, queueItemId: RoomQueueItemId, targetIndex: number) => {
+    async (
+      roomId: RoomId,
+      queueItemId: RoomQueueItemId,
+      targetIndex: number,
+    ) => {
       try {
         await moveQueueItemMutation({ roomId, queueItemId, targetIndex });
       } catch (error) {
@@ -441,7 +429,9 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return <RoomsContext.Provider value={value}>{children}</RoomsContext.Provider>;
+  return (
+    <RoomsContext.Provider value={value}>{children}</RoomsContext.Provider>
+  );
 }
 
 export function useRooms() {

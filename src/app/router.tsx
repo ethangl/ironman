@@ -3,12 +3,12 @@ import { createBrowserRouter } from "react-router-dom";
 import {
   ArtistResolveRoute,
   ArtistRoute,
-  AuthedHomeRoute,
   HomeRoute,
   NotFoundRoute,
   ProfileRoute,
   PublicProfileRoute,
   RoomRoute,
+  RoomsRoute,
 } from "@/routes";
 import { AppShell } from "./app-shell";
 import { AuthedLayout } from "./authed-layout";
@@ -31,7 +31,7 @@ export const router = createBrowserRouter([
           {
             element: <AuthedLayout />,
             children: [
-              { path: "home", element: <AuthedHomeRoute /> },
+              { path: "home", element: <RoomsRoute /> },
               { path: "rooms/:roomId", element: <RoomRoute /> },
               {
                 path: "artist/resolve/:musicBrainzArtistId",

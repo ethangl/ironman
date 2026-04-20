@@ -27,7 +27,7 @@ export function RoomsHome() {
           {roomsLoading ? (
             <p className="text-sm text-muted-foreground">Loading rooms...</p>
           ) : joinedRooms.length > 0 ? (
-            <div className="grid gap-3 lg:grid-cols-2">
+            <>
               {joinedRooms.map((roomSummary) => (
                 <RoomCard
                   key={roomSummary.room._id}
@@ -35,7 +35,7 @@ export function RoomsHome() {
                   active={activeRoomId === roomSummary.room._id}
                 />
               ))}
-            </div>
+            </>
           ) : (
             <p className="text-sm text-muted-foreground">
               You are not in any rooms yet. Join one below or start your own.

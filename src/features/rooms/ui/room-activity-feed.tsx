@@ -10,12 +10,8 @@ import {
   formatRoomTimestamp,
 } from "../client/room-utils";
 
-export function RoomActivityFeed({
-  roomDetails,
-}: {
-  roomDetails: RoomDetails;
-}) {
-  const entries = buildRoomActivityEntries(roomDetails);
+export function RoomActivityFeed({ room }: { room: RoomDetails }) {
+  const entries = buildRoomActivityEntries(room);
 
   return (
     <Section>

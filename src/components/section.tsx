@@ -29,7 +29,7 @@ export const SectionTitle: FC<ComponentProps<"h2">> = ({
 }) => (
   <h2
     className={cn(
-      "flex gap-3 font-medium items-center justify-between text-3xl tracking-[0.015em]",
+      "flex gap-3 font-medium items-center justify-between text-2xl tracking-[0.015em]",
       className,
     )}
     {...props}
@@ -40,7 +40,10 @@ export const SectionDescription: FC<ComponentProps<"h4">> = ({
   className,
   ...props
 }) => (
-  <h4 className={cn("font-medium tracking-[0.015em]", className)} {...props} />
+  <h4
+    className={cn("font-medium text-muted-foreground text-sm", className)}
+    {...props}
+  />
 );
 
 export const SectionContent: FC<ComponentProps<"div">> = ({

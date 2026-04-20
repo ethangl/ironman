@@ -29,7 +29,6 @@ export function SpotifyActivity() {
       />
       <Playlists
         title="Your Playlists"
-        display="thumbnails"
         playlists={playlists}
         action={
           <Button

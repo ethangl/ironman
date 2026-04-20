@@ -1,4 +1,3 @@
-import { useAppCapabilities } from "@/app";
 import {
   Section,
   SectionContent,
@@ -10,15 +9,7 @@ import { RoomCard } from "./room-card";
 import { RoomCreateForm } from "./room-create-form";
 
 export function RoomsHome() {
-  const { canControlPlayback } = useAppCapabilities();
-  const {
-    activeRoom,
-    activeRoomId,
-    repairSync,
-    rooms,
-    roomsLoading,
-    syncState,
-  } = useRooms();
+  const { activeRoomId, rooms, roomsLoading } = useRooms();
   const joinedRooms = rooms.filter(
     (roomSummary) => !!roomSummary.viewerMembership,
   );
@@ -28,8 +19,6 @@ export function RoomsHome() {
 
   return (
     <>
-      <RoomCreateForm />
-
       <Section>
         <SectionHeader>
           <SectionTitle>Your Rooms</SectionTitle>
@@ -54,7 +43,6 @@ export function RoomsHome() {
           )}
         </SectionContent>
       </Section>
-
       <Section>
         <SectionHeader>
           <SectionTitle>Discover Rooms</SectionTitle>
@@ -80,6 +68,7 @@ export function RoomsHome() {
           )}
         </SectionContent>
       </Section>
+      <RoomCreateForm />
     </>
   );
 }

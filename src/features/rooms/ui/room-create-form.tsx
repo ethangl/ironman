@@ -48,10 +48,7 @@ export function RoomCreateForm() {
         <SectionTitle>Start a Room</SectionTitle>
       </SectionHeader>
       <SectionContent>
-        <form
-          className="relative z-10 space-y-3 p-4 pt-0"
-          onSubmit={handleSubmit}
-        >
+        <form className="space-y-3" onSubmit={handleSubmit}>
           <Input
             name="room-name"
             value={name}

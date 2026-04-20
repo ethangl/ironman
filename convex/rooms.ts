@@ -32,6 +32,13 @@ const enqueueTrackArgsValidator = {
   trackImageUrl: v.optional(v.string()),
   trackDurationMs: v.number(),
 };
+const queuedTrackValidator = v.object({
+  trackId: v.string(),
+  trackName: v.string(),
+  trackArtists: v.array(v.string()),
+  trackImageUrl: v.optional(v.string()),
+  trackDurationMs: v.number(),
+});
 
 type RoomCtx = QueryCtx | MutationCtx;
 type RoomDoc = Doc<"rooms">;
@@ -273,6 +280,68 @@ async function requireModeratorContext(ctx: RoomCtx, roomId: Id<"rooms">) {
   }
 
   return memberContext;
+}
+
+function normalizeQueuedTrack(input: {
+  trackId: string;
+  trackName: string;
+  trackArtists: string[];
+  trackImageUrl?: string;
+  trackDurationMs: number;
+}) {
+  const trackId = input.trackId.trim();
+  const trackName = input.trackName.trim();
+  if (!trackId || !trackName) {
+    throw new Error("Tracks need both an id and a name.");
+  }
+
+  if (input.trackDurationMs <= 0) {
+    throw new Error("Track duration must be greater than zero.");
+  }
+
+  return {
+    trackArtists: input.trackArtists,
+    trackDurationMs: input.trackDurationMs,
+    trackId,
+    trackImageUrl: input.trackImageUrl,
+    trackName,
+  };
+}
+
+async function insertQueuedTracks(
+  ctx: MutationCtx,
+  roomId: Id<"rooms">,
+  auth: { tokenIdentifier: string; userId: string },
+  tracks: Array<{
+    trackId: string;
+    trackName: string;
+    trackArtists: string[];
+    trackImageUrl?: string;
+    trackDurationMs: number;
+  }>,
+  startPosition: number,
+  now: number,
+) {
+  const queueItemIds: Id<"roomQueueItems">[] = [];
+
+  for (const [index, track] of tracks.entries()) {
+    const queueItemId = await ctx.db.insert("roomQueueItems", {
+      roomId,
+      position: startPosition + index,
+      trackId: track.trackId,
+      trackName: track.trackName,
+      trackArtists: track.trackArtists,
+      ...(track.trackImageUrl ? { trackImageUrl: track.trackImageUrl } : {}),
+      trackDurationMs: track.trackDurationMs,
+      addedByUserId: auth.userId,
+      addedByUserTokenIdentifier: auth.tokenIdentifier,
+      addedAt: now,
+      removedAt: null,
+    });
+    queueItemIds.push(queueItemId);
+  }
+
+  return queueItemIds;
 }
 
 async function syncRoomPlaybackState(
@@ -758,29 +827,14 @@ export const enqueueTrack = mutation({
       queueItems,
       now,
     );
-    const trackId = args.trackId.trim();
-    const trackName = args.trackName.trim();
-    if (!trackId || !trackName) {
-      throw new Error("Tracks need both an id and a name.");
-    }
-
-    if (args.trackDurationMs <= 0) {
-      throw new Error("Track duration must be greater than zero.");
-    }
-
-    const queueItemId = await ctx.db.insert("roomQueueItems", {
-      roomId: memberContext.room._id,
-      position: projection.queueItems.length,
-      trackId,
-      trackName,
-      trackArtists: args.trackArtists,
-      ...(args.trackImageUrl ? { trackImageUrl: args.trackImageUrl } : {}),
-      trackDurationMs: args.trackDurationMs,
-      addedByUserId: memberContext.auth.userId,
-      addedByUserTokenIdentifier: memberContext.auth.tokenIdentifier,
-      addedAt: now,
-      removedAt: null,
-    });
+    const [queueItemId] = await insertQueuedTracks(
+      ctx,
+      memberContext.room._id,
+      memberContext.auth,
+      [normalizeQueuedTrack(args)],
+      projection.queueItems.length,
+      now,
+    );
 
     if (projection.queueItems.length === 0) {
       await syncRoomPlaybackState(ctx, playbackState, {
@@ -797,6 +851,55 @@ export const enqueueTrack = mutation({
       roomId: memberContext.room._id,
       queueItemId,
       position: projection.visibleQueueItems.length,
+    };
+  },
+});
+
+export const enqueueTracks = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    tracks: v.array(queuedTrackValidator),
+  },
+  handler: async (ctx, args) => {
+    if (args.tracks.length === 0) {
+      throw new Error("Add at least one track to queue a playlist.");
+    }
+
+    const memberContext = await requireActiveMemberContext(ctx, args.roomId);
+    const [queueItems, playbackState] = await Promise.all([
+      getActiveQueueItems(ctx, memberContext.room._id),
+      getPlaybackStateDoc(ctx, memberContext.room._id),
+    ]);
+    const now = Date.now();
+    const projection = await compactRoomQueuePlayback(
+      ctx,
+      playbackState,
+      queueItems,
+      now,
+    );
+    const queueItemIds = await insertQueuedTracks(
+      ctx,
+      memberContext.room._id,
+      memberContext.auth,
+      args.tracks.map((track) => normalizeQueuedTrack(track)),
+      projection.queueItems.length,
+      now,
+    );
+
+    if (projection.queueItems.length === 0) {
+      await syncRoomPlaybackState(ctx, playbackState, {
+        currentQueueItemId: queueItemIds[0] ?? null,
+        startedAt: now,
+        startOffsetMs: 0,
+        paused: false,
+        pausedAt: null,
+        updatedAt: now,
+      });
+    }
+
+    return {
+      count: queueItemIds.length,
+      roomId: memberContext.room._id,
     };
   },
 });

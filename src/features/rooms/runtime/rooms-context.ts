@@ -27,6 +27,10 @@ export interface RoomsContextValue {
   leaveRoom: (roomId?: RoomId | null) => Promise<void>;
   selectActiveRoom: (roomId: RoomId | null) => void;
   enqueueTrack: (track: SpotifyTrack, roomId?: RoomId | null) => Promise<void>;
+  enqueueTracks: (
+    tracks: SpotifyTrack[],
+    roomId?: RoomId | null,
+  ) => Promise<void>;
   removeQueueItem: (
     roomId: RoomId,
     queueItemId: RoomQueueItemId,

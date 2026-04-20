@@ -273,8 +273,10 @@ Add:
 
 Add:
 
-- `rooms`
-- `rooms/:roomId`
+- `home`
+- Spotify detail routes such as `artist/:artistId`
+- room detail URL state via `?roomId=<roomId>`
+- `rooms/:roomId` as a compatibility redirect while links migrate
 - room creation or discovery surfaces
 
 ### Home

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import {
   Section,
@@ -9,10 +8,11 @@ import {
 } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRoomPageState } from "../runtime/use-room-page-state";
 import { useRooms } from "../runtime/rooms-provider";
 
 export function RoomCreateForm() {
-  const navigate = useNavigate();
+  const { openRoom } = useRoomPageState();
   const { createRoom } = useRooms();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -36,7 +36,7 @@ export function RoomCreateForm() {
 
       setName("");
       setDescription("");
-      navigate(`/rooms/${roomId}`);
+      await openRoom(roomId);
     } finally {
       setSubmitting(false);
     }

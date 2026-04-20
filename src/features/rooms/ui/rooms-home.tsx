@@ -23,7 +23,7 @@ export function RoomsHome() {
         <SectionHeader>
           <SectionTitle>Your Rooms</SectionTitle>
         </SectionHeader>
-        <SectionContent>
+        <SectionContent className="space-y-2">
           {roomsLoading ? (
             <p className="text-sm text-muted-foreground">Loading rooms...</p>
           ) : joinedRooms.length > 0 ? (

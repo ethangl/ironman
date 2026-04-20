@@ -5,4 +5,4 @@ export { NotFoundRoute } from "./not-found-route";
 export { ProfileRoute } from "./profile-route";
 export { PublicProfileRoute } from "./public-profile-route";
 export { RoomRoute } from "./room-route";
-export { RoomsRoute } from "./rooms-route";
+export { SpotifyHomeRoute } from "./spotify-home-route";

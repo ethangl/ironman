@@ -9,6 +9,7 @@ import { LoginButton } from "@/features/auth";
 import { useRooms } from "@/features/rooms";
 import { useAppAuth, useAppCapabilities } from "../../../app/app-runtime";
 import { ClearSpotifyCacheButton } from "../../../app/clear-spotify-cache-button";
+import { RoomLink } from "./room-link";
 
 export function RoomsNavbar() {
   const { session } = useAppAuth();
@@ -27,20 +28,20 @@ export function RoomsNavbar() {
           size="icon-sm"
           nativeButton={false}
           render={
-            <AppLink href="/home">
+            <RoomLink roomId={null}>
               <HomeIcon />
-            </AppLink>
+            </RoomLink>
           }
           className="mr-auto"
         />
         {activeRoom && (
-          <AppLink
-            href={`/rooms/${activeRoom.room._id}`}
+          <RoomLink
+            roomId={activeRoom.room._id}
             className="hidden md:inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-xs font-medium transition hover:bg-white/15"
           >
             <RadioTowerIcon className="size-3.5" />
             {activeRoom.room.name}
-          </AppLink>
+          </RoomLink>
         )}
       </Section>
     );
@@ -67,13 +68,13 @@ export function RoomsNavbar() {
           </div>
         ) : null}
         {activeRoom ? (
-          <AppLink
-            href={`/rooms/${activeRoom.room._id}`}
+          <RoomLink
+            roomId={activeRoom.room._id}
             className="hidden md:inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-xs font-medium transition hover:bg-white/15"
           >
             <RadioTowerIcon className="size-3.5" />
             {activeRoom.room.name}
-          </AppLink>
+          </RoomLink>
         ) : null}
         <AppLink
           href="/profile"

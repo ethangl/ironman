@@ -1,10 +1,10 @@
 import { SkipForwardIcon } from "lucide-react";
 
 import { useAppAuth } from "@/app";
-import { AppLink } from "@/components/app-link";
 import { Button } from "@/components/ui/button";
 import { formatRoomSyncLabel } from "../client/room-utils";
 import { useRooms } from "../runtime/rooms-provider";
+import { RoomLink } from "./room-link";
 import { RoomQueueList } from "./room-queue-list";
 import { RoomStatusBadge } from "./room-status-badge";
 
@@ -35,12 +35,12 @@ export function RoomPlayerPanel() {
           <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
             Listening Room
           </p>
-          <AppLink
-            href={`/rooms/${activeRoom.room._id}`}
+          <RoomLink
+            roomId={activeRoom.room._id}
             className="truncate text-base font-semibold"
           >
             {activeRoom.room.name}
-          </AppLink>
+          </RoomLink>
         </div>
         <RoomStatusBadge
           syncState={syncState}

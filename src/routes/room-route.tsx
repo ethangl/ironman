@@ -1,37 +1,24 @@
-import { useParams } from "react-router-dom";
+import { Navigate, useLocation, useParams } from "react-router-dom";
 
-import { Spinner } from "@/components/ui/spinner";
-import { useRoomDetails, type RoomId } from "@/features/rooms";
-import { RoomActivityFeed } from "@/features/rooms/ui/room-activity-feed";
-import { RoomQueue } from "@/features/rooms/ui/room-queue";
+import type { RoomId } from "@/features/rooms";
 
 export function RoomRoute() {
+  const location = useLocation();
   const { roomId } = useParams<{ roomId: RoomId }>();
-  const roomQuery = useRoomDetails(roomId);
+  const nextSearchParams = new URLSearchParams(location.search);
 
-  if (roomQuery.loading) {
-    return (
-      <div className="flex items-center justify-center py-32">
-        <Spinner className="h-8 w-8" />
-      </div>
-    );
+  if (roomId) {
+    nextSearchParams.set("roomId", roomId);
   }
 
-  if (roomQuery.notFound || !roomQuery.data) {
-    return (
-      <div className="py-32 text-center text-muted-foreground">
-        That room could not be found.
-      </div>
-    );
-  }
-
+  const nextSearch = nextSearchParams.toString();
   return (
-    <>
-      <RoomQueue
-        resolvedPlayback={roomQuery.resolvedPlayback}
-        room={roomQuery.data}
-      />
-      <RoomActivityFeed room={roomQuery.data} />
-    </>
+    <Navigate
+      to={{
+        pathname: "/",
+        search: nextSearch ? `?${nextSearch}` : "",
+      }}
+      replace
+    />
   );
 }

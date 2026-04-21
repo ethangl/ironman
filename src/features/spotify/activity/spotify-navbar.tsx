@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { LoginButton } from "@/features/auth";
 import { SearchInput } from "@/features/search";
 import { useAppAuth, useAppCapabilities } from "../../../app/app-runtime";
-import { useSpotifyActivity } from "./use-spotify-activity";
+import { useSpotifyActivityUi } from "./use-spotify-activity-ui";
 
 export function SpotifyNavbar() {
   const { session } = useAppAuth();
   const { canBrowsePersonalSpotify, spotifyStatus } = useAppCapabilities();
-  const { isExpanded, setIsExpanded } = useSpotifyActivity();
+  const { isExpanded, setIsExpanded } = useSpotifyActivityUi();
 
   if (!session) {
     return null;

@@ -8,8 +8,6 @@ import {
 } from "./spotify-activity";
 import { getAuthenticatedSpotifyConvexClient } from "./spotify-convex-client";
 
-const TOP_ARTISTS_LIMIT = 10;
-
 export interface SpotifyActivityClient {
   getFavoriteArtists: (
     limit?: number,
@@ -22,7 +20,6 @@ export interface SpotifyActivityClient {
     forceRefresh?: boolean,
   ) => Promise<PlaylistsPage>;
   getPlaylistTracks: (playlistId: string) => Promise<SpotifyTrack[]>;
-  getTopArtists: (limit?: number) => Promise<SpotifyArtist[]>;
 }
 
 export function createSpotifyActivityClient(): SpotifyActivityClient {
@@ -60,13 +57,6 @@ export function createSpotifyActivityClient(): SpotifyActivityClient {
 
       return client.action(api.spotify.playlistTracks, {
         playlistId,
-      });
-    },
-    async getTopArtists(limit = TOP_ARTISTS_LIMIT) {
-      const client = await getAuthenticatedSpotifyConvexClient();
-
-      return client.action(api.spotify.topArtists, {
-        limit,
       });
     },
   };

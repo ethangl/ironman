@@ -147,10 +147,6 @@ function renderPlaylists(options?: {
     options?.spotifyActivity?.getPlaylistTracks ??
       ((...args: unknown[]) => mockGetPlaylistTracks(...args)),
   );
-  vi.spyOn(spotifyActivityClient, "getTopArtists").mockImplementation(
-    options?.spotifyActivity?.getTopArtists ??
-      vi.fn().mockResolvedValue([]),
-  );
 
   const content = (
     <Playlists

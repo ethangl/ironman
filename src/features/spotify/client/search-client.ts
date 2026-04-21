@@ -1,4 +1,4 @@
-import type { SpotifySearchResults, SpotifyTrack } from "@/types";
+import type { SpotifySearchResults } from "@/types";
 import { api } from "@api";
 import { getAuthenticatedSpotifyConvexClient } from "./spotify-convex-client";
 
@@ -7,7 +7,6 @@ export interface SearchClient {
     query: string,
     signal?: AbortSignal,
   ) => Promise<SpotifySearchResults>;
-  searchTracks: (query: string) => Promise<SpotifyTrack[]>;
 }
 
 function createAbortError() {
@@ -34,13 +33,6 @@ export function createConvexSpotifySearchClient(): SearchClient {
       }
 
       return client.action(api.spotify.search, {
-        query,
-      });
-    },
-    async searchTracks(query) {
-      const client = await getAuthenticatedSpotifyConvexClient();
-
-      return client.action(api.spotify.searchTracks, {
         query,
       });
     },

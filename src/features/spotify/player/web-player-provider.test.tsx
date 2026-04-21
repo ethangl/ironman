@@ -155,10 +155,6 @@ function renderProvider(
     spotifyClient?.spotifyActivity?.getPlaylistTracks ??
       vi.fn().mockResolvedValue([]),
   );
-  vi.spyOn(spotifyActivityClient, "getTopArtists").mockImplementation(
-    spotifyClient?.spotifyActivity?.getTopArtists ??
-      vi.fn().mockResolvedValue([]),
-  );
 
   return render(
     <AppRuntimeProvider>

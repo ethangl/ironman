@@ -117,9 +117,6 @@ function renderSearch(
         artists: [],
       }),
   );
-  vi.spyOn(spotifySearchClient, "searchTracks").mockImplementation(
-    overrides.search?.searchTracks ?? vi.fn().mockResolvedValue([]),
-  );
   vi.spyOn(spotifyActivityClient, "getFavoriteArtists").mockImplementation(
     overrides.spotifyActivity?.getFavoriteArtists ??
       vi.fn().mockResolvedValue([]),
@@ -135,9 +132,6 @@ function renderSearch(
   vi.spyOn(spotifyActivityClient, "getPlaylistTracks").mockImplementation(
     overrides.spotifyActivity?.getPlaylistTracks ??
       vi.fn().mockResolvedValue([]),
-  );
-  vi.spyOn(spotifyActivityClient, "getTopArtists").mockImplementation(
-    overrides.spotifyActivity?.getTopArtists ?? vi.fn().mockResolvedValue([]),
   );
 
   return render(
@@ -216,7 +210,6 @@ describe("search", () => {
             },
           ],
         }),
-        searchTracks: vi.fn().mockResolvedValue([]),
       },
     });
     await searchFor("isis");
@@ -238,7 +231,6 @@ describe("search", () => {
         searchResults: vi
           .fn()
           .mockRejectedValue(new Error("Could not search Spotify right now.")),
-        searchTracks: vi.fn().mockResolvedValue([]),
       },
     });
     await searchFor("isis");
@@ -268,7 +260,6 @@ describe("search", () => {
           ],
           artists: [],
         }),
-        searchTracks: vi.fn().mockResolvedValue([]),
       },
       spotifyActivity: {
         getFavoriteArtists: vi.fn().mockResolvedValue([]),
@@ -285,7 +276,6 @@ describe("search", () => {
             durationMs: 640000,
           },
         ]),
-        getTopArtists: vi.fn().mockResolvedValue([]),
       },
     });
     await searchFor("heavy");
@@ -328,7 +318,6 @@ describe("search", () => {
               },
             ],
           }),
-          searchTracks: vi.fn().mockResolvedValue([]),
         },
       },
       { extraUi: <NavigateButton /> },

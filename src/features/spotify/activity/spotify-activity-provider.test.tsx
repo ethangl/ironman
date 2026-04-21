@@ -113,9 +113,6 @@ function renderProvider(overrides: Partial<SpotifyActivityClient> = {}) {
   vi.spyOn(spotifyActivityClient, "getPlaylistTracks").mockImplementation(
     overrides.getPlaylistTracks ?? vi.fn().mockResolvedValue([]),
   );
-  vi.spyOn(spotifyActivityClient, "getTopArtists").mockImplementation(
-    overrides.getTopArtists ?? vi.fn().mockResolvedValue([]),
-  );
 
   return render(
     <>
@@ -370,7 +367,6 @@ describe("SpotifyActivityProvider", () => {
       total: 0,
     });
     vi.spyOn(spotifyActivityClient, "getPlaylistTracks").mockResolvedValue([]);
-    vi.spyOn(spotifyActivityClient, "getTopArtists").mockResolvedValue([]);
 
     render(
       <SpotifyActivityProvider>

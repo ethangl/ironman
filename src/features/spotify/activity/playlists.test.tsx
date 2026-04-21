@@ -1,10 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { SpotifyClient } from "@/features/spotify/client";
 import {
-  SpotifyClientProvider,
-  createSpotifyClient,
+  spotifyActivityClient,
+  type SpotifyActivityClient,
 } from "@/features/spotify/client";
 import {
   RoomsContext,
@@ -130,39 +129,44 @@ function createRoomsValue(
 
 function renderPlaylists(options?: {
   rooms?: Partial<RoomsContextValue> | null;
-  spotifyClient?: Parameters<typeof createSpotifyClient>[0];
+  spotifyActivity?: Partial<SpotifyActivityClient>;
 }) {
-  const client = createSpotifyClient({
-    spotifyActivity: {
-      getFavoriteArtists: vi.fn().mockResolvedValue([]),
-      getRecentlyPlayed: vi
-        .fn()
-        .mockResolvedValue({ items: [], rateLimited: false }),
-      getPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
-      getPlaylistTracks: (...args: unknown[]) => mockGetPlaylistTracks(...args),
-      getTopArtists: vi.fn().mockResolvedValue([]),
-      ...options?.spotifyClient?.spotifyActivity,
-    } satisfies Partial<SpotifyClient["spotifyActivity"]>,
-    ...options?.spotifyClient,
-  });
+  vi.spyOn(spotifyActivityClient, "getFavoriteArtists").mockImplementation(
+    options?.spotifyActivity?.getFavoriteArtists ??
+      vi.fn().mockResolvedValue([]),
+  );
+  vi.spyOn(spotifyActivityClient, "getRecentlyPlayed").mockImplementation(
+    options?.spotifyActivity?.getRecentlyPlayed ??
+      vi.fn().mockResolvedValue({ items: [], rateLimited: false }),
+  );
+  vi.spyOn(spotifyActivityClient, "getPlaylistsPage").mockImplementation(
+    options?.spotifyActivity?.getPlaylistsPage ??
+      vi.fn().mockResolvedValue({ items: [], total: 0 }),
+  );
+  vi.spyOn(spotifyActivityClient, "getPlaylistTracks").mockImplementation(
+    options?.spotifyActivity?.getPlaylistTracks ??
+      ((...args: unknown[]) => mockGetPlaylistTracks(...args)),
+  );
+  vi.spyOn(spotifyActivityClient, "getTopArtists").mockImplementation(
+    options?.spotifyActivity?.getTopArtists ??
+      vi.fn().mockResolvedValue([]),
+  );
 
   const content = (
-    <SpotifyClientProvider client={client}>
-      <Playlists
-        title="Your Playlists"
-        playlists={[
-          {
-            id: "playlist-1",
-            name: "Heavy Rotation",
-            description: null,
-            image: "playlist.jpg",
-            owner: "ethan",
-            public: true,
-            trackCount: 12,
-          },
-        ]}
-      />
-    </SpotifyClientProvider>
+    <Playlists
+      title="Your Playlists"
+      playlists={[
+        {
+          id: "playlist-1",
+          name: "Heavy Rotation",
+          description: null,
+          image: "playlist.jpg",
+          owner: "ethan",
+          public: true,
+          trackCount: 12,
+        },
+      ]}
+    />
   );
 
   if (options?.rooms === null) {

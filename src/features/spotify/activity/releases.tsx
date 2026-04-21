@@ -2,7 +2,7 @@ import { FC, useCallback } from "react";
 
 import { List, ListItem } from "@/components/list";
 import { Section, SectionContent, SectionHeader } from "@/components/section";
-import { useSpotifyClient } from "@/features/spotify/client";
+import { spotifyArtistsClient } from "@/features/spotify/client";
 import type { SpotifyAlbumRelease, Track } from "@/types";
 import { PlaylistCell } from "./playlist-cell";
 import { usePlayableTrackCollection } from "./use-playable-track-collection";
@@ -31,12 +31,11 @@ export type ReleasesProps = {
 };
 
 export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
-  const client = useSpotifyClient();
   const loadTracks = useCallback(
     async (release: SpotifyAlbumRelease): Promise<Track[]> => {
-      return client.artists.getAlbumTracks(release.id);
+      return spotifyArtistsClient.getAlbumTracks(release.id);
     },
-    [client],
+    [],
   );
   const { getCachedTracks, loadingItemId, playItem } =
     usePlayableTrackCollection<SpotifyAlbumRelease>({

@@ -1,9 +1,4 @@
-import { createContext, ReactNode, useContext, useMemo } from "react";
-
-import {
-  SpotifyClient,
-  SpotifyClientProvider,
-} from "@/features/spotify/client";
+import { createContext, type ReactNode, useContext, useMemo } from "react";
 import {
   convexSignIn as signIn,
   convexSignOut as signOut,
@@ -78,19 +73,13 @@ function useAuthRuntimeValue(): AppRuntime {
 
 export function AppRuntimeProvider({
   children,
-  spotifyClient,
 }: {
   children: ReactNode;
-  spotifyClient: SpotifyClient;
 }) {
   const value = useAuthRuntimeValue();
 
   return (
-    <AppRuntimeContext.Provider value={value}>
-      <SpotifyClientProvider client={spotifyClient}>
-        {children}
-      </SpotifyClientProvider>
-    </AppRuntimeContext.Provider>
+    <AppRuntimeContext.Provider value={value}>{children}</AppRuntimeContext.Provider>
   );
 }
 

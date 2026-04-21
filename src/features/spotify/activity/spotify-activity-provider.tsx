@@ -4,7 +4,7 @@ import { useAppCapabilities } from "@/app";
 import {
   PLAYLIST_PAGE_SIZE,
   RECENTLY_PLAYED_LIMIT,
-  useSpotifyClient,
+  spotifyActivityClient,
 } from "@/features/spotify/client";
 import type { SpotifyArtist, SpotifyTrack } from "@/types";
 import type { Playlist, RecentTrack } from "@/types/spotify-activity";
@@ -37,7 +37,6 @@ export function SpotifyActivityProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const client = useSpotifyClient();
   const { canBrowsePersonalSpotify } = useAppCapabilities();
   const nextPlaylistOffsetRef = useRef(0);
   const appliedPlaylistOffsetsRef = useRef(new Set<number>());
@@ -56,7 +55,6 @@ export function SpotifyActivityProvider({
   );
   const [recentTracksRefreshing, setRecentTracksRefreshing] = useState(false);
   const { clearPlaylistTracks, getPlaylistTracks } = useSpotifyPlaylistTracks({
-    client,
     setPlaylists,
   });
   const appendRecentTrack = useCallback((track: SpotifyTrack) => {
@@ -109,7 +107,7 @@ export function SpotifyActivityProvider({
       }
 
       try {
-        const recentlyPlayed = await client.spotifyActivity.getRecentlyPlayed();
+        const recentlyPlayed = await spotifyActivityClient.getRecentlyPlayed();
         if (recentlyPlayedRequestVersionRef.current !== requestVersion) {
           return;
         }
@@ -122,14 +120,13 @@ export function SpotifyActivityProvider({
           return;
         }
       } finally {
-        if (recentlyPlayedRequestVersionRef.current !== requestVersion) {
-          return;
+        if (recentlyPlayedRequestVersionRef.current === requestVersion) {
+          setRecentTracksLoading(false);
+          setRecentTracksRefreshing(false);
         }
-        setRecentTracksLoading(false);
-        setRecentTracksRefreshing(false);
       }
     },
-    [canBrowsePersonalSpotify, client],
+    [canBrowsePersonalSpotify],
   );
 
   useEffect(() => {
@@ -154,12 +151,12 @@ export function SpotifyActivityProvider({
 
       try {
         const nextPlaylistsPage = forceRefresh
-          ? await client.spotifyActivity.getPlaylistsPage(
+          ? await spotifyActivityClient.getPlaylistsPage(
               PLAYLIST_PAGE_SIZE,
               0,
               true,
             )
-          : await client.spotifyActivity.getPlaylistsPage(
+          : await spotifyActivityClient.getPlaylistsPage(
               PLAYLIST_PAGE_SIZE,
               0,
             );
@@ -168,7 +165,7 @@ export function SpotifyActivityProvider({
         setPlaylistsLoading(false);
       }
     },
-    [applyPlaylistsPage, canBrowsePersonalSpotify, client],
+    [applyPlaylistsPage, canBrowsePersonalSpotify],
   );
 
   const loadFavoriteArtists = useCallback(
@@ -181,11 +178,11 @@ export function SpotifyActivityProvider({
 
       try {
         const nextFavoriteArtists = forceRefresh
-          ? await client.spotifyActivity.getFavoriteArtists(
+          ? await spotifyActivityClient.getFavoriteArtists(
               FAVORITE_ARTISTS_LIMIT,
               true,
             )
-          : await client.spotifyActivity.getFavoriteArtists(
+          : await spotifyActivityClient.getFavoriteArtists(
               FAVORITE_ARTISTS_LIMIT,
             );
         setFavoriteArtists(nextFavoriteArtists);
@@ -193,7 +190,7 @@ export function SpotifyActivityProvider({
         setFavoriteArtistsLoading(false);
       }
     },
-    [canBrowsePersonalSpotify, client],
+    [canBrowsePersonalSpotify],
   );
 
   useEffect(() => {
@@ -234,7 +231,7 @@ export function SpotifyActivityProvider({
     loadingPlaylistOffsetsRef.current.add(requestedOffset);
 
     try {
-      const data = await client.spotifyActivity.getPlaylistsPage(
+      const data = await spotifyActivityClient.getPlaylistsPage(
         PLAYLIST_PAGE_SIZE,
         requestedOffset,
       );
@@ -255,7 +252,6 @@ export function SpotifyActivityProvider({
     }
   }, [
     canBrowsePersonalSpotify,
-    client,
     playlistsTotal,
     setPlaylists,
     setPlaylistsTotal,

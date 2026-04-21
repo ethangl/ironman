@@ -11,7 +11,7 @@ import {
 } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { useOptionalRooms } from "@/features/rooms";
-import { useSpotifyClient } from "@/features/spotify/client";
+import { spotifyActivityClient } from "@/features/spotify/client";
 import type { SpotifyPlaylist, SpotifyTrack } from "@/types";
 import { PlaylistCell } from "./playlist-cell";
 import { usePlayableTrackCollection } from "./use-playable-track-collection";
@@ -23,16 +23,15 @@ export type PlaylistsProps = {
 };
 
 export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => {
-  const client = useSpotifyClient();
   const rooms = useOptionalRooms();
   const activeRoom = rooms?.activeRoom ?? null;
   const enqueueTracks = rooms?.enqueueTracks;
 
   const loadTracks = useCallback(
     async (playlist: SpotifyPlaylist): Promise<SpotifyTrack[]> => {
-      return client.spotifyActivity.getPlaylistTracks(playlist.id);
+      return spotifyActivityClient.getPlaylistTracks(playlist.id);
     },
-    [client],
+    [],
   );
 
   const { getCachedTracks, loadItemTracks, loadingItemId, playItem } =

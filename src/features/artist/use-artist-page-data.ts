@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useSpotifyClient } from "@/features/spotify/client";
+import { spotifyArtistsClient } from "@/features/spotify/client";
 import { SpotifyArtistPageData } from "@/types";
 
 export function useArtistPageData(artistId: string) {
-  const client = useSpotifyClient();
   const [data, setData] = useState<SpotifyArtistPageData | null>(null);
   const [loading, setLoading] = useState(Boolean(artistId));
   const [refreshing, setRefreshing] = useState(false);
@@ -28,7 +27,7 @@ export function useArtistPageData(artistId: string) {
       }
 
       try {
-        const nextData = await client.artists.getPageData(artistId);
+        const nextData = await spotifyArtistsClient.getPageData(artistId);
         if (requestVersionRef.current !== requestVersion) {
           return;
         }
@@ -51,7 +50,7 @@ export function useArtistPageData(artistId: string) {
       setLoading(false);
       setRefreshing(false);
     },
-    [artistId, client],
+    [artistId],
   );
 
   useEffect(() => {

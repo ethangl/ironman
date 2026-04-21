@@ -9,8 +9,10 @@ import { MemoryRouter, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  SpotifyClientProvider,
-  createSpotifyClient,
+  spotifyActivityClient,
+  spotifySearchClient,
+  type SearchClient,
+  type SpotifyActivityClient,
 } from "@/features/spotify/client";
 import { SearchInput } from "./search-input";
 import { SearchProvider } from "./search-provider";
@@ -101,18 +103,50 @@ vi.mock("sonner", () => ({
 }));
 
 function renderSearch(
-  overrides: Parameters<typeof createSpotifyClient>[0] = {},
+  overrides: {
+    search?: Partial<SearchClient>;
+    spotifyActivity?: Partial<SpotifyActivityClient>;
+  } = {},
   options?: { extraUi?: React.ReactNode },
 ) {
+  vi.spyOn(spotifySearchClient, "searchResults").mockImplementation(
+    overrides.search?.searchResults ??
+      vi.fn().mockResolvedValue({
+        tracks: [],
+        playlists: [],
+        artists: [],
+      }),
+  );
+  vi.spyOn(spotifySearchClient, "searchTracks").mockImplementation(
+    overrides.search?.searchTracks ?? vi.fn().mockResolvedValue([]),
+  );
+  vi.spyOn(spotifyActivityClient, "getFavoriteArtists").mockImplementation(
+    overrides.spotifyActivity?.getFavoriteArtists ??
+      vi.fn().mockResolvedValue([]),
+  );
+  vi.spyOn(spotifyActivityClient, "getRecentlyPlayed").mockImplementation(
+    overrides.spotifyActivity?.getRecentlyPlayed ??
+      vi.fn().mockResolvedValue({ items: [], rateLimited: false }),
+  );
+  vi.spyOn(spotifyActivityClient, "getPlaylistsPage").mockImplementation(
+    overrides.spotifyActivity?.getPlaylistsPage ??
+      vi.fn().mockResolvedValue({ items: [], total: 0 }),
+  );
+  vi.spyOn(spotifyActivityClient, "getPlaylistTracks").mockImplementation(
+    overrides.spotifyActivity?.getPlaylistTracks ??
+      vi.fn().mockResolvedValue([]),
+  );
+  vi.spyOn(spotifyActivityClient, "getTopArtists").mockImplementation(
+    overrides.spotifyActivity?.getTopArtists ?? vi.fn().mockResolvedValue([]),
+  );
+
   return render(
     <MemoryRouter initialEntries={["/home"]}>
-      <SpotifyClientProvider client={createSpotifyClient(overrides)}>
-        <SearchProvider>
-          {options?.extraUi}
-          <SearchInput />
-          <SearchResults />
-        </SearchProvider>
-      </SpotifyClientProvider>
+      <SearchProvider>
+        {options?.extraUi}
+        <SearchInput />
+        <SearchResults />
+      </SearchProvider>
     </MemoryRouter>,
   );
 }

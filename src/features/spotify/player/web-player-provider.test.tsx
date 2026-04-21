@@ -4,7 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppRuntimeProvider } from "@/app";
 import { SpotifyActivityProvider } from "@/features/spotify/activity";
-import { createSpotifyClient } from "@/features/spotify/client";
+import {
+  spotifyActivityClient,
+  type SpotifyActivityClient,
+} from "@/features/spotify/client";
 import { clearCachedSpotifyAccessToken } from "@/lib/spotify-access-token";
 import { clearCachedSpotifyAccountLink } from "@/lib/spotify-account-link";
 import { usePlayerQueueListing } from "./use-player-queue-listing";
@@ -133,25 +136,32 @@ function QueueListingProbe() {
 }
 
 function renderProvider(
-  spotifyClient?: Parameters<typeof createSpotifyClient>[0],
+  spotifyClient?: { spotifyActivity?: Partial<SpotifyActivityClient> },
   children?: ReactNode,
 ) {
+  vi.spyOn(spotifyActivityClient, "getFavoriteArtists").mockImplementation(
+    spotifyClient?.spotifyActivity?.getFavoriteArtists ??
+      vi.fn().mockResolvedValue([]),
+  );
+  vi.spyOn(spotifyActivityClient, "getRecentlyPlayed").mockImplementation(
+    spotifyClient?.spotifyActivity?.getRecentlyPlayed ??
+      vi.fn().mockResolvedValue({ items: [], rateLimited: false }),
+  );
+  vi.spyOn(spotifyActivityClient, "getPlaylistsPage").mockImplementation(
+    spotifyClient?.spotifyActivity?.getPlaylistsPage ??
+      vi.fn().mockResolvedValue({ items: [], total: 0 }),
+  );
+  vi.spyOn(spotifyActivityClient, "getPlaylistTracks").mockImplementation(
+    spotifyClient?.spotifyActivity?.getPlaylistTracks ??
+      vi.fn().mockResolvedValue([]),
+  );
+  vi.spyOn(spotifyActivityClient, "getTopArtists").mockImplementation(
+    spotifyClient?.spotifyActivity?.getTopArtists ??
+      vi.fn().mockResolvedValue([]),
+  );
+
   return render(
-    <AppRuntimeProvider
-      spotifyClient={createSpotifyClient({
-        spotifyActivity: {
-          getFavoriteArtists: vi.fn().mockResolvedValue([]),
-          getRecentlyPlayed: vi
-            .fn()
-            .mockResolvedValue({ items: [], rateLimited: false }),
-          getPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
-          getPlaylistTracks: vi.fn().mockResolvedValue([]),
-          getTopArtists: vi.fn().mockResolvedValue([]),
-          ...spotifyClient?.spotifyActivity,
-        },
-        ...spotifyClient,
-      })}
-    >
+    <AppRuntimeProvider>
       <SpotifyActivityProvider>
         <WebPlayerProvider>{children ?? <PlayerProbe />}</WebPlayerProvider>
       </SpotifyActivityProvider>
@@ -360,21 +370,7 @@ describe("WebPlayerProvider", () => {
 
     await act(async () => {
       rerender(
-        <AppRuntimeProvider
-          spotifyClient={createSpotifyClient({
-            spotifyActivity: {
-              getFavoriteArtists: vi.fn().mockResolvedValue([]),
-              getRecentlyPlayed: vi
-                .fn()
-                .mockResolvedValue({ items: [], rateLimited: false }),
-              getPlaylistsPage: vi
-                .fn()
-                .mockResolvedValue({ items: [], total: 0 }),
-              getPlaylistTracks: vi.fn().mockResolvedValue([]),
-              getTopArtists: vi.fn().mockResolvedValue([]),
-            },
-          })}
-        >
+        <AppRuntimeProvider>
           <SpotifyActivityProvider>
             <WebPlayerProvider>
               <PlayerProbe />

@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
-import { useSpotifyClient } from "@/features/spotify/client";
+import { spotifyArtistsClient } from "@/features/spotify/client";
 import type { MusicBrainzArtistMatch } from "@/types";
 
 export function useMusicBrainzArtist(artistId: string) {
-  const client = useSpotifyClient();
   const [data, setData] = useState<MusicBrainzArtistMatch | null>(null);
   const requestVersionRef = useRef(0);
 
@@ -16,7 +15,7 @@ export function useMusicBrainzArtist(artistId: string) {
       return;
     }
 
-    void client.artists
+    void spotifyArtistsClient
       .getMusicBrainzArtist(artistId)
       .then((nextData) => {
         if (requestVersionRef.current !== requestVersion) {
@@ -32,7 +31,7 @@ export function useMusicBrainzArtist(artistId: string) {
 
         setData(null);
       });
-  }, [artistId, client]);
+  }, [artistId]);
 
   return data;
 }

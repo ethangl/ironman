@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useLocation } from "react-router-dom";
 
-import { useSpotifyClient } from "@/features/spotify/client";
+import { spotifySearchClient } from "@/features/spotify/client";
 import { useDebounce } from "@/hooks/use-debounce";
 import { SpotifySearchResults } from "@/types";
 
@@ -35,7 +35,6 @@ export function useSearch() {
 }
 
 export function SearchProvider({ children }: { children: ReactNode }) {
-  const client = useSpotifyClient();
   const location = useLocation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SpotifySearchResults>(EMPTY_RESULTS);
@@ -74,7 +73,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
 
-    void client.search
+    void spotifySearchClient
       .searchResults(trimmed)
       .then((nextResults) => {
         if (requestVersionRef.current !== requestVersion) {
@@ -98,7 +97,7 @@ export function SearchProvider({ children }: { children: ReactNode }) {
         }
         setLoading(false);
       });
-  }, [client, debouncedTrimmed, trimmed]);
+  }, [debouncedTrimmed, trimmed]);
 
   return (
     <SearchContext.Provider

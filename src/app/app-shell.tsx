@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import { Outlet } from "react-router-dom";
 
 import { Toaster } from "@/components/ui/sonner";
-import { defaultSpotifyClient } from "@/features/spotify/client";
 import { convexAuthClient as authClient } from "@/lib/convex-auth-client";
 import { getConvexUrl } from "@/lib/convex-env";
 import { FilmGrain, Shader, Swirl, WaveDistortion } from "shaders/react";
@@ -21,7 +20,7 @@ export function AppShell() {
 
   return (
     <ConvexBetterAuthProvider client={convexClient} authClient={authClient}>
-      <AppRuntimeProvider spotifyClient={defaultSpotifyClient}>
+      <AppRuntimeProvider>
         <NuqsAdapter>
           <Shader className="fixed inset-0 pointer-events-none size-full -z-2">
             <Swirl

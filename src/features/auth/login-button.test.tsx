@@ -1,7 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { defaultSpotifyClient } from "@/features/spotify/client";
 import { AppRuntimeProvider } from "@/app";
 import { LoginButton } from "./login-button";
 
@@ -43,7 +42,7 @@ function setSearchParams(params: Record<string, string>) {
 
 function renderLoginButton() {
   return render(
-    <AppRuntimeProvider spotifyClient={defaultSpotifyClient}>
+    <AppRuntimeProvider>
       <LoginButton />
     </AppRuntimeProvider>,
   );

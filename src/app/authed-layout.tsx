@@ -5,13 +5,13 @@ import { Section } from "@/components/section";
 import { RoomsNavbar } from "@/features/rooms/ui/rooms-navbar";
 import { RoomsSurface } from "@/features/rooms/ui/rooms-surface";
 import { SearchResults } from "@/features/search";
-import { useSpotifyActivity } from "@/features/spotify/activity";
+import { useSpotifyActivityUi } from "@/features/spotify/activity";
 import { SpotifyFooter } from "@/features/spotify/activity/spotify-footer";
 import { SpotifyNavbar } from "@/features/spotify/activity/spotify-navbar";
 import { cn } from "@/lib/utils";
 
 export function AuthedLayout() {
-  const { isExpanded } = useSpotifyActivity();
+  const { isExpanded } = useSpotifyActivityUi();
   return (
     <div
       className={cn(

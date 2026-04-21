@@ -1,10 +1,22 @@
-import { type ReactNode, useState } from "react";
+import type { ReactNode } from "react";
 
 import { useAppCapabilities } from "@/app";
-import { SpotifyActivityContext } from "./use-spotify-activity";
-import { useSpotifyFavoriteArtists } from "./use-spotify-favorite-artists";
-import { useSpotifyPlaylists } from "./use-spotify-playlists";
-import { useSpotifyRecentlyPlayed } from "./use-spotify-recently-played";
+import {
+  SpotifyActivityUiContext,
+  useSpotifyActivityUiState,
+} from "./use-spotify-activity-ui";
+import {
+  SpotifyFavoriteArtistsContext,
+  useSpotifyFavoriteArtistsState,
+} from "./use-spotify-favorite-artists";
+import {
+  SpotifyPlaylistsContext,
+  useSpotifyPlaylistsState,
+} from "./use-spotify-playlists";
+import {
+  SpotifyRecentlyPlayedContext,
+  useSpotifyRecentlyPlayedState,
+} from "./use-spotify-recently-played";
 
 export function SpotifyActivityProvider({
   children,
@@ -12,50 +24,26 @@ export function SpotifyActivityProvider({
   children: ReactNode;
 }) {
   const { canBrowsePersonalSpotify } = useAppCapabilities();
-  const [isExpanded, setIsExpanded] = useState(true);
-  const { appendRecentTrack, loading, recentTracks, refresh } =
-    useSpotifyRecentlyPlayed({
-      canBrowsePersonalSpotify,
-    });
-  const {
-    favoriteArtists,
-    favoriteArtistsLoading,
-    loadFavoriteArtists,
-  } = useSpotifyFavoriteArtists({
+  const ui = useSpotifyActivityUiState();
+  const recentlyPlayed = useSpotifyRecentlyPlayedState({
     canBrowsePersonalSpotify,
   });
-  const {
-    getPlaylistTracks,
-    loadMorePlaylists,
-    loadPlaylists,
-    playlists,
-    playlistsLoading,
-    playlistsTotal,
-  } = useSpotifyPlaylists({
+  const favoriteArtists = useSpotifyFavoriteArtistsState({
+    canBrowsePersonalSpotify,
+  });
+  const playlists = useSpotifyPlaylistsState({
     canBrowsePersonalSpotify,
   });
 
   return (
-    <SpotifyActivityContext.Provider
-      value={{
-        isExpanded,
-        recentTracks,
-        playlists,
-        playlistsTotal,
-        favoriteArtists,
-        favoriteArtistsLoading,
-        loading,
-        playlistsLoading,
-        appendRecentTrack,
-        loadFavoriteArtists,
-        loadPlaylists,
-        refresh,
-        loadMorePlaylists,
-        getPlaylistTracks,
-        setIsExpanded,
-      }}
-    >
-      {children}
-    </SpotifyActivityContext.Provider>
+    <SpotifyActivityUiContext.Provider value={ui}>
+      <SpotifyRecentlyPlayedContext.Provider value={recentlyPlayed}>
+        <SpotifyFavoriteArtistsContext.Provider value={favoriteArtists}>
+          <SpotifyPlaylistsContext.Provider value={playlists}>
+            {children}
+          </SpotifyPlaylistsContext.Provider>
+        </SpotifyFavoriteArtistsContext.Provider>
+      </SpotifyRecentlyPlayedContext.Provider>
+    </SpotifyActivityUiContext.Provider>
   );
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useAppAuth, useAppCapabilities } from "@/app";
-import { useSpotifyActivity } from "@/features/spotify/activity";
+import { useSpotifyRecentlyPlayed } from "@/features/spotify/activity";
 import type { SpotifyTrack, Track } from "@/types";
 import { cn } from "@/lib/utils";
 import { useSpotify } from "../sdk/use-spotify";
@@ -17,7 +17,7 @@ import {
 export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   const { session, getSpotifyAccessToken } = useAppAuth();
   const { canControlPlayback } = useAppCapabilities();
-  const { appendRecentTrack } = useSpotifyActivity();
+  const { appendRecentTrack } = useSpotifyRecentlyPlayed();
   const tokenRef = useRef<string | null>(null);
 
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);

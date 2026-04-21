@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   RECENTLY_PLAYED_LIMIT,
@@ -27,11 +35,21 @@ function dedupeRecent(raw: RecentTrack[]) {
   return deduped;
 }
 
-export function useSpotifyRecentlyPlayed({
+interface SpotifyRecentlyPlayedContextValue {
+  appendRecentTrack: (track: SpotifyTrack) => void;
+  loading: boolean;
+  recentTracks: RecentTrack[];
+  refresh: () => void;
+}
+
+export const SpotifyRecentlyPlayedContext =
+  createContext<SpotifyRecentlyPlayedContextValue | null>(null);
+
+export function useSpotifyRecentlyPlayedState({
   canBrowsePersonalSpotify,
 }: {
   canBrowsePersonalSpotify: boolean;
-}) {
+}): SpotifyRecentlyPlayedContextValue {
   const requestVersionRef = useRef(0);
   const [recentTracks, setRecentTracks] = useState<RecentTrack[]>([]);
   const [recentTracksLoading, setRecentTracksLoading] = useState(
@@ -108,10 +126,30 @@ export function useSpotifyRecentlyPlayed({
     void loadRecentlyPlayed("refresh");
   }, [canBrowsePersonalSpotify, loadRecentlyPlayed]);
 
-  return {
-    appendRecentTrack,
-    loading: recentTracksLoading || recentTracksRefreshing,
-    recentTracks,
-    refresh,
-  };
+  return useMemo(
+    () => ({
+      appendRecentTrack,
+      loading: recentTracksLoading || recentTracksRefreshing,
+      recentTracks,
+      refresh,
+    }),
+    [
+      appendRecentTrack,
+      recentTracksLoading,
+      recentTracksRefreshing,
+      recentTracks,
+      refresh,
+    ],
+  );
+}
+
+export function useSpotifyRecentlyPlayed() {
+  const ctx = useContext(SpotifyRecentlyPlayedContext);
+  if (!ctx) {
+    throw new Error(
+      "useSpotifyRecentlyPlayed must be used within SpotifyActivityProvider",
+    );
+  }
+
+  return ctx;
 }

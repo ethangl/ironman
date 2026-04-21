@@ -1,17 +1,38 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   PLAYLIST_PAGE_SIZE,
   spotifyActivityClient,
 } from "@/features/spotify/client";
+import type { SpotifyTrack } from "@/types";
 import type { Playlist } from "@/types/spotify-activity";
 import { useSpotifyPlaylistTracks } from "./use-spotify-playlist-tracks";
 
-export function useSpotifyPlaylists({
+interface SpotifyPlaylistsContextValue {
+  getPlaylistTracks: (playlistId: string) => Promise<SpotifyTrack[]>;
+  loadMorePlaylists: () => Promise<void>;
+  loadPlaylists: (forceRefresh?: boolean) => Promise<void>;
+  playlists: Playlist[];
+  playlistsLoading: boolean;
+  playlistsTotal: number;
+}
+
+export const SpotifyPlaylistsContext =
+  createContext<SpotifyPlaylistsContextValue | null>(null);
+
+export function useSpotifyPlaylistsState({
   canBrowsePersonalSpotify,
 }: {
   canBrowsePersonalSpotify: boolean;
-}) {
+}): SpotifyPlaylistsContextValue {
   const nextPlaylistOffsetRef = useRef(0);
   const appliedPlaylistOffsetsRef = useRef(new Set<number>());
   const loadingPlaylistOffsetsRef = useRef(new Set<number>());
@@ -118,12 +139,33 @@ export function useSpotifyPlaylists({
     }
   }, [canBrowsePersonalSpotify, playlistsTotal]);
 
-  return {
-    getPlaylistTracks,
-    loadMorePlaylists,
-    loadPlaylists,
-    playlists,
-    playlistsLoading,
-    playlistsTotal,
-  };
+  return useMemo(
+    () => ({
+      getPlaylistTracks,
+      loadMorePlaylists,
+      loadPlaylists,
+      playlists,
+      playlistsLoading,
+      playlistsTotal,
+    }),
+    [
+      getPlaylistTracks,
+      loadMorePlaylists,
+      loadPlaylists,
+      playlists,
+      playlistsLoading,
+      playlistsTotal,
+    ],
+  );
+}
+
+export function useSpotifyPlaylists() {
+  const ctx = useContext(SpotifyPlaylistsContext);
+  if (!ctx) {
+    throw new Error(
+      "useSpotifyPlaylists must be used within SpotifyActivityProvider",
+    );
+  }
+
+  return ctx;
 }

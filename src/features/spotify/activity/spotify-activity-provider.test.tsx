@@ -12,10 +12,14 @@ import {
   RECENTLY_PLAYED_LIMIT,
   spotifyActivityClient,
 } from "@/features/spotify/client";
+import {
+  useSpotifyFavoriteArtists,
+  useSpotifyPlaylists,
+  useSpotifyRecentlyPlayed,
+} from "@/features/spotify/activity";
 import type { SpotifyTrack } from "@/types";
 import type { SpotifyActivityClient } from "@/features/spotify/client/spotify-activity-client";
 import { SpotifyActivityProvider } from "./spotify-activity-provider";
-import { useSpotifyActivity } from "./use-spotify-activity";
 
 vi.mock("@/app", () => ({
   useAppCapabilities: () => ({
@@ -47,17 +51,18 @@ function playlist(id: string) {
 }
 
 function ActivityConsumer() {
+  const { appendRecentTrack, recentTracks } = useSpotifyRecentlyPlayed();
   const {
-    appendRecentTrack,
     favoriteArtists,
     favoriteArtistsLoading,
     loadFavoriteArtists,
+  } = useSpotifyFavoriteArtists();
+  const {
     playlists,
     playlistsLoading,
     loadPlaylists,
     loadMorePlaylists,
-    recentTracks,
-  } = useSpotifyActivity();
+  } = useSpotifyPlaylists();
   const sampleTrack: SpotifyTrack = {
     id: "track-1",
     name: "Track 1",
@@ -322,7 +327,7 @@ describe("SpotifyActivityProvider", () => {
 
   it("dedupes and caps locally appended recents at 30 items", async () => {
     function LimitConsumer() {
-      const { appendRecentTrack, recentTracks } = useSpotifyActivity();
+      const { appendRecentTrack, recentTracks } = useSpotifyRecentlyPlayed();
 
       return (
         <div>

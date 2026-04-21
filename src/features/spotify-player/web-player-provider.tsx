@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  useAppAuth,
-  useAppCapabilities,
-  useAuthenticatedSession,
-} from "@/app";
+import { useAppAuth, useAppCapabilities } from "@/app/app-runtime";
+import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { useSpotifyRecentlyPlayed } from "@/features/spotify-library";
 import type {
   SpotifyTrack,

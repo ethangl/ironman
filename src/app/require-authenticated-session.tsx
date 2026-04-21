@@ -1,4 +1,3 @@
-import { createContext, type ReactNode, useContext } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { LoginButton } from "@/features/auth";
@@ -6,32 +5,11 @@ import { RoomsProvider } from "@/features/rooms";
 import { WebPlayerProvider } from "@/features/spotify-player";
 import { SearchProvider } from "@/features/spotify-search";
 import { SpotifyActivityProvider } from "@/features/spotify-shell";
-import type { SessionData } from "./app-runtime";
 import { useAppAuth, useAppCapabilities } from "./app-runtime";
 import { AuthPendingState } from "./auth-pending-state";
 
-type AuthenticatedSession = NonNullable<SessionData>;
-
-const AuthenticatedSessionContext = createContext<AuthenticatedSession | null>(
-  null,
-);
-
-export function AuthenticatedSessionProvider({
-  children,
-  session,
-}: {
-  children: ReactNode;
-  session: AuthenticatedSession;
-}) {
-  return (
-    <AuthenticatedSessionContext.Provider value={session}>
-      {children}
-    </AuthenticatedSessionContext.Provider>
-  );
-}
-
 export function useAuthenticatedSession() {
-  const session = useContext(AuthenticatedSessionContext);
+  const { session } = useAppAuth();
 
   if (!session) {
     throw new Error(
@@ -44,7 +22,7 @@ export function useAuthenticatedSession() {
 
 export function RequireAuthenticatedSession() {
   const location = useLocation();
-  const { isAuthenticated, isPending, session } = useAppAuth();
+  const { isPending, session } = useAppAuth();
   const { spotifyConnection } = useAppCapabilities();
 
   if (isPending) {
@@ -56,7 +34,7 @@ export function RequireAuthenticatedSession() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!session) {
     return (
       <Navigate
         to={{
@@ -65,12 +43,6 @@ export function RequireAuthenticatedSession() {
         }}
         replace
       />
-    );
-  }
-
-  if (!session) {
-    throw new Error(
-      "Authenticated app routes mounted without an active session.",
     );
   }
 
@@ -100,16 +72,14 @@ export function RequireAuthenticatedSession() {
   }
 
   return (
-    <AuthenticatedSessionProvider session={session}>
-      <SpotifyActivityProvider>
-        <WebPlayerProvider>
-          <RoomsProvider>
-            <SearchProvider>
-              <Outlet />
-            </SearchProvider>
-          </RoomsProvider>
-        </WebPlayerProvider>
-      </SpotifyActivityProvider>
-    </AuthenticatedSessionProvider>
+    <SpotifyActivityProvider>
+      <WebPlayerProvider>
+        <RoomsProvider>
+          <SearchProvider>
+            <Outlet />
+          </SearchProvider>
+        </RoomsProvider>
+      </WebPlayerProvider>
+    </SpotifyActivityProvider>
   );
 }

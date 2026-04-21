@@ -1,6 +1,6 @@
 import { SkipForwardIcon } from "lucide-react";
 
-import { useAuthenticatedSession } from "@/app";
+import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { Button } from "@/components/ui/button";
 import { formatRoomSyncLabel } from "../client/room-utils";
 import { useRooms } from "../runtime/rooms-provider";

@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AppRuntimeProvider } from "@/app";
+import { AppRuntimeProvider } from "@/app/app-runtime";
 import { LoginButton } from "./login-button";
 
 const mockUseSession = vi.fn();

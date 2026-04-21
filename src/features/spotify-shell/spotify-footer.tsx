@@ -1,4 +1,5 @@
-import { useAppAuth, useAuthenticatedSession } from "@/app";
+import { useAppAuth } from "@/app/app-runtime";
+import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { Avatar } from "@/components/avatar";
 import { Section } from "@/components/section";
 import {

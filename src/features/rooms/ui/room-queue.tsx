@@ -1,6 +1,6 @@
 import { HeartCrackIcon, HeartIcon, Trash2Icon } from "lucide-react";
 
-import { useAuthenticatedSession } from "@/app";
+import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { MoreMenu } from "@/components/more-menu";
 import {
   Section,

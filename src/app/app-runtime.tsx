@@ -4,17 +4,24 @@ import {
   useConvexSession,
 } from "@/lib/convex-auth-client";
 import { useSpotifyRuntimeCapabilities } from "@/features/spotify-client/use-spotify-runtime-capabilities";
-import { createContext, type ReactNode, useContext, useMemo } from "react";
-import { useSettledSession } from "./use-settled-session";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 type SessionState = ReturnType<typeof useConvexSession>;
 export type SessionData = SessionState["data"];
 export type SpotifyConnection = "unknown" | "connected" | "disconnected";
 
+const SESSION_SETTLE_DELAY_MS = 400;
+
 export interface AppAuthRuntime {
   session: SessionData;
   isPending: boolean;
-  isAuthenticated: boolean;
   signIn: typeof signIn;
   signOut: typeof signOut;
   getSpotifyAccessToken: () => Promise<string | null>;
@@ -27,6 +34,40 @@ export interface AppCapabilities {
 
 const AppAuthContext = createContext<AppAuthRuntime | null>(null);
 const AppCapabilitiesContext = createContext<AppCapabilities | null>(null);
+
+function useSettledSession() {
+  const { data: session, isPending } = useConvexSession();
+  const [lastResolvedSession, setLastResolvedSession] =
+    useState<SessionData>(session);
+  const [isSessionSettled, setIsSessionSettled] = useState(() => !!session);
+
+  useEffect(() => {
+    if (session) {
+      setIsSessionSettled(true);
+      setLastResolvedSession(session);
+      return;
+    }
+
+    if (isPending) {
+      setIsSessionSettled(false);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setLastResolvedSession(null);
+      setIsSessionSettled(true);
+    }, SESSION_SETTLE_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [isPending, session]);
+
+  return {
+    effectiveSession: session ?? (!isSessionSettled ? lastResolvedSession : null),
+    isSessionPending: isPending || !isSessionSettled,
+  };
+}
 
 function useRuntimeValues() {
   const { effectiveSession, isSessionPending } = useSettledSession();
@@ -41,7 +82,6 @@ function useRuntimeValues() {
     () => ({
       session: effectiveSession,
       isPending: isSessionPending,
-      isAuthenticated: !!effectiveSession,
       signIn,
       signOut,
       getSpotifyAccessToken,

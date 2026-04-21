@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from "react";
 
-import { useAuthenticatedSession } from "@/app";
+import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { RoomsContext, type RoomsContextValue } from "./rooms-context";
 import { useRoomMembershipActions } from "./use-room-membership-actions";
 import { useRoomPlaybackActions } from "./use-room-playback-actions";

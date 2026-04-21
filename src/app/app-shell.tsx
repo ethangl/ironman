@@ -1,4 +1,5 @@
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
+import { ConvexReactClient } from "convex/react";
 import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
 import { Outlet } from "react-router-dom";
 
@@ -7,11 +8,22 @@ import { convexAuthClient as authClient } from "@/lib/convex-auth-client";
 import { getConvexUrl } from "@/lib/convex-env";
 import { FilmGrain, Shader, Swirl, WaveDistortion } from "shaders/react";
 import { AppRuntimeProvider } from "./app-runtime";
-import { getConvexReactClient } from "./lib/convex-react-client";
+
+let cachedConvexClient: ConvexReactClient | null = null;
+let cachedConvexUrl: string | null = null;
+
+function getOrCreateConvexReactClient(url: string) {
+  if (!cachedConvexClient || cachedConvexUrl !== url) {
+    cachedConvexClient = new ConvexReactClient(url);
+    cachedConvexUrl = url;
+  }
+
+  return cachedConvexClient;
+}
 
 export function AppShell() {
   const convexUrl = getConvexUrl("the Vite app shell");
-  const convexClient = getConvexReactClient(convexUrl);
+  const convexClient = getOrCreateConvexReactClient(convexUrl);
 
   return (
     <ConvexBetterAuthProvider client={convexClient} authClient={authClient}>

@@ -74,7 +74,7 @@ describe("AppRuntimeProvider", () => {
       vi.advanceTimersByTime(400);
     });
 
-    expect(result.current.auth.isAuthenticated).toBe(false);
+    expect(result.current.auth.session).toBeNull();
     expect(result.current.auth.isPending).toBe(false);
     expect(result.current.capabilities.spotifyConnection).toBe("disconnected");
     expect(result.current.capabilities.canControlPlayback).toBe(false);
@@ -97,7 +97,7 @@ describe("AppRuntimeProvider", () => {
 
     const { result } = renderHook(() => useRuntimeProbe(), { wrapper });
 
-    expect(result.current.auth.isAuthenticated).toBe(true);
+    expect(result.current.auth.session).toEqual({ user: { id: "user-1" } });
     expect(result.current.capabilities.spotifyConnection).toBe("unknown");
     expect(result.current.capabilities.canControlPlayback).toBe(false);
     expect(mockGetAccessToken).not.toHaveBeenCalled();

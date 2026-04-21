@@ -1,9 +1,9 @@
 import { HomeIcon, RadioTowerIcon } from "lucide-react";
 
+import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { useRooms } from "@/features/rooms";
-import { useAuthenticatedSession } from "@/app";
 import { RoomLink } from "./room-link";
 
 export function RoomsNavbar() {

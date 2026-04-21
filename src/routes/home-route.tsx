@@ -1,10 +1,11 @@
 import { Navigate, useLocation } from "react-router-dom";
 
-import { AuthPendingState, useAppAuth } from "@/app";
+import { useAppAuth } from "@/app/app-runtime";
+import { AuthPendingState } from "@/app/auth-pending-state";
 import { LoginButton } from "@/features/auth";
 
 export function HomeRoute() {
-  const { isAuthenticated, isPending } = useAppAuth();
+  const { isPending, session } = useAppAuth();
   const location = useLocation();
 
   if (isPending) {
@@ -16,7 +17,7 @@ export function HomeRoute() {
     );
   }
 
-  if (isAuthenticated) {
+  if (session) {
     return (
       <Navigate
         to={{

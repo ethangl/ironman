@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-import { useAppCapabilities } from "@/app";
 import {
   SpotifyActivityUiContext,
   useSpotifyActivityUiState,
@@ -19,17 +18,10 @@ export function SpotifyActivityProvider({
 }: {
   children: ReactNode;
 }) {
-  const { canBrowsePersonalSpotify } = useAppCapabilities();
   const ui = useSpotifyActivityUiState();
-  const recentlyPlayed = useSpotifyRecentlyPlayedState({
-    canBrowsePersonalSpotify,
-  });
-  const favoriteArtists = useSpotifyFavoriteArtistsState({
-    canBrowsePersonalSpotify,
-  });
-  const playlists = useSpotifyPlaylistsState({
-    canBrowsePersonalSpotify,
-  });
+  const recentlyPlayed = useSpotifyRecentlyPlayedState();
+  const favoriteArtists = useSpotifyFavoriteArtistsState();
+  const playlists = useSpotifyPlaylistsState();
 
   return (
     <SpotifyActivityUiContext.Provider value={ui}>

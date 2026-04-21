@@ -24,11 +24,7 @@ interface SpotifyPlaylistsContextValue {
 export const SpotifyPlaylistsContext =
   createContext<SpotifyPlaylistsContextValue | null>(null);
 
-export function useSpotifyPlaylistsState({
-  canBrowsePersonalSpotify,
-}: {
-  canBrowsePersonalSpotify: boolean;
-}): SpotifyPlaylistsContextValue {
+export function useSpotifyPlaylistsState(): SpotifyPlaylistsContextValue {
   const nextPlaylistOffsetRef = useRef(0);
   const appliedPlaylistOffsetsRef = useRef(new Set<number>());
   const loadingPlaylistOffsetsRef = useRef(new Set<number>());
@@ -49,22 +45,8 @@ export function useSpotifyPlaylistsState({
     [],
   );
 
-  const resetPlaylists = useCallback(() => {
-    setPlaylists([]);
-    setPlaylistsTotal(0);
-    setPlaylistsLoading(false);
-    nextPlaylistOffsetRef.current = 0;
-    appliedPlaylistOffsetsRef.current.clear();
-    loadingPlaylistOffsetsRef.current.clear();
-    playlistsGenerationRef.current += 1;
-  }, []);
-
   const loadPlaylists = useCallback(
     async (forceRefresh = false) => {
-      if (!canBrowsePersonalSpotify) {
-        return;
-      }
-
       setPlaylistsLoading(true);
 
       try {
@@ -79,22 +61,16 @@ export function useSpotifyPlaylistsState({
         setPlaylistsLoading(false);
       }
     },
-    [applyPlaylistsPage, canBrowsePersonalSpotify],
+    [applyPlaylistsPage],
   );
 
   useEffect(() => {
-    if (!canBrowsePersonalSpotify) {
-      resetPlaylists();
-      return;
-    }
-
     void loadPlaylists();
-  }, [canBrowsePersonalSpotify, loadPlaylists, resetPlaylists]);
+  }, [loadPlaylists]);
 
   const loadMorePlaylists = useCallback(async () => {
     const requestedOffset = nextPlaylistOffsetRef.current;
     if (
-      !canBrowsePersonalSpotify ||
       requestedOffset >= playlistsTotal ||
       loadingPlaylistOffsetsRef.current.has(requestedOffset)
     ) {
@@ -126,7 +102,7 @@ export function useSpotifyPlaylistsState({
     } finally {
       loadingPlaylistOffsetsRef.current.delete(requestedOffset);
     }
-  }, [canBrowsePersonalSpotify, playlistsTotal]);
+  }, [playlistsTotal]);
 
   return useMemo(
     () => ({

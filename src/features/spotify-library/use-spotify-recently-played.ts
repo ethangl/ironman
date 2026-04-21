@@ -46,16 +46,10 @@ interface SpotifyRecentlyPlayedContextValue {
 export const SpotifyRecentlyPlayedContext =
   createContext<SpotifyRecentlyPlayedContextValue | null>(null);
 
-export function useSpotifyRecentlyPlayedState({
-  canBrowsePersonalSpotify,
-}: {
-  canBrowsePersonalSpotify: boolean;
-}): SpotifyRecentlyPlayedContextValue {
+export function useSpotifyRecentlyPlayedState(): SpotifyRecentlyPlayedContextValue {
   const requestVersionRef = useRef(0);
   const [recentTracks, setRecentTracks] = useState<RecentTrack[]>([]);
-  const [recentTracksLoading, setRecentTracksLoading] = useState(
-    canBrowsePersonalSpotify,
-  );
+  const [recentTracksLoading, setRecentTracksLoading] = useState(true);
   const [recentTracksRefreshing, setRecentTracksRefreshing] = useState(false);
 
   const appendRecentTrack = useCallback((track: SpotifyTrack) => {
@@ -68,10 +62,6 @@ export function useSpotifyRecentlyPlayedState({
 
   const loadRecentlyPlayed = useCallback(
     async (mode: "load" | "refresh") => {
-      if (!canBrowsePersonalSpotify) {
-        return;
-      }
-
       const requestVersion = ++requestVersionRef.current;
       if (mode === "refresh") {
         setRecentTracksRefreshing(true);
@@ -103,32 +93,16 @@ export function useSpotifyRecentlyPlayedState({
         }
       }
     },
-    [canBrowsePersonalSpotify],
+    [],
   );
 
   useEffect(() => {
-    if (!canBrowsePersonalSpotify) {
-      requestVersionRef.current += 1;
-      setRecentTracks([]);
-      setRecentTracksLoading(false);
-      setRecentTracksRefreshing(false);
-      return;
-    }
-
     void loadRecentlyPlayed("load");
-  }, [canBrowsePersonalSpotify, loadRecentlyPlayed]);
+  }, [loadRecentlyPlayed]);
 
   const refresh = useCallback(() => {
-    if (!canBrowsePersonalSpotify) {
-      requestVersionRef.current += 1;
-      setRecentTracks([]);
-      setRecentTracksLoading(false);
-      setRecentTracksRefreshing(false);
-      return;
-    }
-
     void loadRecentlyPlayed("refresh");
-  }, [canBrowsePersonalSpotify, loadRecentlyPlayed]);
+  }, [loadRecentlyPlayed]);
 
   return useMemo(
     () => ({

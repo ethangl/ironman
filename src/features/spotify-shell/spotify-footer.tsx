@@ -1,4 +1,4 @@
-import { useAppAuth, useAppCapabilities, useAuthenticatedSession } from "@/app";
+import { useAppAuth, useAuthenticatedSession } from "@/app";
 import { ClearSpotifyCacheButton } from "@/app/clear-spotify-cache-button";
 import { Avatar } from "@/components/avatar";
 import { Section } from "@/components/section";
@@ -13,11 +13,6 @@ import { LogOutIcon } from "lucide-react";
 export function SpotifyFooter() {
   const session = useAuthenticatedSession();
   const { signOut } = useAppAuth();
-  const { canBrowsePersonalSpotify } = useAppCapabilities();
-
-  if (!canBrowsePersonalSpotify) {
-    return null;
-  }
 
   return (
     <Section className="flex flex-none gap-2 h-14 items-center justify-between px-4">

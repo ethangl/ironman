@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 
+import { action } from "./_generated/server";
+import { SpotifyApiError } from "./errors";
 import {
   getAlbumTracks,
   getArtistPageDataResult,
@@ -7,17 +9,13 @@ import {
   searchSpotify,
   searchTracks as searchTracksByName,
 } from "./searchApi";
-import { action, type ActionCtx } from "./_generated/server";
-import { SpotifyApiError } from "./errors";
 import {
   spotifyArtistPageDataValidator,
   spotifySearchResultsValidator,
   spotifyTrackValidator,
 } from "./validators";
 
-async function getArtistPageMarket(
-  accessToken: string,
-) {
+async function getArtistPageMarket(accessToken: string) {
   try {
     return await getSpotifyProfileMarket(accessToken);
   } catch (error) {

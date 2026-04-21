@@ -1,5 +1,3 @@
-export type { ArtistsClient } from "./artists-client";
-export { spotifyArtistsClient } from "./artists-client";
 export {
   PLAYLIST_PAGE_SIZE,
   RECENTLY_PLAYED_LIMIT,

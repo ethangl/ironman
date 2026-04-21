@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-import { spotifyArtistsClient } from "@/features/spotify/client";
 import type { LastFmArtistMatch } from "@/types";
+import { getLastFmArtist } from "./lastfm-client";
 
 export function useLastFmArtist({
   artistName,
@@ -22,8 +22,7 @@ export function useLastFmArtist({
       return;
     }
 
-    void spotifyArtistsClient
-      .getLastFmArtist(normalizedArtistName, musicBrainzId)
+    void getLastFmArtist(normalizedArtistName, musicBrainzId)
       .then((nextData) => {
         if (requestVersionRef.current !== requestVersion) {
           return;

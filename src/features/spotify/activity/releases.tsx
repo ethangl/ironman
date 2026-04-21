@@ -2,7 +2,7 @@ import { FC, useCallback } from "react";
 
 import { List, ListItem } from "@/components/list";
 import { Section, SectionContent, SectionHeader } from "@/components/section";
-import { spotifyArtistsClient } from "@/features/spotify/client";
+import { getSpotifyAlbumTracks } from "@/features/artist/spotify-artist-client";
 import type { SpotifyAlbumRelease, Track } from "@/types";
 import { PlaylistCell } from "./playlist-cell";
 import { usePlayableTrackCollection } from "./use-playable-track-collection";
@@ -33,7 +33,7 @@ export type ReleasesProps = {
 export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
   const loadTracks = useCallback(
     async (release: SpotifyAlbumRelease): Promise<Track[]> => {
-      return spotifyArtistsClient.getAlbumTracks(release.id);
+      return getSpotifyAlbumTracks(release.id);
     },
     [],
   );

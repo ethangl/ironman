@@ -214,7 +214,7 @@ describe("Playlists", () => {
     });
   });
 
-  it("reuses cached playlist tracks on repeated queue actions", async () => {
+  it("reloads playlist tracks on repeated queue actions", async () => {
     renderPlaylists();
 
     const button = screen.getByRole("button", { name: "Queue Heavy Rotation" });
@@ -229,7 +229,7 @@ describe("Playlists", () => {
     await waitFor(() => {
       expect(mockEnqueueTracks).toHaveBeenCalledTimes(2);
     });
-    expect(mockGetPlaylistTracks).toHaveBeenCalledTimes(1);
+    expect(mockGetPlaylistTracks).toHaveBeenCalledTimes(2);
   });
 
   it("hides the queue button when there is no enqueueable active room", () => {

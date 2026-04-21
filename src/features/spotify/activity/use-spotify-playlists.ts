@@ -12,12 +12,9 @@ import {
   PLAYLIST_PAGE_SIZE,
   spotifyActivityClient,
 } from "@/features/spotify/client";
-import type { SpotifyTrack } from "@/types";
 import type { Playlist } from "@/types/spotify-activity";
-import { useSpotifyPlaylistTracks } from "./use-spotify-playlist-tracks";
 
 interface SpotifyPlaylistsContextValue {
-  getPlaylistTracks: (playlistId: string) => Promise<SpotifyTrack[]>;
   loadMorePlaylists: () => Promise<void>;
   loadPlaylists: (forceRefresh?: boolean) => Promise<void>;
   playlists: Playlist[];
@@ -40,13 +37,9 @@ export function useSpotifyPlaylistsState({
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [playlistsTotal, setPlaylistsTotal] = useState(0);
   const [playlistsLoading, setPlaylistsLoading] = useState(false);
-  const { clearPlaylistTracks, getPlaylistTracks } = useSpotifyPlaylistTracks({
-    setPlaylists,
-  });
 
   const applyPlaylistsPage = useCallback(
     (items: Playlist[], total: number) => {
-      clearPlaylistTracks();
       setPlaylists(items);
       setPlaylistsTotal(total);
       nextPlaylistOffsetRef.current = items.length;
@@ -54,11 +47,10 @@ export function useSpotifyPlaylistsState({
       loadingPlaylistOffsetsRef.current.clear();
       playlistsGenerationRef.current += 1;
     },
-    [clearPlaylistTracks],
+    [],
   );
 
   const resetPlaylists = useCallback(() => {
-    clearPlaylistTracks();
     setPlaylists([]);
     setPlaylistsTotal(0);
     setPlaylistsLoading(false);
@@ -66,7 +58,7 @@ export function useSpotifyPlaylistsState({
     appliedPlaylistOffsetsRef.current.clear();
     loadingPlaylistOffsetsRef.current.clear();
     playlistsGenerationRef.current += 1;
-  }, [clearPlaylistTracks]);
+  }, []);
 
   const loadPlaylists = useCallback(
     async (forceRefresh = false) => {
@@ -141,21 +133,13 @@ export function useSpotifyPlaylistsState({
 
   return useMemo(
     () => ({
-      getPlaylistTracks,
       loadMorePlaylists,
       loadPlaylists,
       playlists,
       playlistsLoading,
       playlistsTotal,
     }),
-    [
-      getPlaylistTracks,
-      loadMorePlaylists,
-      loadPlaylists,
-      playlists,
-      playlistsLoading,
-      playlistsTotal,
-    ],
+    [loadMorePlaylists, loadPlaylists, playlists, playlistsLoading, playlistsTotal],
   );
 }
 

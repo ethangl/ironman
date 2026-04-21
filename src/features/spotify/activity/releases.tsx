@@ -37,12 +37,13 @@ export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
     },
     [],
   );
-  const { getCachedTracks, loadingItemId, playItem } =
-    usePlayableTrackCollection<SpotifyAlbumRelease>({
-      emptyMessage: "That release does not have any playable tracks.",
-      fallbackErrorMessage: "Could not load that release right now.",
-      loadTracks,
-    });
+  const { loadingItemId, playItem } = usePlayableTrackCollection<
+    SpotifyAlbumRelease
+  >({
+    emptyMessage: "That release does not have any playable tracks.",
+    fallbackErrorMessage: "Could not load that release right now.",
+    loadTracks,
+  });
 
   if (releases.length === 0) {
     return null;
@@ -61,7 +62,7 @@ export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
                 image={release.image}
                 name={release.name}
                 subtitle={formatReleaseMeta(release)}
-                tracks={getCachedTracks(release.id)}
+                tracks={[]}
                 onPlay={() => void playItem(release)}
               />
             </ListItem>

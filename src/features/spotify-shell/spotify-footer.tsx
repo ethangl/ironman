@@ -1,5 +1,4 @@
 import { useAppAuth, useAuthenticatedSession } from "@/app";
-import { ClearSpotifyCacheButton } from "@/app/clear-spotify-cache-button";
 import { Avatar } from "@/components/avatar";
 import { Section } from "@/components/section";
 import {
@@ -8,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ClearSpotifyCacheButton } from "@/features/spotify-shell/clear-spotify-cache-button";
 import { LogOutIcon } from "lucide-react";
 
 export function SpotifyFooter() {

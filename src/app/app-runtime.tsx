@@ -3,18 +3,16 @@ import {
   convexSignOut as signOut,
   useConvexSession as useSession,
 } from "@/lib/convex-auth-client";
+import { useSpotifyRuntimeCapabilities } from "@/features/spotify-client/use-spotify-runtime-capabilities";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
-import { getSpotifyStatus } from "./app-runtime-status";
 import type { AppRuntime } from "./app-runtime-types";
 import { useSettledSession } from "./use-settled-session";
-import { useSpotifyRuntimeCapabilities } from "./use-spotify-runtime-capabilities";
 
 export type {
   AppAuthRuntime,
   AppCapabilities,
   AppRuntime,
   SessionData,
-  SpotifyStatus,
 } from "./app-runtime-types";
 
 const AppRuntimeContext = createContext<AppRuntime | null>(null);
@@ -27,17 +25,10 @@ function useAuthRuntimeValue(): AppRuntime {
   });
   const sessionUserId = effectiveSession?.user.id ?? null;
   const {
-    canBrowsePersonalSpotify,
     canControlPlayback,
     getSpotifyAccessToken,
     spotifyConnection,
   } = useSpotifyRuntimeCapabilities(sessionUserId);
-
-  const spotifyStatus = getSpotifyStatus({
-    isPending: isSessionPending,
-    session: effectiveSession,
-    spotifyConnection: effectiveSession ? spotifyConnection : "disconnected",
-  });
 
   return useMemo(
     () => ({
@@ -50,22 +41,15 @@ function useAuthRuntimeValue(): AppRuntime {
         getSpotifyAccessToken,
       },
       capabilities: {
-        hasSession: !!effectiveSession,
-        spotifyConnection: effectiveSession
-          ? spotifyConnection
-          : "disconnected",
-        spotifyStatus,
-        canBrowsePersonalSpotify,
+        spotifyConnection,
         canControlPlayback,
       },
     }),
     [
-      canBrowsePersonalSpotify,
       canControlPlayback,
-      effectiveSession,
       getSpotifyAccessToken,
       isSessionPending,
-      spotifyStatus,
+      effectiveSession,
       spotifyConnection,
     ],
   );

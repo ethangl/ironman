@@ -45,7 +45,7 @@ export function useAuthenticatedSession() {
 export function RequireAuthenticatedSession() {
   const location = useLocation();
   const { isAuthenticated, isPending, session } = useAppAuth();
-  const { canBrowsePersonalSpotify, spotifyStatus } = useAppCapabilities();
+  const { spotifyConnection } = useAppCapabilities();
 
   if (isPending) {
     return (
@@ -74,19 +74,26 @@ export function RequireAuthenticatedSession() {
     );
   }
 
+  const canBrowsePersonalSpotify = spotifyConnection === "connected";
+  const isCheckingSpotifyConnection = spotifyConnection === "unknown";
+
   if (!canBrowsePersonalSpotify) {
     return (
       <header className="backdrop-blur-lg backdrop-brightness-25 bottom-auto fixed flex inset-0 items-center h-16 justify-between px-4 top-0 z-20">
         <div className="flex items-center gap-3">
           <div className="hidden max-w-xs text-right md:block">
             <p className="text-xs font-semibold text-foreground">
-              {spotifyStatus.title}
+              {isCheckingSpotifyConnection
+                ? "Checking your Spotify connection"
+                : "Reconnect Spotify to restore personal features"}
             </p>
             <p className="text-[11px] leading-4 text-muted-foreground">
-              {spotifyStatus.description}
+              {isCheckingSpotifyConnection
+                ? "Your app session is active. We’re confirming Spotify access before we turn on personal activity and playback controls."
+                : "Your app session is still active, but Spotify access is unavailable right now. Reconnecting should bring back recent plays, playlists, and playback controls."}
             </p>
           </div>
-          {spotifyStatus.code === "reconnect_required" ? <LoginButton /> : null}
+          {!isCheckingSpotifyConnection ? <LoginButton /> : null}
         </div>
       </header>
     );

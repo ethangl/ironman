@@ -13,18 +13,8 @@ export interface AppAuthRuntime {
   getSpotifyAccessToken: () => Promise<string | null>;
 }
 
-export interface SpotifyStatus {
-  code: "signed_out" | "checking" | "connected" | "reconnect_required";
-  title: string;
-  description: string;
-  actionLabel: string | null;
-}
-
 export interface AppCapabilities {
-  hasSession: boolean;
   spotifyConnection: SpotifyConnection;
-  spotifyStatus: SpotifyStatus;
-  canBrowsePersonalSpotify: boolean;
   canControlPlayback: boolean;
 }
 

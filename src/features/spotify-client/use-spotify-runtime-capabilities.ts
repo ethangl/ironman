@@ -3,12 +3,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   clearCachedSpotifyAccessToken,
   getCachedSpotifyAccessToken,
-} from "@/app/lib/spotify-access-token";
+} from "./spotify-access-token";
 import {
   clearCachedSpotifyAccountLink,
   hasCachedSpotifyAccountLink,
-} from "@/app/lib/spotify-account-link";
-import type { SpotifyConnection } from "./app-runtime-types";
+} from "./spotify-account-link";
+
+type SpotifyConnection = "unknown" | "connected" | "disconnected";
 
 type SpotifyAccountLinkState = "unknown" | "linked" | "unlinked";
 
@@ -93,20 +94,17 @@ export function useSpotifyRuntimeCapabilities(sessionUserId: string | null) {
 
   const hasLinkedSpotifyAccount =
     !!sessionUserId && spotifyAccountLink === "linked";
-  const canUsePersonalSpotify =
-    hasLinkedSpotifyAccount && !spotifyTokenUnavailable;
 
   const spotifyConnection: SpotifyConnection = !sessionUserId
     ? "disconnected"
     : spotifyAccountLink === "unknown"
       ? "unknown"
-      : spotifyAccountLink === "unlinked" || spotifyTokenUnavailable
-        ? "disconnected"
-        : "connected";
+      : spotifyAccountLink === "linked"
+        ? "connected"
+        : "disconnected";
 
   return {
-    canBrowsePersonalSpotify: canUsePersonalSpotify,
-    canControlPlayback: canUsePersonalSpotify,
+    canControlPlayback: hasLinkedSpotifyAccount && !spotifyTokenUnavailable,
     getSpotifyAccessToken,
     spotifyConnection,
   };

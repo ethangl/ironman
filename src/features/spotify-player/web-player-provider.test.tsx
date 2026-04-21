@@ -2,10 +2,11 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AppRuntimeProvider, AuthenticatedSessionProvider } from "@/app";
-import { clearCachedSpotifyAccessToken } from "@/app/lib/spotify-access-token";
-import { clearCachedSpotifyAccountLink } from "@/app/lib/spotify-account-link";
+import { AppRuntimeProvider } from "@/app";
+import { AuthenticatedSessionProvider } from "@/app/require-authenticated-session";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
+import { clearCachedSpotifyAccessToken } from "@/features/spotify-client/spotify-access-token";
+import { clearCachedSpotifyAccountLink } from "@/features/spotify-client/spotify-account-link";
 import { SpotifyActivityProvider } from "@/features/spotify-shell";
 import { getFunctionName } from "convex/server";
 import { usePlayerQueueListing } from "./use-player-queue-listing";

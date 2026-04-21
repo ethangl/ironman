@@ -1,6 +1,5 @@
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
-import { useMemo } from "react";
 import { Outlet } from "react-router-dom";
 
 import { Toaster } from "@/components/ui/sonner";
@@ -12,11 +11,7 @@ import { getConvexReactClient } from "./lib/convex-react-client";
 
 export function AppShell() {
   const convexUrl = getConvexUrl("the Vite app shell");
-
-  const convexClient = useMemo(
-    () => getConvexReactClient(convexUrl),
-    [convexUrl],
-  );
+  const convexClient = getConvexReactClient(convexUrl);
 
   return (
     <ConvexBetterAuthProvider client={convexClient} authClient={authClient}>

@@ -11,7 +11,7 @@ vi.mock("@/lib/convex-auth-client", () => ({
 import {
   clearCachedSpotifyAccessToken,
   getCachedSpotifyAccessToken,
-} from "../../lib/spotify-access-token";
+} from "./spotify-access-token";
 
 function createDeferred<T>() {
   let resolve!: (value: T) => void;

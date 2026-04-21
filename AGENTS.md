@@ -15,7 +15,7 @@ Convex agent skills for common tasks can be installed by running `npx convex ai-
 - browser-side Better Auth account-link checks are runtime gating, not Spotify request policy
 - the browser-side Spotify token path exists only for the Web Playback SDK and playback actions that genuinely need a browser token
 - do not mint a browser Spotify token on startup just to determine general app capability or connection state
-- convex/components/spotify owns Spotify request policy
+- convex/spotify owns Spotify request policy
 
 ## Remember: Spotify's API
 

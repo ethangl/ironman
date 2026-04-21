@@ -1,14 +1,18 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { spotifyFetch } from "./client";
-import { SpotifyApiError } from "./errors";
-import { albumTracks } from "./albums";
-import { artistPage } from "./artists";
-import { searchResults } from "./search";
+vi.mock("../spotifySession", () => ({
+  requireSpotifyAccessToken: vi.fn().mockResolvedValue("spotify-token"),
+}));
 
 vi.mock("./client", () => ({
   spotifyFetch: vi.fn(),
 }));
+
+import { spotifyFetch } from "./client";
+import { SpotifyApiError } from "./errors";
+import { loadAlbumTracks } from "./albums";
+import { loadArtistPage } from "./artists";
+import { loadSearchResults } from "./search";
 
 const mockedSpotifyFetch = vi.mocked(spotifyFetch);
 
@@ -38,7 +42,7 @@ function createArtistPage() {
   };
 }
 
-describe("spotify search component", () => {
+describe("spotify search loaders", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
@@ -70,11 +74,10 @@ describe("spotify search component", () => {
 
     await expect(
       runAction<
-        { artistId: string; accessToken: string; cacheScope?: string },
+        { artistId: string; cacheScope: string },
         typeof page
-      >(artistPage as unknown as RegisteredAction, {
+      >(loadArtistPage as unknown as RegisteredAction, {
         artistId: "artist-1",
-        accessToken: "spotify-token",
         cacheScope: "user-1",
       }),
     ).resolves.toEqual(page);
@@ -89,11 +92,11 @@ describe("spotify search component", () => {
 
     await expect(
       runAction<
-        { artistId: string; accessToken: string; cacheScope?: string },
+        { artistId: string; cacheScope: string },
         null
-      >(artistPage as unknown as RegisteredAction, {
+      >(loadArtistPage as unknown as RegisteredAction, {
         artistId: "missing-artist",
-        accessToken: "spotify-token",
+        cacheScope: "user-1",
       }),
     ).resolves.toBeNull();
   });
@@ -104,9 +107,8 @@ describe("spotify search component", () => {
     );
 
     await expect(
-      runAction(searchResults as unknown as RegisteredAction, {
+      runAction(loadSearchResults as unknown as RegisteredAction, {
         query: "Neurosis",
-        accessToken: "spotify-token",
       }),
     ).rejects.toThrow("Spotify is rate limiting search right now.");
   });
@@ -117,9 +119,8 @@ describe("spotify search component", () => {
     );
 
     await expect(
-      runAction(albumTracks as unknown as RegisteredAction, {
+      runAction(loadAlbumTracks as unknown as RegisteredAction, {
         albumId: "album-429",
-        accessToken: "spotify-token",
       }),
     ).rejects.toThrow("Spotify is rate limiting album requests right now.");
   });

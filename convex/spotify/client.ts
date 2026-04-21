@@ -12,7 +12,9 @@ function logSpotifyRequest(details: {
   durationMs: number;
   retryAfterSeconds?: number | null;
 }) {
-  if (process.env.NODE_ENV === "test") return;
+  if (process.env.NODE_ENV === "test") {
+    return;
+  }
 
   const parts = [
     `[spotify] ${details.method} ${details.path}`,
@@ -112,7 +114,9 @@ export async function spotifyFetch<T>(
       retryAfterSeconds,
     });
 
-    if (res.status === 204 || res.status === 202) return null;
+    if (res.status === 204 || res.status === 202) {
+      return null;
+    }
     const text = await res.text();
     if (!res.ok) {
       if (res.status === 429) {
@@ -124,7 +128,9 @@ export async function spotifyFetch<T>(
         retryAfterSeconds,
       );
     }
-    if (!text) return null;
+    if (!text) {
+      return null;
+    }
     try {
       return JSON.parse(text) as T;
     } catch {

@@ -1,20 +1,24 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { SpotifyApiError } from "./errors";
-import {
-  favoriteArtists,
-  topArtists,
-} from "./artists";
-import {
-  playlistTracks,
-  playlistsPage,
-} from "./playlists";
-import { recentlyPlayed } from "./tracks";
-import { spotifyFetch } from "./client";
+vi.mock("../spotifySession", () => ({
+  requireSpotifyAccessToken: vi.fn().mockResolvedValue("spotify-token"),
+}));
 
 vi.mock("./client", () => ({
   spotifyFetch: vi.fn(),
 }));
+
+import { spotifyFetch } from "./client";
+import { SpotifyApiError } from "./errors";
+import {
+  loadFavoriteArtists,
+  loadTopArtists,
+} from "./artists";
+import {
+  loadPlaylistTracks,
+  loadPlaylistsPage,
+} from "./playlists";
+import { loadRecentlyPlayed } from "./tracks";
 
 const mockedSpotifyFetch = vi.mocked(spotifyFetch);
 
@@ -29,7 +33,7 @@ function runAction<TArgs, TResult>(
   return registeredAction._handler({} as never, args) as Promise<TResult>;
 }
 
-describe("spotify activity component", () => {
+describe("spotify activity loaders", () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
@@ -41,10 +45,9 @@ describe("spotify activity component", () => {
 
     await expect(
       runAction<
-        { accessToken: string; limit?: number; cacheScope?: string },
+        { limit: number; cacheScope: string },
         { items: unknown[]; rateLimited: boolean }
-      >(recentlyPlayed as unknown as RegisteredAction, {
-        accessToken: "spotify-token",
+      >(loadRecentlyPlayed as unknown as RegisteredAction, {
         limit: 25,
         cacheScope: "user-1",
       }),
@@ -61,10 +64,9 @@ describe("spotify activity component", () => {
 
     await expect(
       runAction<
-        { accessToken: string; playlistId: string; cacheScope?: string },
+        { playlistId: string; cacheScope: string },
         never
-      >(playlistTracks as unknown as RegisteredAction, {
-        accessToken: "spotify-token",
+      >(loadPlaylistTracks as unknown as RegisteredAction, {
         playlistId: "playlist-429",
         cacheScope: "user-1",
       }),
@@ -77,14 +79,12 @@ describe("spotify activity component", () => {
     await expect(
       runAction<
         {
-          accessToken: string;
-          limit?: number;
-          offset?: number;
-          cacheScope?: string;
+          limit: number;
+          offset: number;
+          cacheScope: string;
         },
         { items: unknown[]; total: number }
-      >(playlistsPage as unknown as RegisteredAction, {
-        accessToken: "spotify-token",
+      >(loadPlaylistsPage as unknown as RegisteredAction, {
         limit: 10,
         offset: 20,
         cacheScope: "user-1",
@@ -100,10 +100,9 @@ describe("spotify activity component", () => {
 
     await expect(
       runAction<
-        { accessToken: string; limit?: number; cacheScope?: string },
+        { limit: number; cacheScope: string },
         unknown[]
-      >(favoriteArtists as unknown as RegisteredAction, {
-        accessToken: "spotify-token",
+      >(loadFavoriteArtists as unknown as RegisteredAction, {
         limit: 25,
         cacheScope: "user-1",
       }),
@@ -115,10 +114,9 @@ describe("spotify activity component", () => {
 
     await expect(
       runAction<
-        { accessToken: string; limit?: number; cacheScope?: string },
+        { limit: number; cacheScope: string },
         unknown[]
-      >(topArtists as unknown as RegisteredAction, {
-        accessToken: "spotify-token",
+      >(loadTopArtists as unknown as RegisteredAction, {
         limit: 10,
         cacheScope: "user-1",
       }),

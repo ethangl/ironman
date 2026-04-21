@@ -5,7 +5,6 @@ import {
   spotifyFetch,
   spotifyFetchOptional,
 } from "./client";
-import { SpotifyApiError } from "./errors";
 
 function createResponse({
   body = "",
@@ -50,6 +49,7 @@ describe("spotify shared client rate-limit cooldown", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it("fails fast on repeated strict fetches during an active retry-after cooldown", async () => {

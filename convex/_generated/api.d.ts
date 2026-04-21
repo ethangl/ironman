@@ -17,21 +17,16 @@ import type * as profile from "../profile.js";
 import type * as rooms from "../rooms.js";
 import type * as spotify from "../spotify.js";
 import type * as spotify_albums from "../spotify/albums.js";
-import type * as spotify_albumsCache from "../spotify/albumsCache.js";
-import type * as spotify_albumsLoaders from "../spotify/albumsLoaders.js";
 import type * as spotify_artists from "../spotify/artists.js";
-import type * as spotify_artistsCache from "../spotify/artistsCache.js";
-import type * as spotify_artistsLoaders from "../spotify/artistsLoaders.js";
+import type * as spotify_client from "../spotify/client.js";
+import type * as spotify_errors from "../spotify/errors.js";
+import type * as spotify_mappers from "../spotify/mappers.js";
 import type * as spotify_playback from "../spotify/playback.js";
 import type * as spotify_playlists from "../spotify/playlists.js";
-import type * as spotify_playlistsCache from "../spotify/playlistsCache.js";
-import type * as spotify_playlistsLoaders from "../spotify/playlistsLoaders.js";
 import type * as spotify_search from "../spotify/search.js";
-import type * as spotify_searchCache from "../spotify/searchCache.js";
-import type * as spotify_searchLoaders from "../spotify/searchLoaders.js";
 import type * as spotify_tracks from "../spotify/tracks.js";
-import type * as spotify_tracksCache from "../spotify/tracksCache.js";
-import type * as spotify_tracksLoaders from "../spotify/tracksLoaders.js";
+import type * as spotify_types from "../spotify/types.js";
+import type * as spotify_validators from "../spotify/validators.js";
 import type * as spotifyAuthCooldown from "../spotifyAuthCooldown.js";
 import type * as spotifySession from "../spotifySession.js";
 import type * as users from "../users.js";
@@ -52,21 +47,16 @@ declare const fullApi: ApiFromModules<{
   rooms: typeof rooms;
   spotify: typeof spotify;
   "spotify/albums": typeof spotify_albums;
-  "spotify/albumsCache": typeof spotify_albumsCache;
-  "spotify/albumsLoaders": typeof spotify_albumsLoaders;
   "spotify/artists": typeof spotify_artists;
-  "spotify/artistsCache": typeof spotify_artistsCache;
-  "spotify/artistsLoaders": typeof spotify_artistsLoaders;
+  "spotify/client": typeof spotify_client;
+  "spotify/errors": typeof spotify_errors;
+  "spotify/mappers": typeof spotify_mappers;
   "spotify/playback": typeof spotify_playback;
   "spotify/playlists": typeof spotify_playlists;
-  "spotify/playlistsCache": typeof spotify_playlistsCache;
-  "spotify/playlistsLoaders": typeof spotify_playlistsLoaders;
   "spotify/search": typeof spotify_search;
-  "spotify/searchCache": typeof spotify_searchCache;
-  "spotify/searchLoaders": typeof spotify_searchLoaders;
   "spotify/tracks": typeof spotify_tracks;
-  "spotify/tracksCache": typeof spotify_tracksCache;
-  "spotify/tracksLoaders": typeof spotify_tracksLoaders;
+  "spotify/types": typeof spotify_types;
+  "spotify/validators": typeof spotify_validators;
   spotifyAuthCooldown: typeof spotifyAuthCooldown;
   spotifySession: typeof spotifySession;
   users: typeof users;
@@ -21391,257 +21381,6 @@ export declare const components: {
         "internal",
         { intervalMs: number; key: string },
         number
-      >;
-    };
-  };
-  spotify: {
-    albums: {
-      albumTracks: FunctionReference<
-        "action",
-        "internal",
-        { accessToken: string; albumId: string },
-        Array<{
-          albumImage: string | null;
-          albumName: string;
-          artist: string;
-          durationMs: number;
-          id: string;
-          name: string;
-        }>
-      >;
-    };
-    artists: {
-      artistPage: FunctionReference<
-        "action",
-        "internal",
-        { accessToken: string; artistId: string; cacheScope?: string },
-        {
-          albums: Array<{
-            albumType: string | null;
-            id: string;
-            image: string | null;
-            name: string;
-            releaseDate: string | null;
-            totalTracks: number;
-          }>;
-          artist: {
-            followerCount: number;
-            genres: Array<string>;
-            id: string;
-            image: string | null;
-            name: string;
-          };
-          singles: Array<{
-            albumType: string | null;
-            id: string;
-            image: string | null;
-            name: string;
-            releaseDate: string | null;
-            totalTracks: number;
-          }>;
-          topTracks: Array<{
-            albumImage: string | null;
-            albumName: string;
-            artist: string;
-            durationMs: number;
-            id: string;
-            name: string;
-          }>;
-        } | null
-      >;
-      favoriteArtists: FunctionReference<
-        "action",
-        "internal",
-        {
-          accessToken: string;
-          cacheScope?: string;
-          forceRefresh?: boolean;
-          limit?: number;
-        },
-        Array<{
-          followerCount: number;
-          genres: Array<string>;
-          id: string;
-          image: string | null;
-          name: string;
-        }>
-      >;
-      topArtists: FunctionReference<
-        "action",
-        "internal",
-        { accessToken: string; cacheScope?: string; limit?: number },
-        Array<{
-          followerCount: number;
-          genres: Array<string>;
-          id: string;
-          image: string | null;
-          name: string;
-        }>
-      >;
-    };
-    playback: {
-      currentlyPlaying: FunctionReference<
-        "action",
-        "internal",
-        { accessToken: string },
-        {
-          playback: {
-            is_playing: boolean;
-            item: {
-              artists?: Array<{ name: string }>;
-              duration_ms: number;
-              id: string;
-              name: string;
-            } | null;
-            progress_ms: number;
-          } | null;
-          retryAfterSeconds?: number;
-          status: number;
-        }
-      >;
-      pause: FunctionReference<
-        "action",
-        "internal",
-        { accessToken: string },
-        { ok: boolean; retryAfterSeconds?: number; status: number }
-      >;
-      play: FunctionReference<
-        "action",
-        "internal",
-        {
-          accessToken: string;
-          deviceId?: string;
-          offsetMs?: number;
-          uri: string;
-        },
-        { ok: boolean; retryAfterSeconds?: number; status: number }
-      >;
-      resume: FunctionReference<
-        "action",
-        "internal",
-        { accessToken: string },
-        { ok: boolean; retryAfterSeconds?: number; status: number }
-      >;
-      setRepeat: FunctionReference<
-        "action",
-        "internal",
-        {
-          accessToken: string;
-          deviceId?: string;
-          state: "track" | "context" | "off";
-        },
-        { ok: boolean; retryAfterSeconds?: number; status: number }
-      >;
-      setVolume: FunctionReference<
-        "action",
-        "internal",
-        { accessToken: string; percent: number },
-        { ok: boolean; retryAfterSeconds?: number; status: number }
-      >;
-    };
-    playlists: {
-      playlistsPage: FunctionReference<
-        "action",
-        "internal",
-        {
-          accessToken: string;
-          cacheScope?: string;
-          forceRefresh?: boolean;
-          limit?: number;
-          offset?: number;
-        },
-        {
-          items: Array<{
-            description: string | null;
-            id: string;
-            image: string | null;
-            name: string;
-            owner: string | null;
-            public: boolean;
-            trackCount: number;
-          }>;
-          total: number;
-        }
-      >;
-      playlistTracks: FunctionReference<
-        "action",
-        "internal",
-        { accessToken: string; cacheScope?: string; playlistId: string },
-        Array<{
-          albumImage: string | null;
-          albumName: string;
-          artist: string;
-          durationMs: number;
-          id: string;
-          name: string;
-        }>
-      >;
-    };
-    search: {
-      searchResults: FunctionReference<
-        "action",
-        "internal",
-        { accessToken: string; query: string },
-        {
-          artists: Array<{
-            followerCount: number;
-            genres: Array<string>;
-            id: string;
-            image: string | null;
-            name: string;
-          }>;
-          playlists: Array<{
-            description: string | null;
-            id: string;
-            image: string | null;
-            name: string;
-            owner: string | null;
-            public: boolean;
-            trackCount: number;
-          }>;
-          tracks: Array<{
-            albumImage: string | null;
-            albumName: string;
-            artist: string;
-            durationMs: number;
-            id: string;
-            name: string;
-          }>;
-        }
-      >;
-      searchTracks: FunctionReference<
-        "action",
-        "internal",
-        { accessToken: string; query: string },
-        Array<{
-          albumImage: string | null;
-          albumName: string;
-          artist: string;
-          durationMs: number;
-          id: string;
-          name: string;
-        }>
-      >;
-    };
-    tracks: {
-      recentlyPlayed: FunctionReference<
-        "action",
-        "internal",
-        { accessToken: string; cacheScope?: string; limit?: number },
-        {
-          items: Array<{
-            playedAt: string;
-            track: {
-              albumImage: string | null;
-              albumName: string;
-              artist: string;
-              durationMs: number;
-              id: string;
-              name: string;
-            };
-          }>;
-          rateLimited: boolean;
-        }
       >;
     };
   };

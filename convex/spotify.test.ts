@@ -15,6 +15,10 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
+function jsonResponse(body: unknown, init?: ResponseInit) {
+  return new Response(JSON.stringify(body), init);
+}
+
 function runAction<TArgs, TResult>(
   registeredAction: RegisteredAction,
   ctx: unknown,
@@ -64,15 +68,15 @@ async function loadSpotifyModules({
   }));
 
   const spotifyModule = await import("./spotify");
-  const artistsLoaders = await import("./spotify/artistsLoaders");
-  const searchLoaders = await import("./spotify/searchLoaders");
-  const tracksLoaders = await import("./spotify/tracksLoaders");
+  const artistsModule = await import("./spotify/artists");
+  const searchModule = await import("./spotify/search");
+  const tracksModule = await import("./spotify/tracks");
 
   return {
     spotifyModule,
-    artistsLoaders,
-    searchLoaders,
-    tracksLoaders,
+    artistsModule,
+    searchModule,
+    tracksModule,
     getAuth,
     getAccessToken,
   };
@@ -82,6 +86,7 @@ describe("convex/spotify auth handoff", () => {
   afterEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    vi.unstubAllGlobals();
   });
 
   it("dedupes concurrent provider token lookups across loaders", async () => {
@@ -89,22 +94,29 @@ describe("convex/spotify auth handoff", () => {
       accessToken?: string | null;
       accessTokenExpiresAt?: number | null;
     }>();
-    const { searchLoaders, getAuth, getAccessToken } =
+    const { searchModule, getAuth, getAccessToken } =
       await loadSpotifyModules({
         getAccessTokenImpl: () => deferred.promise,
       });
-    const ctx = {
-      runAction: vi.fn().mockResolvedValue(null),
-    };
+    const fetchMock = vi.fn().mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse({
+          tracks: { items: [] },
+          artists: { items: [] },
+          playlists: { items: [] },
+        }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
     const first = runAction(
-      searchLoaders.loadSearchResults as unknown as RegisteredAction,
-      ctx,
+      searchModule.loadSearchResults as unknown as RegisteredAction,
+      {},
       { query: "isis" },
     );
     const second = runAction(
-      searchLoaders.loadSearchTracks as unknown as RegisteredAction,
-      ctx,
+      searchModule.loadSearchTracks as unknown as RegisteredAction,
+      {},
       { query: "weight" },
     );
 
@@ -117,106 +129,91 @@ describe("convex/spotify auth handoff", () => {
 
     expect(getAuth).toHaveBeenCalledTimes(1);
     expect(getAccessToken).toHaveBeenCalledTimes(1);
-    expect(ctx.runAction).toHaveBeenCalledTimes(2);
-    expect(ctx.runAction).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({ accessToken: "spotify-token" }),
-    );
-    expect(ctx.runAction).toHaveBeenNthCalledWith(
-      2,
-      expect.anything(),
-      expect.objectContaining({ accessToken: "spotify-token" }),
-    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("reuses a cached provider token for sequential loader actions until expiry", async () => {
-    const { searchLoaders, tracksLoaders, getAuth, getAccessToken } =
+    const { searchModule, tracksModule, getAuth, getAccessToken } =
       await loadSpotifyModules();
-    const ctx = {
-      runAction: vi.fn().mockResolvedValue(null),
-    };
+    const fetchMock = vi.fn((input: string | URL | Request) => {
+      const url = String(input);
+      if (url.includes("/search?")) {
+        return Promise.resolve(
+          jsonResponse({
+            tracks: { items: [] },
+            artists: { items: [] },
+            playlists: { items: [] },
+          }),
+        );
+      }
+      if (url.includes("/me/player/recently-played")) {
+        return Promise.resolve(jsonResponse({ items: [] }));
+      }
+      return Promise.reject(new Error(`Unexpected fetch: ${url}`));
+    });
+    vi.stubGlobal("fetch", fetchMock);
 
     await runAction(
-      searchLoaders.loadSearchResults as unknown as RegisteredAction,
-      ctx,
+      searchModule.loadSearchResults as unknown as RegisteredAction,
+      {},
       { query: "isis" },
     );
     await runAction(
-      tracksLoaders.loadRecentlyPlayed as unknown as RegisteredAction,
-      ctx,
+      tracksModule.loadRecentlyPlayed as unknown as RegisteredAction,
+      {},
       { limit: 30, cacheScope: "user-1" },
     );
 
     expect(getAuth).toHaveBeenCalledTimes(1);
     expect(getAccessToken).toHaveBeenCalledTimes(1);
-    expect(ctx.runAction).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("forwards artist page loader requests with user cache scope", async () => {
-    const { artistsLoaders } = await loadSpotifyModules();
-    const ctx = {
-      runAction: vi.fn().mockResolvedValue(null),
-    };
-
-    await runAction(
-      artistsLoaders.loadArtistPage as unknown as RegisteredAction,
-      ctx,
-      {
-        artistId: "artist-1",
-        cacheScope: "user-1",
-      },
-    );
-
-    expect(ctx.runAction).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        artistId: "artist-1",
-        accessToken: "spotify-token",
-        cacheScope: "user-1",
-      }),
-    );
-  });
-
-  it("forwards playback writes without adding extra request policy", async () => {
+  it("uses the Spotify session token for playback writes", async () => {
     const { spotifyModule } = await loadSpotifyModules();
-    const ctx = {
-      runAction: vi.fn().mockResolvedValue({ ok: true, status: 204 }),
-    };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
 
     await expect(
-      runAction(spotifyModule.playbackPause as unknown as RegisteredAction, ctx, {}),
+      runAction(spotifyModule.playbackPause as unknown as RegisteredAction, {}, {}),
     ).resolves.toEqual({ ok: true, status: 204 });
 
-    expect(ctx.runAction).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.spotify.com/v1/me/player/pause",
       expect.objectContaining({
-        accessToken: "spotify-token",
+        method: "PUT",
+        headers: expect.objectContaining({
+          Authorization: "Bearer spotify-token",
+        }),
       }),
     );
   });
 
-  it("forwards playback offsets to the spotify component action", async () => {
+  it("forwards playback offsets to Spotify without extra wrappers", async () => {
     const { spotifyModule } = await loadSpotifyModules();
-    const ctx = {
-      runAction: vi.fn().mockResolvedValue({ ok: true, status: 204 }),
-    };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
 
     await expect(
-      runAction(spotifyModule.playbackPlay as unknown as RegisteredAction, ctx, {
+      runAction(spotifyModule.playbackPlay as unknown as RegisteredAction, {}, {
         uri: "spotify:track:track-1",
         deviceId: "device-1",
         offsetMs: 12_345,
       }),
     ).resolves.toEqual({ ok: true, status: 204 });
 
-    expect(ctx.runAction).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.spotify.com/v1/me/player/play?device_id=device-1",
       expect.objectContaining({
-        accessToken: "spotify-token",
-        uri: "spotify:track:track-1",
-        deviceId: "device-1",
-        offsetMs: 12_345,
+        method: "PUT",
+        headers: expect.objectContaining({
+          Authorization: "Bearer spotify-token",
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({
+          uris: ["spotify:track:track-1"],
+          position_ms: 12_345,
+        }),
       }),
     );
   });

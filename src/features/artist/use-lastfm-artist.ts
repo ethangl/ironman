@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { useSpotifyClient } from "@/features/spotify/client";
+import { spotifyArtistsClient } from "@/features/spotify/client";
 import type { LastFmArtistMatch } from "@/types";
 
 export function useLastFmArtist({
@@ -10,7 +10,6 @@ export function useLastFmArtist({
   artistName: string;
   musicBrainzId: string | null;
 }) {
-  const client = useSpotifyClient();
   const [data, setData] = useState<LastFmArtistMatch | null>(null);
   const requestVersionRef = useRef(0);
 
@@ -23,7 +22,7 @@ export function useLastFmArtist({
       return;
     }
 
-    void client.artists
+    void spotifyArtistsClient
       .getLastFmArtist(normalizedArtistName, musicBrainzId)
       .then((nextData) => {
         if (requestVersionRef.current !== requestVersion) {
@@ -39,7 +38,7 @@ export function useLastFmArtist({
 
         setData(null);
       });
-  }, [artistName, musicBrainzId, client]);
+  }, [artistName, musicBrainzId]);
 
   return data;
 }

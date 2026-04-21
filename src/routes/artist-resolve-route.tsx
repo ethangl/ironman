@@ -7,10 +7,9 @@ import {
   getCachedSpotifyArtistIdForMusicBrainzArtist,
   normalizeLastFmUrl,
 } from "@/features/artist/similar-artist-links";
-import { useSpotifyClient } from "@/features/spotify/client";
+import { spotifyArtistsClient } from "@/features/spotify/client";
 
 export function ArtistResolveRoute() {
-  const client = useSpotifyClient();
   const navigate = useNavigate();
   const { musicBrainzArtistId = "" } = useParams();
   const [searchParams] = useSearchParams();
@@ -34,7 +33,7 @@ export function ArtistResolveRoute() {
       return;
     }
 
-    void client.artists
+    void spotifyArtistsClient
       .getSpotifyArtistIdByMusicBrainzArtistId(musicBrainzArtistId)
       .then((spotifyArtistId) => {
         if (cancelled) {
@@ -73,7 +72,7 @@ export function ArtistResolveRoute() {
     return () => {
       cancelled = true;
     };
-  }, [client, fallbackUrl, musicBrainzArtistId, navigate]);
+  }, [fallbackUrl, musicBrainzArtistId, navigate]);
 
   if (error) {
     return (

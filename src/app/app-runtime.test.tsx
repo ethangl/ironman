@@ -3,7 +3,6 @@ import { ReactNode } from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { defaultSpotifyClient } from "@/features/spotify/client";
 import { clearCachedSpotifyAccessToken } from "@/lib/spotify-access-token";
 import { clearCachedSpotifyAccountLink } from "@/lib/spotify-account-link";
 import { AppRuntimeProvider, useAppRuntime } from "./app-runtime";
@@ -39,11 +38,7 @@ function createDeferred<T>() {
 }
 
 function wrapper({ children }: { children: ReactNode }) {
-  return (
-    <AppRuntimeProvider spotifyClient={defaultSpotifyClient}>
-      {children}
-    </AppRuntimeProvider>
-  );
+  return <AppRuntimeProvider>{children}</AppRuntimeProvider>;
 }
 
 describe("AppRuntimeProvider", () => {

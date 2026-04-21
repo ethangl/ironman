@@ -32,7 +32,7 @@ export function useRoomRuntimeState(
   const [activeRoomId, setActiveRoomId] = useState<RoomId | null>(() =>
     readActiveRoomId(),
   );
-  const activeRoomQuery = useRoomDetails(activeRoomId);
+  const activeRoomQuery = useRoomDetails(activeRoomId ?? undefined);
   const activeRoom = activeRoomQuery.data?.viewerMembership
     ? activeRoomQuery.data
     : null;

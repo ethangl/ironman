@@ -11,7 +11,7 @@ import {
 } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import type { RoomDetails, RoomQueueItemId } from "../client/room-types";
+import type { RoomDetails } from "../client/room-types";
 import { ResolvedRoomPlayback } from "../runtime/room-sync";
 import { useRooms } from "../runtime/rooms-provider";
 import { RoomNowPlaying } from "./room-now-playing";
@@ -75,9 +75,7 @@ export function RoomQueue({
         <RoomQueueList
           roomId={room.room._id}
           queue={room.queue}
-          currentQueueItemId={
-            (resolvedPlayback?.currentQueueItemId as RoomQueueItemId) ?? null
-          }
+          currentQueueItemId={resolvedPlayback?.currentQueueItemId ?? null}
           canManageQueue={room.playback.canManageQueue}
           canRemoveQueueItem={(queueItem) =>
             room.playback.canManageQueue ||

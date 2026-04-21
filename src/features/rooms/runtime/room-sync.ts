@@ -1,10 +1,14 @@
 import { resolveRoomPlaybackState } from "@shared/rooms-state";
 
-import type { RoomDetails, RoomQueueItem, RoomSyncState } from "../client/room-types";
+import type {
+  RoomDetails,
+  RoomQueueItem,
+  RoomSyncState,
+} from "../client/room-types";
 
 export interface ResolvedRoomPlayback {
   currentQueueItem: RoomQueueItem | null;
-  currentQueueItemId: string | null;
+  currentQueueItemId: RoomQueueItem["_id"] | null;
   currentOffsetMs: number;
   paused: boolean;
   pausedAt: number | null;

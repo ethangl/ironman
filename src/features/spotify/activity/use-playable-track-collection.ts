@@ -8,18 +8,21 @@ type Identifiable = {
   id: string;
 };
 
-export function usePlayableTrackCollection<TItem extends Identifiable>({
+export function usePlayableTrackCollection<
+  TItem extends Identifiable,
+  TTrack extends Track = Track,
+>({
   emptyMessage,
   fallbackErrorMessage,
   loadTracks,
 }: {
   emptyMessage: string;
   fallbackErrorMessage: string;
-  loadTracks: (item: TItem) => Promise<Track[]>;
+  loadTracks: (item: TItem) => Promise<TTrack[]>;
 }) {
   const { playTracks } = useWebPlayerActions();
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
-  const tracksByIdRef = useRef(new Map<string, Track[]>());
+  const tracksByIdRef = useRef(new Map<string, TTrack[]>());
 
   const getCachedTracks = useCallback((itemId: string) => {
     return tracksByIdRef.current.get(itemId) ?? [];

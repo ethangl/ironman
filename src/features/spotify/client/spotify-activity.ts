@@ -1,4 +1,3 @@
-import type { SpotifyArtist } from "@/types";
 import type { Playlist, RecentTrack } from "@/types/spotify-activity";
 
 const PLAYLIST_PAGE_SIZE = 50;

@@ -64,11 +64,15 @@ async function loadSpotifyModules({
   }));
 
   const spotifyModule = await import("./spotify");
-  const spotifyLoaders = await import("./spotifyLoaders");
+  const artistsLoaders = await import("./spotify/artistsLoaders");
+  const searchLoaders = await import("./spotify/searchLoaders");
+  const tracksLoaders = await import("./spotify/tracksLoaders");
 
   return {
     spotifyModule,
-    spotifyLoaders,
+    artistsLoaders,
+    searchLoaders,
+    tracksLoaders,
     getAuth,
     getAccessToken,
   };
@@ -85,7 +89,7 @@ describe("convex/spotify auth handoff", () => {
       accessToken?: string | null;
       accessTokenExpiresAt?: number | null;
     }>();
-    const { spotifyLoaders, getAuth, getAccessToken } =
+    const { searchLoaders, getAuth, getAccessToken } =
       await loadSpotifyModules({
         getAccessTokenImpl: () => deferred.promise,
       });
@@ -94,12 +98,12 @@ describe("convex/spotify auth handoff", () => {
     };
 
     const first = runAction(
-      spotifyLoaders.loadSearchResults as unknown as RegisteredAction,
+      searchLoaders.loadSearchResults as unknown as RegisteredAction,
       ctx,
       { query: "isis" },
     );
     const second = runAction(
-      spotifyLoaders.loadSearchTracks as unknown as RegisteredAction,
+      searchLoaders.loadSearchTracks as unknown as RegisteredAction,
       ctx,
       { query: "weight" },
     );
@@ -127,18 +131,19 @@ describe("convex/spotify auth handoff", () => {
   });
 
   it("reuses a cached provider token for sequential loader actions until expiry", async () => {
-    const { spotifyLoaders, getAuth, getAccessToken } = await loadSpotifyModules();
+    const { searchLoaders, tracksLoaders, getAuth, getAccessToken } =
+      await loadSpotifyModules();
     const ctx = {
       runAction: vi.fn().mockResolvedValue(null),
     };
 
     await runAction(
-      spotifyLoaders.loadSearchResults as unknown as RegisteredAction,
+      searchLoaders.loadSearchResults as unknown as RegisteredAction,
       ctx,
       { query: "isis" },
     );
     await runAction(
-      spotifyLoaders.loadRecentlyPlayed as unknown as RegisteredAction,
+      tracksLoaders.loadRecentlyPlayed as unknown as RegisteredAction,
       ctx,
       { limit: 30, cacheScope: "user-1" },
     );
@@ -149,13 +154,13 @@ describe("convex/spotify auth handoff", () => {
   });
 
   it("forwards artist page loader requests with user cache scope", async () => {
-    const { spotifyLoaders } = await loadSpotifyModules();
+    const { artistsLoaders } = await loadSpotifyModules();
     const ctx = {
       runAction: vi.fn().mockResolvedValue(null),
     };
 
     await runAction(
-      spotifyLoaders.loadArtistPage as unknown as RegisteredAction,
+      artistsLoaders.loadArtistPage as unknown as RegisteredAction,
       ctx,
       {
         artistId: "artist-1",

@@ -1,33 +1,27 @@
+import { v } from "convex/values";
+
+import { action } from "./_generated/server";
 import { spotifyFetch } from "./client";
 import { SpotifyApiError } from "./errors";
 import {
   isSpotifyAlbum,
-  isSpotifyArtist,
-  isSpotifyPlaylist,
   isSpotifyTrack,
   mapAlbumRelease,
   mapArtist,
-  mapPlaylist,
   mapTrack,
   type SpotifyAlbum,
   type SpotifyApiArtist,
-  type SpotifyApiPlaylist,
   type SpotifyApiTrack,
 } from "./mappers";
-import type { SpotifyArtistPageData, SpotifySearchResults, SpotifyTrack } from "./types";
+import type { SpotifyArtist, SpotifyArtistPageData, SpotifyTrack } from "./types";
+import {
+  spotifyArtistPageDataValidator,
+  spotifyArtistValidator,
+} from "./validators";
 
 interface SearchResponse {
-  albums?: {
-    items?: Array<SpotifyAlbum | null>;
-  };
   tracks?: {
     items?: Array<SpotifyApiTrack | null>;
-  };
-  artists?: {
-    items?: Array<SpotifyApiArtist | null>;
-  };
-  playlists?: {
-    items?: Array<SpotifyApiPlaylist | null>;
   };
 }
 
@@ -37,10 +31,35 @@ interface ArtistAlbumsResponse {
   items?: Array<SpotifyAlbum | null>;
 }
 
-interface AlbumDetailsResponse extends SpotifyAlbum {
-  tracks?: {
-    items?: Array<(Omit<SpotifyApiTrack, "album"> & { album?: SpotifyAlbum }) | null>;
+interface TopArtistsResponse {
+  items?: SpotifyApiArtist[];
+}
+
+interface FollowedArtistsResponse {
+  artists?: {
+    items?: SpotifyApiArtist[];
   };
+}
+
+export interface ArtistPageDataResult {
+  page: SpotifyArtistPageData;
+  usedReleaseFallback: boolean;
+}
+
+function toArtistError(error: unknown) {
+  if (!(error instanceof SpotifyApiError)) {
+    return new Error("Could not search Spotify right now.");
+  }
+
+  if (error.status === 401 || error.status === 403) {
+    return new Error("Reconnect Spotify to search.");
+  }
+
+  if (error.status === 429) {
+    return new Error("Spotify is rate limiting search right now.");
+  }
+
+  return new Error("Could not search Spotify right now.");
 }
 
 async function searchArtistTracks(
@@ -92,66 +111,40 @@ export async function getSpotifyProfileMarket(
   return data?.country ?? null;
 }
 
-export async function searchTracks(
-  query: string,
+export async function getTopArtists(
   token: string,
-): Promise<SpotifyTrack[]> {
-  const data = await spotifyFetch<SearchResponse>(
-    `/search?q=${encodeURIComponent(query)}&type=track&limit=10`,
+  limit = 20,
+): Promise<SpotifyArtist[]> {
+  const data = await spotifyFetch<TopArtistsResponse>(
+    `/me/top/artists?limit=${limit}`,
     token,
   );
+  const artists = (data?.items ?? []).map(mapArtist);
 
-  return (data?.tracks?.items ?? []).filter(isSpotifyTrack).map(mapTrack);
-}
-
-export async function searchSpotify(
-  query: string,
-  token: string,
-): Promise<SpotifySearchResults> {
-  const data = await spotifyFetch<SearchResponse>(
-    `/search?q=${encodeURIComponent(query)}&type=track,artist,playlist&limit=6`,
-    token,
-  );
-
-  return {
-    tracks: (data?.tracks?.items ?? []).filter(isSpotifyTrack).map(mapTrack),
-    artists: (data?.artists?.items ?? [])
-      .filter(isSpotifyArtist)
-      .map(mapArtist),
-    playlists: (data?.playlists?.items ?? [])
-      .filter(isSpotifyPlaylist)
-      .map(mapPlaylist),
-  };
-}
-
-export async function getAlbumTracks(
-  token: string,
-  albumId: string,
-): Promise<SpotifyTrack[]> {
-  const data = await spotifyFetch<AlbumDetailsResponse>(`/albums/${albumId}`, token);
-
-  if (!data?.tracks?.items) {
-    return [];
+  if (process.env.NODE_ENV !== "test") {
+    console.info(`[spotify] top artists limit=${limit} items=${artists.length}`);
   }
 
-  const album: SpotifyAlbum = {
-    id: data.id,
-    name: data.name,
-    album_type: data.album_type,
-    images: data.images,
-    release_date: data.release_date,
-    total_tracks: data.total_tracks,
-    artists: data.artists,
-  };
-
-  return data.tracks.items
-    .filter((track): track is Omit<SpotifyApiTrack, "album"> => !!track && !!track.id)
-    .map((track) => mapTrack({ ...track, album }));
+  return artists;
 }
 
-export interface ArtistPageDataResult {
-  page: SpotifyArtistPageData;
-  usedReleaseFallback: boolean;
+export async function getFavoriteArtists(
+  token: string,
+  limit = 50,
+): Promise<SpotifyArtist[]> {
+  const data = await spotifyFetch<FollowedArtistsResponse>(
+    `/me/following?type=artist&limit=${limit}`,
+    token,
+  );
+  const artists = (data?.artists?.items ?? []).map(mapArtist);
+
+  if (process.env.NODE_ENV !== "test") {
+    console.info(
+      `[spotify] followed artists limit=${limit} items=${artists.length}`,
+    );
+  }
+
+  return artists;
 }
 
 async function getArtistReleasesResult(
@@ -243,3 +236,77 @@ export async function getArtistPageData(
   const result = await getArtistPageDataResult(token, artistId, market);
   return result.page;
 }
+
+async function getArtistPageMarket(accessToken: string) {
+  try {
+    return await getSpotifyProfileMarket(accessToken);
+  } catch (error) {
+    if (
+      error instanceof SpotifyApiError &&
+      error.status !== 401 &&
+      error.status !== 403
+    ) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+export const artistPage = action({
+  args: {
+    artistId: v.string(),
+    accessToken: v.string(),
+    cacheScope: v.optional(v.string()),
+  },
+  returns: v.union(spotifyArtistPageDataValidator, v.null()),
+  handler: async (_ctx, args) => {
+    try {
+      const market = await getArtistPageMarket(args.accessToken);
+      const { page } = await getArtistPageDataResult(
+        args.accessToken,
+        args.artistId,
+        market,
+      );
+      return page;
+    } catch (error) {
+      if (error instanceof SpotifyApiError && error.status === 404) {
+        return null;
+      }
+      throw toArtistError(error);
+    }
+  },
+});
+
+export const topArtists = action({
+  args: {
+    accessToken: v.string(),
+    limit: v.optional(v.number()),
+    cacheScope: v.optional(v.string()),
+  },
+  returns: v.array(spotifyArtistValidator),
+  handler: async (_ctx, args) => {
+    try {
+      return await getTopArtists(args.accessToken, args.limit ?? 10);
+    } catch {
+      return [];
+    }
+  },
+});
+
+export const favoriteArtists = action({
+  args: {
+    accessToken: v.string(),
+    limit: v.optional(v.number()),
+    cacheScope: v.optional(v.string()),
+    forceRefresh: v.optional(v.boolean()),
+  },
+  returns: v.array(spotifyArtistValidator),
+  handler: async (_ctx, args) => {
+    try {
+      return await getFavoriteArtists(args.accessToken, args.limit ?? 50);
+    } catch {
+      return [];
+    }
+  },
+});

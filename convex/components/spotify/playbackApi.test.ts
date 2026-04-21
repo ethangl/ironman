@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { playUri } from "./playbackApi";
+import { playUri } from "./playback";
 
 function createResponse({
   headers,

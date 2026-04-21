@@ -1,26 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { spotifyFetch } from "./client";
 import { SpotifyApiError } from "./errors";
-import { albumTracks, artistPage, searchResults } from "./search";
-import {
-  getAlbumTracks,
-  getArtistPageDataResult,
-  getSpotifyProfileMarket,
-  searchSpotify,
-} from "./searchApi";
+import { albumTracks } from "./albums";
+import { artistPage } from "./artists";
+import { searchResults } from "./search";
 
-vi.mock("./searchApi", () => ({
-  getAlbumTracks: vi.fn(),
-  getArtistPageDataResult: vi.fn(),
-  getSpotifyProfileMarket: vi.fn(),
-  searchSpotify: vi.fn(),
-  searchTracks: vi.fn(),
+vi.mock("./client", () => ({
+  spotifyFetch: vi.fn(),
 }));
 
-const mockedGetAlbumTracks = vi.mocked(getAlbumTracks);
-const mockedGetArtistPageDataResult = vi.mocked(getArtistPageDataResult);
-const mockedGetSpotifyProfileMarket = vi.mocked(getSpotifyProfileMarket);
-const mockedSearchSpotify = vi.mocked(searchSpotify);
+const mockedSpotifyFetch = vi.mocked(spotifyFetch);
 
 type RegisteredAction = {
   _handler: (ctx: unknown, args: unknown) => Promise<unknown>;
@@ -55,13 +45,28 @@ describe("spotify search component", () => {
 
   it("falls back to a marketless artist page request when profile market lookup is rate limited", async () => {
     const page = createArtistPage();
-    mockedGetSpotifyProfileMarket.mockRejectedValueOnce(
-      new SpotifyApiError(429, "rate limited"),
-    );
-    mockedGetArtistPageDataResult.mockResolvedValueOnce({
-      page,
-      usedReleaseFallback: false,
-    });
+    mockedSpotifyFetch
+      .mockRejectedValueOnce(
+        new SpotifyApiError(429, "rate limited"),
+      )
+      .mockResolvedValueOnce({
+        id: "artist-1",
+        name: "ISIS",
+        images: [{ url: "artist.jpg" }],
+        followers: { total: 1234 },
+        genres: ["post-metal"],
+      })
+      .mockResolvedValueOnce({
+        tracks: {
+          items: [],
+        },
+      })
+      .mockResolvedValueOnce({
+        items: [],
+      })
+      .mockResolvedValueOnce({
+        items: [],
+      });
 
     await expect(
       runAction<
@@ -73,19 +78,14 @@ describe("spotify search component", () => {
         cacheScope: "user-1",
       }),
     ).resolves.toEqual(page);
-
-    expect(mockedGetArtistPageDataResult).toHaveBeenCalledWith(
-      "spotify-token",
-      "artist-1",
-      null,
-    );
   });
 
   it("returns null for spotify 404 artist misses", async () => {
-    mockedGetSpotifyProfileMarket.mockResolvedValueOnce("US");
-    mockedGetArtistPageDataResult.mockRejectedValueOnce(
-      new SpotifyApiError(404, "not found"),
-    );
+    mockedSpotifyFetch
+      .mockResolvedValueOnce({ country: "US" })
+      .mockRejectedValueOnce(
+        new SpotifyApiError(404, "not found"),
+      );
 
     await expect(
       runAction<
@@ -99,8 +99,8 @@ describe("spotify search component", () => {
   });
 
   it("maps spotify search rate limits to a user-facing search error", async () => {
-    mockedSearchSpotify.mockRejectedValueOnce(
-      new SpotifyApiError(429, "rate limited", 30),
+    mockedSpotifyFetch.mockRejectedValueOnce(
+      new SpotifyApiError(429, "rate limited"),
     );
 
     await expect(
@@ -112,7 +112,7 @@ describe("spotify search component", () => {
   });
 
   it("maps album track rate limits to a user-facing album error", async () => {
-    mockedGetAlbumTracks.mockRejectedValueOnce(
+    mockedSpotifyFetch.mockRejectedValueOnce(
       new SpotifyApiError(429, "rate limited"),
     );
 

@@ -23,7 +23,62 @@ import type { FunctionReference } from "convex/server";
  */
 export type ComponentApi<Name extends string | undefined = string | undefined> =
   {
-    activity: {
+    albums: {
+      albumTracks: FunctionReference<
+        "action",
+        "internal",
+        { accessToken: string; albumId: string },
+        Array<{
+          albumImage: string | null;
+          albumName: string;
+          artist: string;
+          durationMs: number;
+          id: string;
+          name: string;
+        }>,
+        Name
+      >;
+    };
+    artists: {
+      artistPage: FunctionReference<
+        "action",
+        "internal",
+        { accessToken: string; artistId: string; cacheScope?: string },
+        {
+          albums: Array<{
+            albumType: string | null;
+            id: string;
+            image: string | null;
+            name: string;
+            releaseDate: string | null;
+            totalTracks: number;
+          }>;
+          artist: {
+            followerCount: number;
+            genres: Array<string>;
+            id: string;
+            image: string | null;
+            name: string;
+          };
+          singles: Array<{
+            albumType: string | null;
+            id: string;
+            image: string | null;
+            name: string;
+            releaseDate: string | null;
+            totalTracks: number;
+          }>;
+          topTracks: Array<{
+            albumImage: string | null;
+            albumName: string;
+            artist: string;
+            durationMs: number;
+            id: string;
+            name: string;
+          }>;
+        } | null,
+        Name
+      >;
       favoriteArtists: FunctionReference<
         "action",
         "internal",
@@ -40,64 +95,6 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           image: string | null;
           name: string;
         }>,
-        Name
-      >;
-      playlistsPage: FunctionReference<
-        "action",
-        "internal",
-        {
-          accessToken: string;
-          cacheScope?: string;
-          forceRefresh?: boolean;
-          limit?: number;
-          offset?: number;
-        },
-        {
-          items: Array<{
-            description: string | null;
-            id: string;
-            image: string | null;
-            name: string;
-            owner: string | null;
-            public: boolean;
-            trackCount: number;
-          }>;
-          total: number;
-        },
-        Name
-      >;
-      playlistTracks: FunctionReference<
-        "action",
-        "internal",
-        { accessToken: string; cacheScope?: string; playlistId: string },
-        Array<{
-          albumImage: string | null;
-          albumName: string;
-          artist: string;
-          durationMs: number;
-          id: string;
-          name: string;
-        }>,
-        Name
-      >;
-      recentlyPlayed: FunctionReference<
-        "action",
-        "internal",
-        { accessToken: string; cacheScope?: string; limit?: number },
-        {
-          items: Array<{
-            playedAt: string;
-            track: {
-              albumImage: string | null;
-              albumName: string;
-              artist: string;
-              durationMs: number;
-              id: string;
-              name: string;
-            };
-          }>;
-          rateLimited: boolean;
-        },
         Name
       >;
       topArtists: FunctionReference<
@@ -180,11 +177,35 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         Name
       >;
     };
-    search: {
-      albumTracks: FunctionReference<
+    playlists: {
+      playlistsPage: FunctionReference<
         "action",
         "internal",
-        { accessToken: string; albumId: string },
+        {
+          accessToken: string;
+          cacheScope?: string;
+          forceRefresh?: boolean;
+          limit?: number;
+          offset?: number;
+        },
+        {
+          items: Array<{
+            description: string | null;
+            id: string;
+            image: string | null;
+            name: string;
+            owner: string | null;
+            public: boolean;
+            trackCount: number;
+          }>;
+          total: number;
+        },
+        Name
+      >;
+      playlistTracks: FunctionReference<
+        "action",
+        "internal",
+        { accessToken: string; cacheScope?: string; playlistId: string },
         Array<{
           albumImage: string | null;
           albumName: string;
@@ -195,45 +216,8 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         }>,
         Name
       >;
-      artistPage: FunctionReference<
-        "action",
-        "internal",
-        { accessToken: string; artistId: string; cacheScope?: string },
-        {
-          albums: Array<{
-            albumType: string | null;
-            id: string;
-            image: string | null;
-            name: string;
-            releaseDate: string | null;
-            totalTracks: number;
-          }>;
-          artist: {
-            followerCount: number;
-            genres: Array<string>;
-            id: string;
-            image: string | null;
-            name: string;
-          };
-          singles: Array<{
-            albumType: string | null;
-            id: string;
-            image: string | null;
-            name: string;
-            releaseDate: string | null;
-            totalTracks: number;
-          }>;
-          topTracks: Array<{
-            albumImage: string | null;
-            albumName: string;
-            artist: string;
-            durationMs: number;
-            id: string;
-            name: string;
-          }>;
-        } | null,
-        Name
-      >;
+    };
+    search: {
       searchResults: FunctionReference<
         "action",
         "internal",
@@ -278,6 +262,28 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
           id: string;
           name: string;
         }>,
+        Name
+      >;
+    };
+    tracks: {
+      recentlyPlayed: FunctionReference<
+        "action",
+        "internal",
+        { accessToken: string; cacheScope?: string; limit?: number },
+        {
+          items: Array<{
+            playedAt: string;
+            track: {
+              albumImage: string | null;
+              albumName: string;
+              artist: string;
+              durationMs: number;
+              id: string;
+              name: string;
+            };
+          }>;
+          rateLimited: boolean;
+        },
         Name
       >;
     };

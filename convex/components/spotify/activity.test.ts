@@ -3,32 +3,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { SpotifyApiError } from "./errors";
 import {
   favoriteArtists,
+  topArtists,
+} from "./artists";
+import {
   playlistTracks,
   playlistsPage,
-  recentlyPlayed,
-  topArtists,
-} from "./activity";
-import {
-  getFavoriteArtists,
-  getPlaylistTracks,
-  getRecentlyPlayed,
-  getTopArtists,
-  getUserPlaylists,
-} from "./activityApi";
+} from "./playlists";
+import { recentlyPlayed } from "./tracks";
+import { spotifyFetch } from "./client";
 
-vi.mock("./activityApi", () => ({
-  getFavoriteArtists: vi.fn(),
-  getPlaylistTracks: vi.fn(),
-  getRecentlyPlayed: vi.fn(),
-  getTopArtists: vi.fn(),
-  getUserPlaylists: vi.fn(),
+vi.mock("./client", () => ({
+  spotifyFetch: vi.fn(),
 }));
 
-const mockedGetFavoriteArtists = vi.mocked(getFavoriteArtists);
-const mockedGetPlaylistTracks = vi.mocked(getPlaylistTracks);
-const mockedGetRecentlyPlayed = vi.mocked(getRecentlyPlayed);
-const mockedGetTopArtists = vi.mocked(getTopArtists);
-const mockedGetUserPlaylists = vi.mocked(getUserPlaylists);
+const mockedSpotifyFetch = vi.mocked(spotifyFetch);
 
 type RegisteredAction = {
   _handler: (ctx: unknown, args: unknown) => Promise<unknown>;
@@ -47,7 +35,7 @@ describe("spotify activity component", () => {
   });
 
   it("returns a rate-limited fallback for recently played", async () => {
-    mockedGetRecentlyPlayed.mockRejectedValueOnce(
+    mockedSpotifyFetch.mockRejectedValueOnce(
       new SpotifyApiError(429, "rate limited"),
     );
 
@@ -67,7 +55,7 @@ describe("spotify activity component", () => {
   });
 
   it("maps playlist track rate limits to the activity error", async () => {
-    mockedGetPlaylistTracks.mockRejectedValueOnce(
+    mockedSpotifyFetch.mockRejectedValueOnce(
       new SpotifyApiError(429, "rate limited"),
     );
 
@@ -84,7 +72,7 @@ describe("spotify activity component", () => {
   });
 
   it("returns an empty playlists page when spotify fails", async () => {
-    mockedGetUserPlaylists.mockRejectedValueOnce(new Error("boom"));
+    mockedSpotifyFetch.mockRejectedValueOnce(new Error("boom"));
 
     await expect(
       runAction<
@@ -108,7 +96,7 @@ describe("spotify activity component", () => {
   });
 
   it("returns empty favorite artists when spotify fails", async () => {
-    mockedGetFavoriteArtists.mockRejectedValueOnce(new Error("boom"));
+    mockedSpotifyFetch.mockRejectedValueOnce(new Error("boom"));
 
     await expect(
       runAction<
@@ -123,7 +111,7 @@ describe("spotify activity component", () => {
   });
 
   it("returns empty top artists when spotify fails", async () => {
-    mockedGetTopArtists.mockRejectedValueOnce(new Error("boom"));
+    mockedSpotifyFetch.mockRejectedValueOnce(new Error("boom"));
 
     await expect(
       runAction<

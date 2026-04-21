@@ -8,15 +8,15 @@
  * @module
  */
 
-import type * as activity from "../activity.js";
-import type * as activityApi from "../activityApi.js";
+import type * as albums from "../albums.js";
+import type * as artists from "../artists.js";
 import type * as client from "../client.js";
 import type * as errors from "../errors.js";
 import type * as mappers from "../mappers.js";
 import type * as playback from "../playback.js";
-import type * as playbackApi from "../playbackApi.js";
+import type * as playlists from "../playlists.js";
 import type * as search from "../search.js";
-import type * as searchApi from "../searchApi.js";
+import type * as tracks from "../tracks.js";
 import type * as types from "../types.js";
 import type * as validators from "../validators.js";
 
@@ -28,15 +28,15 @@ import type {
 import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
-  activity: typeof activity;
-  activityApi: typeof activityApi;
+  albums: typeof albums;
+  artists: typeof artists;
   client: typeof client;
   errors: typeof errors;
   mappers: typeof mappers;
   playback: typeof playback;
-  playbackApi: typeof playbackApi;
+  playlists: typeof playlists;
   search: typeof search;
-  searchApi: typeof searchApi;
+  tracks: typeof tracks;
   types: typeof types;
   validators: typeof validators;
 }> = anyApi as any;

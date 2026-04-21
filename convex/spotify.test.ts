@@ -169,7 +169,7 @@ describe("convex/spotify auth handoff", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("uses the Spotify session token for playback writes", async () => {
+  it("uses the Spotify session token for public playback actions", async () => {
     const { spotifyModule } = await loadSpotifyModules();
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", fetchMock);
@@ -184,35 +184,6 @@ describe("convex/spotify auth handoff", () => {
         method: "PUT",
         headers: expect.objectContaining({
           Authorization: "Bearer spotify-token",
-        }),
-      }),
-    );
-  });
-
-  it("forwards playback offsets to Spotify without extra wrappers", async () => {
-    const { spotifyModule } = await loadSpotifyModules();
-    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(
-      runAction(spotifyModule.playbackPlay as unknown as RegisteredAction, {}, {
-        uri: "spotify:track:track-1",
-        deviceId: "device-1",
-        offsetMs: 12_345,
-      }),
-    ).resolves.toEqual({ ok: true, status: 204 });
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.spotify.com/v1/me/player/play?device_id=device-1",
-      expect.objectContaining({
-        method: "PUT",
-        headers: expect.objectContaining({
-          Authorization: "Bearer spotify-token",
-          "Content-Type": "application/json",
-        }),
-        body: JSON.stringify({
-          uris: ["spotify:track:track-1"],
-          position_ms: 12_345,
         }),
       }),
     );

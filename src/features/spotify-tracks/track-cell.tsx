@@ -3,7 +3,7 @@ import { FC, PropsWithChildren, useContext } from "react";
 import { AlbumArt } from "@/components/album-art";
 import { PlayButton } from "@/components/play-button";
 import type { Track } from "@/features/spotify-client/types";
-import type { TrackSnapshot } from "@shared/track";
+import type { TrackSnapshot } from "./types";
 import { WebPlayerActionsContext } from "../spotify-player/use-web-player";
 
 function isTrackSnapshot(track: Track | TrackSnapshot): track is TrackSnapshot {

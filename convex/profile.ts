@@ -1,7 +1,10 @@
 import { v } from "convex/values";
 
-import type { ProfileData } from "../shared/profile-data";
 import { query } from "./_generated/server";
+
+interface ProfileData {
+  user: { id: string; name: string; image: string | null };
+}
 
 export const get = query({
   args: {

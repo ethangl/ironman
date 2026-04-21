@@ -5,12 +5,12 @@ import { Spinner } from "@/components/ui/spinner";
 import {
   ArtistExternalLinks,
   ArtistLastFmOverview,
+  Releases,
   useArtistPageData,
   useLastFmArtist,
   useMusicBrainzArtist,
 } from "@/features/artist";
-import { Releases } from "@/features/spotify/activity/releases";
-import { Tracks } from "@/features/spotify/activity/tracks";
+import { Tracks } from "@/features/spotify-tracks";
 import { Dither, ImageTexture, Shader } from "shaders/react";
 
 export function ArtistRoute() {

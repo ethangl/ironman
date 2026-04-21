@@ -17,7 +17,7 @@ let mockSdkState:
     }
   | null = null;
 
-vi.mock("@/features/spotify/player", () => ({
+vi.mock("@/features/spotify-player", () => ({
   useWebPlayerActions: () => ({
     syncTrack,
     togglePlay,

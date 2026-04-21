@@ -3,7 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { clearSpotifyDevCache } from "@/features/spotify/client";
+import { clearSpotifyDevCache } from "@/features/spotify-client";
 
 export function ClearSpotifyCacheButton() {
   const [isClearing, setIsClearing] = useState(false);

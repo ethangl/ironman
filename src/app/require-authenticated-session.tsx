@@ -1,9 +1,9 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { RoomsProvider } from "@/features/rooms";
-import { SearchProvider } from "@/features/search";
-import { SpotifyActivityProvider } from "@/features/spotify/activity";
-import { WebPlayerProvider } from "@/features/spotify/player";
+import { SearchProvider } from "@/features/spotify-search";
+import { SpotifyActivityProvider } from "@/features/spotify-shell";
+import { WebPlayerProvider } from "@/features/spotify-player";
 import { useAppAuth } from "./app-runtime";
 import { AuthPendingState } from "./auth-pending-state";
 

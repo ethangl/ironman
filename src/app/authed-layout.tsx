@@ -4,10 +4,12 @@ import { BackgroundOverlay } from "@/components/background-overlay";
 import { Section } from "@/components/section";
 import { RoomsNavbar } from "@/features/rooms/ui/rooms-navbar";
 import { RoomsSurface } from "@/features/rooms/ui/rooms-surface";
-import { SearchResults } from "@/features/search";
-import { useSpotifyActivityUi } from "@/features/spotify/activity";
-import { SpotifyFooter } from "@/features/spotify/activity/spotify-footer";
-import { SpotifyNavbar } from "@/features/spotify/activity/spotify-navbar";
+import { SearchResults } from "@/features/spotify-search";
+import {
+  SpotifyFooter,
+  SpotifyNavbar,
+  useSpotifyActivityUi,
+} from "@/features/spotify-shell";
 import { cn } from "@/lib/utils";
 
 export function AuthedLayout() {

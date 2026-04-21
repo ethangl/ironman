@@ -1,6 +1,6 @@
 import { api } from "@api";
 import type { LastFmArtistMatch } from "@/types";
-import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify/client/spotify-convex-client";
+import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 
 export async function getLastFmArtist(
   artistName: string,

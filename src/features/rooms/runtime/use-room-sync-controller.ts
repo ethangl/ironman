@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useWebPlayerActions,
   useWebPlayerState,
-} from "@/features/spotify/player";
+} from "@/features/spotify-player";
 import type { RoomDetails, RoomSyncState } from "../client/room-types";
 import { toRoomTrack } from "../client/room-utils";
 import { getRoomSyncState, type ResolvedRoomPlayback } from "./room-sync";

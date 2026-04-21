@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { SpotifyArtistPageData } from "@/types";
+import type { SpotifyArtistPageData } from "@/features/spotify-client/types";
 import { getSpotifyArtistPageData } from "./spotify-artist-client";
 
 export function useArtistPageData(artistId: string) {

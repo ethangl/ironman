@@ -5,9 +5,6 @@ import {
   ArtistRoute,
   HomeRoute,
   NotFoundRoute,
-  ProfileRoute,
-  PublicProfileRoute,
-  RoomRoute,
   SpotifyHomeRoute,
 } from "@/routes";
 import { AppShell } from "./app-shell";
@@ -21,8 +18,6 @@ export const router = createBrowserRouter([
       {
         children: [
           { index: true, element: <HomeRoute /> },
-          { path: "profile/:userId", element: <PublicProfileRoute /> },
-          { path: "rooms/:roomId", element: <RoomRoute /> },
           { path: "*", element: <NotFoundRoute /> },
         ],
       },
@@ -38,7 +33,6 @@ export const router = createBrowserRouter([
                 element: <ArtistResolveRoute />,
               },
               { path: "artist/:artistId", element: <ArtistRoute /> },
-              { path: "profile", element: <ProfileRoute /> },
             ],
           },
         ],

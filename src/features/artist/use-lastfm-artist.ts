@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { LastFmArtistMatch } from "@/types";
+import type { LastFmArtistMatch } from "./types";
 import { getLastFmArtist } from "./lastfm-client";
 
 export function useLastFmArtist({

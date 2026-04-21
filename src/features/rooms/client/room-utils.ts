@@ -1,4 +1,4 @@
-import type { Track } from "@/types";
+import type { Track } from "@/features/spotify-client/types";
 import type { RoomDetails, RoomQueueItem, RoomSyncState } from "./room-types";
 
 export function toRoomTrack(queueItem: RoomQueueItem | null): Track | null {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { MusicBrainzArtistMatch } from "@/types";
+import type { MusicBrainzArtistMatch } from "./types";
 import { getMusicBrainzArtist } from "./musicbrainz-client";
 
 export function useMusicBrainzArtist(artistId: string) {

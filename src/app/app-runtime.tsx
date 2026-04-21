@@ -1,9 +1,9 @@
-import { createContext, type ReactNode, useContext, useMemo } from "react";
 import {
   convexSignIn as signIn,
   convexSignOut as signOut,
   useConvexSession as useSession,
 } from "@/lib/convex-auth-client";
+import { createContext, type ReactNode, useContext, useMemo } from "react";
 import { getSpotifyStatus } from "./app-runtime-status";
 import type { AppRuntime } from "./app-runtime-types";
 import { useSettledSession } from "./use-settled-session";
@@ -71,15 +71,13 @@ function useAuthRuntimeValue(): AppRuntime {
   );
 }
 
-export function AppRuntimeProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export function AppRuntimeProvider({ children }: { children: ReactNode }) {
   const value = useAuthRuntimeValue();
 
   return (
-    <AppRuntimeContext.Provider value={value}>{children}</AppRuntimeContext.Provider>
+    <AppRuntimeContext.Provider value={value}>
+      {children}
+    </AppRuntimeContext.Provider>
   );
 }
 

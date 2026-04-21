@@ -20,7 +20,7 @@ vi.mock("@/lib/convex-env", () => ({
   getConvexSiteUrl: vi.fn(() => "https://example.convex.site"),
 }));
 
-import { convexLinkSocialAccount } from "./convex-auth-client";
+import { convexLinkSocialAccount } from "../features/auth/lib/convex-auth-client";
 
 describe("convexLinkSocialAccount", () => {
   beforeEach(() => {

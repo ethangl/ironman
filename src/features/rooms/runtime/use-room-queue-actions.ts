@@ -3,7 +3,7 @@ import { useMutation } from "convex/react";
 import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
 
-import type { SpotifyTrack } from "@/types";
+import type { SpotifyTrack } from "@/features/spotify-client/types";
 import type { RoomId, RoomQueueItemId } from "../client/room-types";
 import { reportRoomError } from "./room-runtime-utils";
 

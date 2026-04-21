@@ -3,11 +3,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   clearCachedSpotifyAccessToken,
   getCachedSpotifyAccessToken,
-} from "@/lib/spotify-access-token";
+} from "@/app/lib/spotify-access-token";
 import {
   clearCachedSpotifyAccountLink,
   hasCachedSpotifyAccountLink,
-} from "@/lib/spotify-account-link";
+} from "@/app/lib/spotify-account-link";
 import type { SpotifyConnection } from "./app-runtime-types";
 
 type SpotifyAccountLinkState = "unknown" | "linked" | "unlinked";

@@ -1,4 +1,4 @@
-import { SpotifyActivity } from "@/features/spotify/activity/spotify-activity";
+import { SpotifyActivity } from "@/features/spotify-shell";
 
 export function SpotifyHomeRoute() {
   return <SpotifyActivity />;

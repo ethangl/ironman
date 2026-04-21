@@ -1,6 +1,9 @@
 import { api } from "@api";
-import type { SpotifyArtistPageData, SpotifyTrack } from "@/types";
-import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify/client/spotify-convex-client";
+import type {
+  SpotifyArtistPageData,
+  SpotifyTrack,
+} from "@/features/spotify-client/types";
+import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 
 export async function getSpotifyAlbumTracks(
   albumId: string,

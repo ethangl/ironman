@@ -1,4 +1,4 @@
-import { RadioTowerIcon, SparklesIcon } from "lucide-react";
+import { HeartIcon, RadioTowerIcon, SparklesIcon } from "lucide-react";
 
 import { BackgroundOverlay } from "@/components/background-overlay";
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,9 @@ export function RoomCard({
   active: boolean;
   roomSummary: RoomSummary;
 }) {
-  const { joinRoom, openRoom } = useRooms();
-  const isJoined = !!roomSummary.viewerMembership;
+  const { followRoom, openRoom, unfollowRoom } = useRooms();
+  const hasRoomRole = !!roomSummary.viewerMembership;
+  const isFollowed = roomSummary.viewerFollowsRoom;
 
   return (
     <article
@@ -35,7 +36,7 @@ export function RoomCard({
               {roomSummary.room.name}
             </h3>
           </div>
-          {isJoined ? (
+          {hasRoomRole ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/15 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
               <SparklesIcon className="size-3" />
               {roomSummary.viewerMembership?.role}
@@ -44,16 +45,25 @@ export function RoomCard({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
-            variant={isJoined ? "secondary" : "default"}
-            onClick={() =>
-              isJoined
-                ? void openRoom(roomSummary.room._id)
-                : void joinRoom(roomSummary.room._id)
-            }
+            variant={hasRoomRole ? "secondary" : "default"}
+            onClick={() => void openRoom(roomSummary.room._id)}
           >
             <RadioTowerIcon />
-            {active ? "Listening now" : isJoined ? "Listen here" : "Join room"}
+            {active ? "Listening now" : "Listen here"}
           </Button>
+          {!hasRoomRole ? (
+            <Button
+              variant="ghost"
+              onClick={() =>
+                isFollowed
+                  ? void unfollowRoom(roomSummary.room._id)
+                  : void followRoom(roomSummary.room._id)
+              }
+            >
+              <HeartIcon className={isFollowed ? "fill-current" : undefined} />
+              {isFollowed ? "Following" : "Follow"}
+            </Button>
+          ) : null}
           <Button
             variant="ghost"
             nativeButton={false}

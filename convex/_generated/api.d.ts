@@ -14,6 +14,7 @@ import type * as http from "../http.js";
 import type * as lastfm from "../lastfm.js";
 import type * as musicbrainz from "../musicbrainz.js";
 import type * as profile from "../profile.js";
+import type * as roomPresence from "../roomPresence.js";
 import type * as rooms from "../rooms.js";
 import type * as spotify from "../spotify.js";
 import type * as spotify_albums from "../spotify/albums.js";
@@ -45,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   lastfm: typeof lastfm;
   musicbrainz: typeof musicbrainz;
   profile: typeof profile;
+  roomPresence: typeof roomPresence;
   rooms: typeof rooms;
   spotify: typeof spotify;
   "spotify/albums": typeof spotify_albums;
@@ -21304,6 +21306,68 @@ export declare const components: {
           any
         >;
       };
+    };
+  };
+  presence: {
+    public: {
+      disconnect: FunctionReference<
+        "mutation",
+        "internal",
+        { sessionToken: string },
+        null
+      >;
+      heartbeat: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          interval?: number;
+          roomId: string;
+          sessionId: string;
+          userId: string;
+        },
+        { roomToken: string; sessionToken: string }
+      >;
+      list: FunctionReference<
+        "query",
+        "internal",
+        { limit?: number; roomToken: string },
+        Array<{
+          data?: any;
+          lastDisconnected: number;
+          online: boolean;
+          userId: string;
+        }>
+      >;
+      listRoom: FunctionReference<
+        "query",
+        "internal",
+        { limit?: number; onlineOnly?: boolean; roomId: string },
+        Array<{ lastDisconnected: number; online: boolean; userId: string }>
+      >;
+      listUser: FunctionReference<
+        "query",
+        "internal",
+        { limit?: number; onlineOnly?: boolean; userId: string },
+        Array<{ lastDisconnected: number; online: boolean; roomId: string }>
+      >;
+      removeRoom: FunctionReference<
+        "mutation",
+        "internal",
+        { roomId: string },
+        null
+      >;
+      removeRoomUser: FunctionReference<
+        "mutation",
+        "internal",
+        { roomId: string; userId: string },
+        null
+      >;
+      updateRoomUser: FunctionReference<
+        "mutation",
+        "internal",
+        { data?: any; roomId: string; userId: string },
+        null
+      >;
     };
   };
   lastfm: {

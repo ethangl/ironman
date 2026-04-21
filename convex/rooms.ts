@@ -1,5 +1,7 @@
+import { Presence } from "@convex-dev/presence";
 import { v } from "convex/values";
 
+import { components } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
   mutation,
@@ -45,6 +47,9 @@ type RoomDoc = Doc<"rooms">;
 type RoomMembershipDoc = Doc<"roomMemberships">;
 type RoomQueueItemDoc = Doc<"roomQueueItems">;
 type RoomPlaybackStateDoc = Doc<"roomPlaybackStates">;
+type UserDoc = Doc<"users">;
+
+const roomPresence = new Presence<string, string>(components.presence);
 
 function clampPlaybackOffset(offsetMs: number, durationMs: number) {
   if (!Number.isFinite(offsetMs)) {
@@ -92,6 +97,29 @@ function buildMembershipSnapshot(membership: RoomMembershipDoc | null) {
   };
 }
 
+function buildRoomUserSnapshot(userId: string, user: UserDoc | null) {
+  return {
+    userId,
+    name: user?.name ?? userId,
+    image: user?.image ?? null,
+  };
+}
+
+function compareRoomUserNames(
+  left: { userId: string; name: string },
+  right: { userId: string; name: string },
+  viewerUserId: string,
+) {
+  if (left.userId === viewerUserId) {
+    return -1;
+  }
+  if (right.userId === viewerUserId) {
+    return 1;
+  }
+
+  return left.name.localeCompare(right.name);
+}
+
 function buildQueueItemSnapshot(
   queueItem: RoomQueueItemDoc,
   position: number = queueItem.position,
@@ -110,8 +138,22 @@ function buildQueueItemSnapshot(
   };
 }
 
-function isModeratorRole(membership: RoomMembershipDoc | null) {
-  return membership?.role === "owner" || membership?.role === "moderator";
+function isModeratorRole(roleMembership: RoomMembershipDoc | null) {
+  return (
+    roleMembership?.role === "owner" || roleMembership?.role === "moderator"
+  );
+}
+
+function getRoomRoleRank(role: RoomMembershipDoc["role"]) {
+  switch (role) {
+    case "owner":
+      return 0;
+    case "moderator":
+      return 1;
+    case "member":
+    default:
+      return 2;
+  }
 }
 
 function hasStartedRoomPlayback(
@@ -197,6 +239,33 @@ async function getActiveMembership(
     .unique();
 }
 
+async function getRoomFollow(
+  ctx: RoomCtx,
+  roomId: Id<"rooms">,
+  userId: string,
+) {
+  return ctx.db
+    .query("roomFollows")
+    .withIndex("by_roomId_and_userId", (q) =>
+      q.eq("roomId", roomId).eq("userId", userId),
+    )
+    .unique();
+}
+
+async function getUsersByUserId(ctx: RoomCtx, userIds: string[]) {
+  const uniqueUserIds = [...new Set(userIds)];
+  const users = await Promise.all(
+    uniqueUserIds.map((userId) =>
+      ctx.db
+        .query("users")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .unique(),
+    ),
+  );
+
+  return new Map(uniqueUserIds.map((userId, index) => [userId, users[index] ?? null]));
+}
+
 async function getActiveRoomMemberships(ctx: RoomCtx, roomId: Id<"rooms">) {
   return ctx.db
     .query("roomMemberships")
@@ -231,7 +300,7 @@ async function getPlaybackStateDoc(
   return playbackState;
 }
 
-async function getVisibleRoomContext(
+export async function getVisibleRoomContext(
   ctx: RoomCtx,
   roomId: Id<"rooms"> | undefined,
   slug: string | undefined,
@@ -242,11 +311,15 @@ async function getVisibleRoomContext(
     return null;
   }
 
-  const membership = await getActiveMembership(ctx, room._id, auth.tokenIdentifier);
+  const roleMembership = await getActiveMembership(
+    ctx,
+    room._id,
+    auth.tokenIdentifier,
+  );
   if (
     room.visibility === "private" &&
     room.ownerUserTokenIdentifier !== auth.tokenIdentifier &&
-    !membership
+    !roleMembership
   ) {
     return null;
   }
@@ -254,32 +327,39 @@ async function getVisibleRoomContext(
   return {
     auth,
     room,
-    membership,
+    roleMembership,
   };
 }
 
-async function requireActiveMemberContext(ctx: RoomCtx, roomId: Id<"rooms">) {
+async function requireActiveRoomRoleContext(
+  ctx: RoomCtx,
+  roomId: Id<"rooms">,
+) {
   const auth = await requireRoomAuth(ctx);
   const room = await getRoomOrThrow(ctx, roomId);
-  const membership = await getActiveMembership(ctx, room._id, auth.tokenIdentifier);
-  if (!membership) {
-    throw new Error("Join the room to continue.");
+  const roleMembership = await getActiveMembership(
+    ctx,
+    room._id,
+    auth.tokenIdentifier,
+  );
+  if (!roleMembership) {
+    throw new Error("You need a room role to do that.");
   }
 
   return {
     auth,
     room,
-    membership,
+    roleMembership,
   };
 }
 
 async function requireModeratorContext(ctx: RoomCtx, roomId: Id<"rooms">) {
-  const memberContext = await requireActiveMemberContext(ctx, roomId);
-  if (!isModeratorRole(memberContext.membership)) {
+  const roomRoleContext = await requireActiveRoomRoleContext(ctx, roomId);
+  if (!isModeratorRole(roomRoleContext.roleMembership)) {
     throw new Error("Only room owners and moderators can do that.");
   }
 
-  return memberContext;
+  return roomRoleContext;
 }
 
 function normalizeQueuedTrack(input: {
@@ -548,7 +628,7 @@ export const list = query({
   args: {},
   handler: async (ctx) => {
     const auth = await requireRoomAuth(ctx);
-    const [rooms, memberships] = await Promise.all([
+    const [publicRooms, roleMemberships, follows] = await Promise.all([
       ctx.db
         .query("rooms")
         .withIndex("by_visibility_and_archivedAt", (q) =>
@@ -561,16 +641,45 @@ export const list = query({
           q.eq("userTokenIdentifier", auth.tokenIdentifier).eq("active", true),
         )
         .collect(),
+      ctx.db
+        .query("roomFollows")
+        .withIndex("by_userId", (q) => q.eq("userId", auth.userId))
+        .collect(),
     ]);
 
-    const membershipsByRoomId = new Map(
-      memberships.map((membership) => [membership.roomId, membership]),
+    const roleRooms = await Promise.all(
+      roleMemberships.map((roleMembership) =>
+        ctx.db.get(roleMembership.roomId),
+      ),
     );
 
-    return rooms.map((room) => ({
+    const roomsById = new Map<Id<"rooms">, RoomDoc>();
+    for (const room of publicRooms) {
+      roomsById.set(room._id, room);
+    }
+    for (const room of roleRooms) {
+      if (!room || room.archivedAt !== null) {
+        continue;
+      }
+
+      roomsById.set(room._id, room);
+    }
+
+    const roleMembershipsByRoomId = new Map(
+      roleMemberships.map((roleMembership) => [
+        roleMembership.roomId,
+        roleMembership,
+      ]),
+    );
+    const followedRoomIds = new Set(
+      follows.map((follow) => follow.roomId),
+    );
+
+    return [...roomsById.values()].map((room) => ({
       room: buildRoomSnapshot(room),
+      viewerFollowsRoom: followedRoomIds.has(room._id),
       viewerMembership: buildMembershipSnapshot(
-        membershipsByRoomId.get(room._id) ?? null,
+        roleMembershipsByRoomId.get(room._id) ?? null,
       ),
     }));
   },
@@ -588,21 +697,88 @@ export const get = query({
       return null;
     }
 
-    const [queueItems, playbackState, activeMemberships] = await Promise.all([
-      getActiveQueueItems(ctx, visibleRoomContext.room._id),
-      getPlaybackStateDoc(ctx, visibleRoomContext.room._id),
-      getActiveRoomMemberships(ctx, visibleRoomContext.room._id),
+    const [queueItems, playbackState, activeRoleMemberships, follow] =
+      await Promise.all([
+        getActiveQueueItems(ctx, visibleRoomContext.room._id),
+        getPlaybackStateDoc(ctx, visibleRoomContext.room._id),
+        getActiveRoomMemberships(ctx, visibleRoomContext.room._id),
+        getRoomFollow(
+          ctx,
+          visibleRoomContext.room._id,
+          visibleRoomContext.auth.userId,
+        ),
     ]);
     const projection = resolveRoomPlaybackProjection(
       queueItems,
       playbackState,
       Date.now(),
     );
+    const roleMembershipsByUserId = activeRoleMemberships.reduce<
+      Map<string, RoomMembershipDoc>
+    >((memberships, membership) => {
+      const existingMembership = memberships.get(membership.userId);
+      if (
+        !existingMembership ||
+        getRoomRoleRank(membership.role) <
+          getRoomRoleRank(existingMembership.role) ||
+        (membership.role === existingMembership.role &&
+          membership.joinedAt < existingMembership.joinedAt)
+      ) {
+        memberships.set(membership.userId, membership);
+      }
+
+      return memberships;
+    }, new Map());
+
+    const [presentUsersInRoom, roleHolders] = await Promise.all([
+      roomPresence.listRoom(ctx, visibleRoomContext.room._id, true),
+      Promise.resolve([...roleMembershipsByUserId.values()]),
+    ]);
+    const usersByUserId = await getUsersByUserId(ctx, [
+      ...roleHolders.map((roleMembership) => roleMembership.userId),
+      ...presentUsersInRoom.map((presentUser) => presentUser.userId),
+    ]);
+    const presentUsers = presentUsersInRoom
+      .map((presentUser) =>
+        buildRoomUserSnapshot(
+          presentUser.userId,
+          usersByUserId.get(presentUser.userId) ?? null,
+        ),
+      )
+      .sort((left, right) =>
+        compareRoomUserNames(left, right, visibleRoomContext.auth.userId),
+      );
+    const sortedRoleHolders = roleHolders
+      .map((roleMembership) => ({
+        ...buildRoomUserSnapshot(
+          roleMembership.userId,
+          usersByUserId.get(roleMembership.userId) ?? null,
+        ),
+        role: roleMembership.role,
+      }))
+      .sort((left, right) => {
+        const roleDelta = getRoomRoleRank(left.role) - getRoomRoleRank(right.role);
+        if (roleDelta !== 0) {
+          return roleDelta;
+        }
+
+        return compareRoomUserNames(
+          left,
+          right,
+          visibleRoomContext.auth.userId,
+        );
+      });
 
     return {
       room: buildRoomSnapshot(visibleRoomContext.room),
-      viewerMembership: buildMembershipSnapshot(visibleRoomContext.membership),
-      memberCount: activeMemberships.length,
+      viewerFollowsRoom: !!follow,
+      viewerMembership: buildMembershipSnapshot(
+        visibleRoomContext.roleMembership,
+      ),
+      memberCount: sortedRoleHolders.length,
+      presentCount: presentUsers.length,
+      presentUsers,
+      roleHolders: sortedRoleHolders,
       queueLength: projection.visibleQueueItems.length,
       queue: projection.visibleQueueItems.map((queueItem, index) =>
         buildQueueItemSnapshot(queueItem, index),
@@ -625,9 +801,9 @@ export const get = query({
           ? projection.resolvedPlaybackState.pausedAt
           : playbackState.pausedAt,
         updatedAt: playbackState.updatedAt,
-        canEnqueue: !!visibleRoomContext.membership,
-        canManageQueue: isModeratorRole(visibleRoomContext.membership),
-        canControlPlayback: isModeratorRole(visibleRoomContext.membership),
+        canEnqueue: !!visibleRoomContext.roleMembership,
+        canManageQueue: isModeratorRole(visibleRoomContext.roleMembership),
+        canControlPlayback: isModeratorRole(visibleRoomContext.roleMembership),
       },
     };
   },
@@ -665,7 +841,7 @@ export const create = mutation({
       archivedAt: null,
     });
 
-    const membershipId = await ctx.db.insert("roomMemberships", {
+    await ctx.db.insert("roomMemberships", {
       roomId,
       userId: auth.userId,
       userTokenIdentifier: auth.tokenIdentifier,
@@ -687,79 +863,69 @@ export const create = mutation({
 
     return {
       roomId,
-      membershipId,
       slug,
     };
   },
 });
 
-export const join = mutation({
+export const follow = mutation({
+  args: {
+    roomId: v.id("rooms"),
+  },
+  handler: async (ctx, args) => {
+    const visibleRoomContext = await getVisibleRoomContext(
+      ctx,
+      args.roomId,
+      undefined,
+    );
+    if (!visibleRoomContext) {
+      throw new Error("Room not found.");
+    }
+
+    const existingFollow = await getRoomFollow(
+      ctx,
+      visibleRoomContext.room._id,
+      visibleRoomContext.auth.userId,
+    );
+    if (existingFollow) {
+      return {
+        roomId: visibleRoomContext.room._id,
+        followId: existingFollow._id,
+      };
+    }
+
+    const followId = await ctx.db.insert("roomFollows", {
+      roomId: visibleRoomContext.room._id,
+      userId: visibleRoomContext.auth.userId,
+      followedAt: Date.now(),
+    });
+
+    return {
+      roomId: visibleRoomContext.room._id,
+      followId,
+    };
+  },
+});
+
+export const unfollow = mutation({
   args: {
     roomId: v.id("rooms"),
   },
   handler: async (ctx, args) => {
     const auth = await requireRoomAuth(ctx);
-    const room = await getRoomOrThrow(ctx, args.roomId);
-    const activeMembership = await getActiveMembership(
-      ctx,
-      room._id,
-      auth.tokenIdentifier,
-    );
-    if (activeMembership) {
+    const existingFollow = await getRoomFollow(ctx, args.roomId, auth.userId);
+    if (!existingFollow) {
       return {
-        roomId: room._id,
-        membershipId: activeMembership._id,
-        role: activeMembership.role,
+        roomId: args.roomId,
+        unfollowed: false,
       };
     }
 
-    if (
-      room.visibility === "private" &&
-      room.ownerUserTokenIdentifier !== auth.tokenIdentifier
-    ) {
-      throw new Error("Private rooms cannot be joined yet.");
-    }
-
-    const membershipId = await ctx.db.insert("roomMemberships", {
-      roomId: room._id,
-      userId: auth.userId,
-      userTokenIdentifier: auth.tokenIdentifier,
-      role:
-        room.ownerUserTokenIdentifier === auth.tokenIdentifier
-          ? "owner"
-          : "member",
-      active: true,
-      joinedAt: Date.now(),
-      leftAt: null,
-    });
+    await ctx.db.delete(existingFollow._id);
 
     return {
-      roomId: room._id,
-      membershipId,
-      role:
-        room.ownerUserTokenIdentifier === auth.tokenIdentifier
-          ? "owner"
-          : "member",
-    };
-  },
-});
-
-export const leave = mutation({
-  args: {
-    roomId: v.id("rooms"),
-  },
-  handler: async (ctx, args) => {
-    const memberContext = await requireActiveMemberContext(ctx, args.roomId);
-    const now = Date.now();
-
-    await ctx.db.patch(memberContext.membership._id, {
-      active: false,
-      leftAt: now,
-    });
-
-    return {
-      roomId: memberContext.room._id,
-      leftAt: now,
+      roomId: args.roomId,
+      unfollowed: true,
     };
   },
 });
@@ -767,15 +933,15 @@ export const leave = mutation({
 export const enqueueTrack = mutation({
   args: enqueueTrackArgsValidator,
   handler: async (ctx, args) => {
-    const { now, playbackState, projection, roomContext: memberContext } =
+    const { now, playbackState, projection, roomContext: roleContext } =
       await loadCompactedRoomState(
         ctx,
-        requireActiveMemberContext(ctx, args.roomId),
+        requireActiveRoomRoleContext(ctx, args.roomId),
       );
     const [queueItemId] = await insertQueuedTracks(
       ctx,
-      memberContext.room._id,
-      memberContext.auth,
+      roleContext.room._id,
+      roleContext.auth,
       [normalizeQueuedTrack(args)],
       projection.queueItems.length,
       now,
@@ -793,7 +959,7 @@ export const enqueueTrack = mutation({
     }
 
     return {
-      roomId: memberContext.room._id,
+      roomId: roleContext.room._id,
       queueItemId,
       position: projection.visibleQueueItems.length,
     };
@@ -810,15 +976,15 @@ export const enqueueTracks = mutation({
       throw new Error("Add at least one track to queue a playlist.");
     }
 
-    const { now, playbackState, projection, roomContext: memberContext } =
+    const { now, playbackState, projection, roomContext: roleContext } =
       await loadCompactedRoomState(
         ctx,
-        requireActiveMemberContext(ctx, args.roomId),
+        requireActiveRoomRoleContext(ctx, args.roomId),
       );
     const queueItemIds = await insertQueuedTracks(
       ctx,
-      memberContext.room._id,
-      memberContext.auth,
+      roleContext.room._id,
+      roleContext.auth,
       args.tracks.map((track) => normalizeQueuedTrack(track)),
       projection.queueItems.length,
       now,
@@ -837,7 +1003,7 @@ export const enqueueTracks = mutation({
 
     return {
       count: queueItemIds.length,
-      roomId: memberContext.room._id,
+      roomId: roleContext.room._id,
     };
   },
 });
@@ -848,10 +1014,10 @@ export const removeQueueItem = mutation({
     queueItemId: v.id("roomQueueItems"),
   },
   handler: async (ctx, args) => {
-    const { now, projection, roomContext: memberContext } =
+    const { now, projection, roomContext: roleContext } =
       await loadCompactedRoomState(
         ctx,
-        requireActiveMemberContext(ctx, args.roomId),
+        requireActiveRoomRoleContext(ctx, args.roomId),
       );
     const queueItem = projection.visibleQueueItems.find(
       (item) => item._id === args.queueItemId,
@@ -865,8 +1031,8 @@ export const removeQueueItem = mutation({
     }
 
     if (
-      !isModeratorRole(memberContext.membership) &&
-      queueItem.addedByUserTokenIdentifier !== memberContext.auth.tokenIdentifier
+      !isModeratorRole(roleContext.roleMembership) &&
+      queueItem.addedByUserTokenIdentifier !== roleContext.auth.tokenIdentifier
     ) {
       throw new Error("Only the user who enqueued this track can remove it.");
     }
@@ -886,7 +1052,7 @@ export const removeQueueItem = mutation({
     );
 
     return {
-      roomId: memberContext.room._id,
+      roomId: roleContext.room._id,
       queueItemId: queueItem._id,
       nextQueueItemId: remainingVisibleQueueItems[0]?._id ?? null,
     };

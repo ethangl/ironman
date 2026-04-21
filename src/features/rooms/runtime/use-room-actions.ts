@@ -19,7 +19,7 @@ function getRequiredRoomId(roomId: RoomId | null | undefined) {
     return roomId;
   }
 
-  toast.error("Join a room before you add tracks.");
+  toast.error("Open a room with queue permissions before you add tracks.");
   return null;
 }
 
@@ -36,19 +36,17 @@ function toQueuedTrack(track: SpotifyTrack) {
 interface UseRoomActionsOptions {
   roomId: RoomId | null;
   closeRoom: () => Promise<void>;
-  onJoinRoom: (roomId?: RoomId | null) => void;
   openRoom: (roomId: RoomId) => Promise<void>;
 }
 
 export function useRoomActions({
   roomId,
   closeRoom,
-  onJoinRoom,
   openRoom,
 }: UseRoomActionsOptions) {
   const createRoomMutation = useMutation(api.rooms.create);
-  const joinRoomMutation = useMutation(api.rooms.join);
-  const leaveRoomMutation = useMutation(api.rooms.leave);
+  const followRoomMutation = useMutation(api.rooms.follow);
+  const unfollowRoomMutation = useMutation(api.rooms.unfollow);
   const enqueueTrackMutation = useMutation(api.rooms.enqueueTrack);
   const enqueueTracksMutation = useMutation(api.rooms.enqueueTracks);
   const removeQueueItemMutation = useMutation(api.rooms.removeQueueItem);
@@ -65,46 +63,35 @@ export function useRoomActions({
         });
         const roomId = result.roomId as RoomId;
         await openRoom(roomId);
-        onJoinRoom(roomId);
         return roomId;
       } catch (error) {
         reportRoomError(error);
         return null;
       }
     },
-    [createRoomMutation, onJoinRoom, openRoom],
+    [createRoomMutation, openRoom],
   );
 
-  const joinRoom = useCallback(
+  const followRoom = useCallback(
     async (roomId: RoomId) => {
       try {
-        await joinRoomMutation({ roomId });
-        await openRoom(roomId);
-        onJoinRoom(roomId);
+        await followRoomMutation({ roomId });
       } catch (error) {
         reportRoomError(error);
       }
     },
-    [joinRoomMutation, onJoinRoom, openRoom],
+    [followRoomMutation],
   );
 
-  const leaveRoom = useCallback(
-    async (nextRoomId?: RoomId | null) => {
-      const targetRoomId = nextRoomId ?? roomId;
-      if (!targetRoomId) {
-        return;
-      }
-
+  const unfollowRoom = useCallback(
+    async (roomId: RoomId) => {
       try {
-        await leaveRoomMutation({ roomId: targetRoomId });
-        if (targetRoomId === roomId) {
-          await closeRoom();
-        }
+        await unfollowRoomMutation({ roomId });
       } catch (error) {
         reportRoomError(error);
       }
     },
-    [closeRoom, leaveRoomMutation, roomId],
+    [unfollowRoomMutation],
   );
 
   const enqueueTrack = useCallback(
@@ -204,11 +191,11 @@ export function useRoomActions({
     createRoom,
     enqueueTrack,
     enqueueTracks,
-    joinRoom,
-    leaveRoom,
+    followRoom,
     moveQueueItem,
     openRoom,
     removeQueueItem,
     skipRoom,
+    unfollowRoom,
   };
 }

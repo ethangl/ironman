@@ -39,6 +39,7 @@ function createRoomDetails(): RoomDetails {
       createdAt: 1_000,
       archivedAt: null,
     },
+    viewerFollowsRoom: false,
     viewerMembership: {
       _id: "membership-1",
       role: "member",
@@ -47,6 +48,28 @@ function createRoomDetails(): RoomDetails {
       leftAt: null,
     },
     memberCount: 2,
+    presentCount: 1,
+    presentUsers: [
+      {
+        userId: "user-1",
+        name: "User One",
+        image: null,
+      },
+    ],
+    roleHolders: [
+      {
+        userId: "user-1",
+        name: "User One",
+        image: null,
+        role: "member",
+      },
+      {
+        userId: "user-2",
+        name: "User Two",
+        image: null,
+        role: "moderator",
+      },
+    ],
     queueLength: 2,
     queue: [
       {
@@ -138,6 +161,12 @@ describe("useRoomSyncController", () => {
       },
     };
 
+    const followedNonMemberRoom: RoomDetails = {
+      ...createRoomDetails(),
+      viewerFollowsRoom: true,
+      viewerMembership: null,
+    };
+
     type HookProps = {
       activeRoom: RoomDetails | null;
       resolvedPlayback: ReturnType<typeof resolveRoomPlayback>;
@@ -203,6 +232,21 @@ describe("useRoomSyncController", () => {
     expect(result.current.syncState).toMatchObject({
       code: "idle",
       label: "Not listening to a room",
+    });
+
+    syncTrack.mockClear();
+    togglePlay.mockClear();
+
+    rerender({
+      activeRoom: followedNonMemberRoom,
+      resolvedPlayback: resolveRoomPlayback(followedNonMemberRoom, 40_000),
+    });
+
+    await waitFor(() => {
+      expect(syncTrack).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "track-1" }),
+        30_000,
+      );
     });
   });
 });

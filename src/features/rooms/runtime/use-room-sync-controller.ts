@@ -31,7 +31,6 @@ export function useRoomSyncController({
   const lastRequestedSyncKeyRef = useRef<string | null>(null);
   const previousRoomIdRef = useRef<string | null>(roomId);
 
-  const hasActiveMembership = !!activeRoom?.viewerMembership;
   const activeRoomId = activeRoom?.room._id ?? null;
   const currentQueueItem = resolvedPlayback?.currentQueueItem ?? null;
   const currentQueueItemId = currentQueueItem?._id ?? null;
@@ -46,10 +45,10 @@ export function useRoomSyncController({
   const syncState = useMemo(
     () =>
       getRoomSyncState({
-        hasActiveMembership,
+        hasActiveRoom: !!activeRoom,
         resolvedPlayback,
       }),
-    [hasActiveMembership, resolvedPlayback],
+    [activeRoom, resolvedPlayback],
   );
 
   const requestSync = useCallback(() => {
@@ -70,7 +69,7 @@ export function useRoomSyncController({
 
   const runSyncToRoom = useCallback(async () => {
     if (
-      !hasActiveMembership ||
+      !activeRoomId ||
       !currentQueueItem ||
       roomPaused
     ) {
@@ -84,9 +83,9 @@ export function useRoomSyncController({
 
     await syncTrack(roomTrack, currentOffsetMs);
   }, [
+    activeRoomId,
     currentOffsetMs,
     currentQueueItem,
-    hasActiveMembership,
     roomPaused,
     syncTrack,
   ]);
@@ -94,7 +93,6 @@ export function useRoomSyncController({
   useEffect(() => {
     if (
       !activeRoomId ||
-      !hasActiveMembership ||
       !currentQueueItemId ||
       roomPaused
     ) {
@@ -118,7 +116,6 @@ export function useRoomSyncController({
   }, [
     activeRoomId,
     currentQueueItemId,
-    hasActiveMembership,
     roomPaused,
     runSyncToRoom,
     startOffsetMs,
@@ -128,7 +125,7 @@ export function useRoomSyncController({
 
   useEffect(() => {
     if (
-      !hasActiveMembership ||
+      !activeRoomId ||
       !currentTrackId ||
       !sdkTrackId ||
       sdkPaused ||
@@ -143,8 +140,8 @@ export function useRoomSyncController({
 
     void togglePlay();
   }, [
+    activeRoomId,
     currentTrackId,
-    hasActiveMembership,
     roomPaused,
     sdkPaused,
     sdkTrackId,

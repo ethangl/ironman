@@ -21,10 +21,10 @@ export interface RoomsContextValue {
     name: string;
     description?: string;
   }) => Promise<RoomId | null>;
+  followRoom: (roomId: RoomId) => Promise<void>;
   openRoom: (roomId: RoomId) => Promise<void>;
   closeRoom: () => Promise<void>;
-  joinRoom: (roomId: RoomId) => Promise<void>;
-  leaveRoom: (roomId?: RoomId | null) => Promise<void>;
+  unfollowRoom: (roomId: RoomId) => Promise<void>;
   enqueueTrack: (track: SpotifyTrack, roomId?: RoomId | null) => Promise<void>;
   enqueueTracks: (
     tracks: SpotifyTrack[],

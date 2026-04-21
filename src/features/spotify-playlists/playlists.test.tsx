@@ -63,6 +63,7 @@ function createRoomsValue(
         createdAt: 1,
         archivedAt: null,
       },
+      viewerFollowsRoom: false,
       viewerMembership: {
         _id: "membership-1",
         role: "member",
@@ -71,6 +72,28 @@ function createRoomsValue(
         leftAt: null,
       },
       memberCount: 2,
+      presentCount: 1,
+      presentUsers: [
+        {
+          userId: "user-1",
+          name: "User One",
+          image: null,
+        },
+      ],
+      roleHolders: [
+        {
+          userId: "user-1",
+          name: "User One",
+          image: null,
+          role: "member",
+        },
+        {
+          userId: "user-2",
+          name: "User Two",
+          image: null,
+          role: "moderator",
+        },
+      ],
       queueLength: 0,
       queue: [],
       playback: {
@@ -91,8 +114,7 @@ function createRoomsValue(
     createRoom: vi.fn(),
     enqueueTrack: vi.fn(),
     enqueueTracks: (...args: unknown[]) => mockEnqueueTracks(...args),
-    joinRoom: vi.fn(),
-    leaveRoom: vi.fn(),
+    followRoom: vi.fn(),
     moveQueueItem: vi.fn(),
     openRoom: vi.fn(),
     closeRoom: vi.fn(),
@@ -107,6 +129,7 @@ function createRoomsValue(
       label: "Idle",
       driftMs: null,
     },
+    unfollowRoom: vi.fn(),
     ...overrides,
   };
 }

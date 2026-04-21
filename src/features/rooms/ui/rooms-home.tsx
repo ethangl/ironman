@@ -14,9 +14,15 @@ export function RoomsHome() {
   const joinedRooms = rooms.filter(
     (roomSummary) => !!roomSummary.viewerMembership,
   );
-  const discoverRooms = rooms.filter(
-    (roomSummary) => !roomSummary.viewerMembership,
-  );
+  const discoverRooms = [...rooms]
+    .filter((roomSummary) => !roomSummary.viewerMembership)
+    .sort((left, right) => {
+      if (left.viewerFollowsRoom !== right.viewerFollowsRoom) {
+        return left.viewerFollowsRoom ? -1 : 1;
+      }
+
+      return left.room.name.localeCompare(right.room.name);
+    });
 
   return (
     <>
@@ -39,7 +45,8 @@ export function RoomsHome() {
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
-              You are not in any rooms yet. Join one below or start your own.
+              You do not have any room roles yet. Start one below or ask a room
+              owner to grant you access.
             </p>
           )}
         </SectionContent>
@@ -63,8 +70,7 @@ export function RoomsHome() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Every public room already has you in it, which is a pretty good
-              problem to have.
+              There are no public rooms to discover right now.
             </p>
           )}
         </SectionContent>

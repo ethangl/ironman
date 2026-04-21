@@ -50,6 +50,13 @@ export default defineSchema({
       "userTokenIdentifier",
       "active",
     ]),
+  roomFollows: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.string(),
+    followedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_roomId_and_userId", ["roomId", "userId"]),
   roomQueueItems: defineTable({
     roomId: v.id("rooms"),
     position: v.number(),

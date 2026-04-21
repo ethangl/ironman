@@ -6,6 +6,7 @@ import { RoomsContext, type RoomsContextValue } from "./rooms-context";
 import type { ResolvedRoomPlayback } from "./room-sync";
 import { useRoomActions } from "./use-room-actions";
 import { useRoomPageState } from "./use-room-page-state";
+import { useRoomPresence } from "./use-room-presence";
 import { useRoomSyncController } from "./use-room-sync-controller";
 
 interface RoomRuntimeState {
@@ -23,9 +24,7 @@ function useRoomRuntimeState(): RoomRuntimeState {
   const roomsQuery = useRoomList();
   const { closeRoom, openRoom, roomId } = useRoomPageState();
   const activeRoomQuery = useRoomDetails(roomId ?? undefined);
-  const activeRoom = activeRoomQuery.data?.viewerMembership
-    ? activeRoomQuery.data
-    : null;
+  const activeRoom = activeRoomQuery.data;
 
   return useMemo(
     () => ({
@@ -53,6 +52,7 @@ function useRoomRuntimeState(): RoomRuntimeState {
 
 export function RoomsProvider({ children }: { children: ReactNode }) {
   const runtime = useRoomRuntimeState();
+  useRoomPresence(runtime.activeRoom?.room._id ?? null);
   const sync = useRoomSyncController({
     activeRoom: runtime.activeRoom,
     roomId: runtime.roomId,
@@ -61,7 +61,6 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
   const actions = useRoomActions({
     roomId: runtime.roomId,
     closeRoom: runtime.closeRoom,
-    onJoinRoom: sync.requestSync,
     openRoom: runtime.openRoom,
   });
 
@@ -74,8 +73,7 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
       createRoom: actions.createRoom,
       enqueueTrack: actions.enqueueTrack,
       enqueueTracks: actions.enqueueTracks,
-      joinRoom: actions.joinRoom,
-      leaveRoom: actions.leaveRoom,
+      followRoom: actions.followRoom,
       moveQueueItem: actions.moveQueueItem,
       openRoom: actions.openRoom,
       removeQueueItem: actions.removeQueueItem,
@@ -85,6 +83,7 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
       roomsLoading: runtime.roomsLoading,
       skipRoom: actions.skipRoom,
       syncState: sync.syncState,
+      unfollowRoom: actions.unfollowRoom,
     }),
     [
       actions.closeRoom,
@@ -92,12 +91,12 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
       actions.createRoom,
       actions.enqueueTrack,
       actions.enqueueTracks,
-      actions.joinRoom,
-      actions.leaveRoom,
+      actions.followRoom,
       actions.moveQueueItem,
       actions.openRoom,
       actions.removeQueueItem,
       actions.skipRoom,
+      actions.unfollowRoom,
       runtime.activeRoom,
       runtime.activeRoomLoading,
       runtime.roomId,

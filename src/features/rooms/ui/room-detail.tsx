@@ -1,6 +1,7 @@
 import { Spinner } from "@/components/ui/spinner";
 import { useRoomDetails, type RoomId } from "@/features/rooms";
 import { RoomActivityFeed } from "./room-activity-feed";
+import { RoomPeople } from "./room-people";
 import { RoomQueue } from "./room-queue";
 
 export function RoomDetail({ roomId }: { roomId: RoomId }) {
@@ -28,6 +29,7 @@ export function RoomDetail({ roomId }: { roomId: RoomId }) {
         resolvedPlayback={roomQuery.resolvedPlayback}
         room={roomQuery.data}
       />
+      <RoomPeople room={roomQuery.data} />
       <RoomActivityFeed room={roomQuery.data} />
     </>
   );

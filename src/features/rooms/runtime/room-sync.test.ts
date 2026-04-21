@@ -14,6 +14,7 @@ const roomDetails: RoomDetails = {
     createdAt: 1_000,
     archivedAt: null,
   },
+  viewerFollowsRoom: false,
   viewerMembership: {
     _id: "membership-1",
     role: "member",
@@ -22,6 +23,28 @@ const roomDetails: RoomDetails = {
     leftAt: null,
   },
   memberCount: 2,
+  presentCount: 1,
+  presentUsers: [
+    {
+      userId: "user-1",
+      name: "User One",
+      image: null,
+    },
+  ],
+  roleHolders: [
+    {
+      userId: "user-1",
+      name: "User One",
+      image: null,
+      role: "member",
+    },
+    {
+      userId: "user-2",
+      name: "User Two",
+      image: null,
+      role: "moderator",
+    },
+  ],
   queueLength: 2,
   queue: [
     {
@@ -89,7 +112,7 @@ describe("room-sync", () => {
 
     expect(
       getRoomSyncState({
-        hasActiveMembership: true,
+        hasActiveRoom: true,
         resolvedPlayback,
       }),
     ).toMatchObject({
@@ -103,7 +126,7 @@ describe("room-sync", () => {
 
     expect(
       getRoomSyncState({
-        hasActiveMembership: true,
+        hasActiveRoom: true,
         resolvedPlayback,
       }),
     ).toMatchObject({

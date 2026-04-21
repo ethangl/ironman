@@ -31,6 +31,7 @@ import type * as spotify_types from "../spotify/types.js";
 import type * as spotify_validators from "../spotify/validators.js";
 import type * as spotifyAuthCooldown from "../spotifyAuthCooldown.js";
 import type * as spotifySession from "../spotifySession.js";
+import type * as userProfiles from "../userProfiles.js";
 import type * as users from "../users.js";
 
 import type {
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   "spotify/validators": typeof spotify_validators;
   spotifyAuthCooldown: typeof spotifyAuthCooldown;
   spotifySession: typeof spotifySession;
+  userProfiles: typeof userProfiles;
   users: typeof users;
 }>;
 

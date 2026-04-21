@@ -8,16 +8,10 @@ vi.mock("./client", () => ({
   spotifyFetch: vi.fn(),
 }));
 
+import { loadFavoriteArtists, loadTopArtists } from "./artists";
 import { spotifyFetch } from "./client";
 import { SpotifyApiError } from "./errors";
-import {
-  loadFavoriteArtists,
-  loadTopArtists,
-} from "./artists";
-import {
-  loadPlaylistTracks,
-  loadPlaylistsPage,
-} from "./playlists";
+import { loadPlaylistTracks, loadPlaylistsPage } from "./playlists";
 import { loadRecentlyPlayed } from "./tracks";
 
 const mockedSpotifyFetch = vi.mocked(spotifyFetch);
@@ -63,13 +57,13 @@ describe("spotify activity loaders", () => {
     );
 
     await expect(
-      runAction<
-        { playlistId: string; cacheScope: string },
-        never
-      >(loadPlaylistTracks as unknown as RegisteredAction, {
-        playlistId: "playlist-429",
-        cacheScope: "user-1",
-      }),
+      runAction<{ playlistId: string; cacheScope: string }, never>(
+        loadPlaylistTracks as unknown as RegisteredAction,
+        {
+          playlistId: "playlist-429",
+          cacheScope: "user-1",
+        },
+      ),
     ).rejects.toThrow("Spotify is rate limiting activity requests right now.");
   });
 
@@ -99,13 +93,13 @@ describe("spotify activity loaders", () => {
     mockedSpotifyFetch.mockRejectedValueOnce(new Error("boom"));
 
     await expect(
-      runAction<
-        { limit: number; cacheScope: string },
-        unknown[]
-      >(loadFavoriteArtists as unknown as RegisteredAction, {
-        limit: 25,
-        cacheScope: "user-1",
-      }),
+      runAction<{ limit: number; cacheScope: string }, unknown[]>(
+        loadFavoriteArtists as unknown as RegisteredAction,
+        {
+          limit: 25,
+          cacheScope: "user-1",
+        },
+      ),
     ).resolves.toEqual([]);
   });
 
@@ -113,13 +107,13 @@ describe("spotify activity loaders", () => {
     mockedSpotifyFetch.mockRejectedValueOnce(new Error("boom"));
 
     await expect(
-      runAction<
-        { limit: number; cacheScope: string },
-        unknown[]
-      >(loadTopArtists as unknown as RegisteredAction, {
-        limit: 10,
-        cacheScope: "user-1",
-      }),
+      runAction<{ limit: number; cacheScope: string }, unknown[]>(
+        loadTopArtists as unknown as RegisteredAction,
+        {
+          limit: 10,
+          cacheScope: "user-1",
+        },
+      ),
     ).resolves.toEqual([]);
   });
 });

@@ -2,18 +2,14 @@ import { v } from "convex/values";
 
 import { internal } from "./_generated/api";
 import { action } from "./_generated/server";
-import {
-  clearAlbumsCaches,
-  spotifyAlbumTracksCache,
-} from "./spotify/albums";
+import { clearAlbumsCaches, spotifyAlbumTracksCache } from "./spotify/albums";
 import {
   clearArtistsCaches,
-  FAVORITE_ARTISTS_DEFAULT_LIMIT,
-  TOP_ARTISTS_DEFAULT_LIMIT,
   spotifyArtistPageCache,
   spotifyFavoriteArtistsCache,
   spotifyTopArtistsCache,
 } from "./spotify/artists";
+import { DEFAULT_LIMIT, DEFAULT_OFFSET } from "./spotify/constants";
 import {
   getCurrentlyPlaying,
   pausePlayback,
@@ -24,10 +20,8 @@ import {
 } from "./spotify/playback";
 import {
   clearPlaylistsCaches,
-  PLAYLISTS_DEFAULT_LIMIT,
-  PLAYLISTS_DEFAULT_OFFSET,
-  spotifyPlaylistTracksCache,
   spotifyPlaylistsPageCache,
+  spotifyPlaylistTracksCache,
 } from "./spotify/playlists";
 import {
   clearSearchCaches,
@@ -35,12 +29,7 @@ import {
   spotifySearchTracksCache,
 } from "./spotify/search";
 import {
-  requireAuthUser,
-  requireSpotifyAccessToken,
-} from "./spotifySession";
-import {
   clearTracksCaches,
-  RECENTLY_PLAYED_DEFAULT_LIMIT,
   spotifyRecentlyPlayedCache,
 } from "./spotify/tracks";
 import {
@@ -53,6 +42,7 @@ import {
   spotifySearchResultsValidator,
   spotifyTrackValidator,
 } from "./spotify/validators";
+import { requireAuthUser, requireSpotifyAccessToken } from "./spotifySession";
 
 const SPOTIFY_AUTH_COOLDOWN_KEY = "spotify-auth-cooldown";
 
@@ -112,7 +102,7 @@ export const recentlyPlayed = action({
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
     return spotifyRecentlyPlayedCache.fetch(ctx, {
-      limit: args.limit ?? RECENTLY_PLAYED_DEFAULT_LIMIT,
+      limit: args.limit ?? DEFAULT_LIMIT,
       cacheScope: String(user._id),
     });
   },
@@ -130,8 +120,8 @@ export const playlistsPage = action({
     return spotifyPlaylistsPageCache.fetch(
       ctx,
       {
-        limit: args.limit ?? PLAYLISTS_DEFAULT_LIMIT,
-        offset: args.offset ?? PLAYLISTS_DEFAULT_OFFSET,
+        limit: args.limit ?? DEFAULT_LIMIT,
+        offset: args.offset ?? DEFAULT_OFFSET,
         cacheScope: String(user._id),
       },
       args.forceRefresh ? { force: true } : undefined,
@@ -161,7 +151,7 @@ export const topArtists = action({
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
     return spotifyTopArtistsCache.fetch(ctx, {
-      limit: args.limit ?? TOP_ARTISTS_DEFAULT_LIMIT,
+      limit: args.limit ?? DEFAULT_LIMIT,
       cacheScope: String(user._id),
     });
   },
@@ -178,7 +168,7 @@ export const favoriteArtists = action({
     return spotifyFavoriteArtistsCache.fetch(
       ctx,
       {
-        limit: args.limit ?? FAVORITE_ARTISTS_DEFAULT_LIMIT,
+        limit: args.limit ?? DEFAULT_LIMIT,
         cacheScope: String(user._id),
       },
       args.forceRefresh ? { force: true } : undefined,

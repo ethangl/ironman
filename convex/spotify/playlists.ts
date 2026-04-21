@@ -6,6 +6,7 @@ import { components } from "../_generated/api";
 import { type ActionCtx, internalAction } from "../_generated/server";
 import { requireSpotifyAccessToken } from "../spotifySession";
 import { spotifyFetch } from "./client";
+import { DAY_IN_MS, DEFAULT_LIMIT, DEFAULT_OFFSET } from "./constants";
 import { SpotifyApiError } from "./errors";
 import {
   isSpotifyTrack,
@@ -19,11 +20,6 @@ import {
   spotifyPlaylistsPageValidator,
   spotifyTrackValidator,
 } from "./validators";
-
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
-
-export const PLAYLISTS_DEFAULT_LIMIT = 50;
-export const PLAYLISTS_DEFAULT_OFFSET = 0;
 
 interface PlaylistSummaryResponse {
   items?: {
@@ -46,28 +42,28 @@ interface PlaylistTracksResponse {
   }[];
 }
 
-const loadPlaylistsPageRef =
-  anyApi["spotify/playlists"].loadPlaylistsPage as FunctionReference<
-    "action",
-    "internal",
-    {
-      limit: number;
-      offset: number;
-      cacheScope: string;
-    },
-    SpotifyPlaylistsPage
-  >;
+const loadPlaylistsPageRef = anyApi["spotify/playlists"]
+  .loadPlaylistsPage as FunctionReference<
+  "action",
+  "internal",
+  {
+    limit: number;
+    offset: number;
+    cacheScope: string;
+  },
+  SpotifyPlaylistsPage
+>;
 
-const loadPlaylistTracksRef =
-  anyApi["spotify/playlists"].loadPlaylistTracks as FunctionReference<
-    "action",
-    "internal",
-    {
-      playlistId: string;
-      cacheScope: string;
-    },
-    SpotifyTrack[]
-  >;
+const loadPlaylistTracksRef = anyApi["spotify/playlists"]
+  .loadPlaylistTracks as FunctionReference<
+  "action",
+  "internal",
+  {
+    playlistId: string;
+    cacheScope: string;
+  },
+  SpotifyTrack[]
+>;
 
 function toPlaylistsError(error: unknown, fallback: string) {
   if (!(error instanceof SpotifyApiError)) {
@@ -87,8 +83,8 @@ function toPlaylistsError(error: unknown, fallback: string) {
 
 export async function getUserPlaylists(
   token: string,
-  limit = PLAYLISTS_DEFAULT_LIMIT,
-  offset = PLAYLISTS_DEFAULT_OFFSET,
+  limit = DEFAULT_LIMIT,
+  offset = DEFAULT_OFFSET,
 ): Promise<SpotifyPlaylistsPage> {
   const data = await spotifyFetch<PlaylistSummaryResponse>(
     `/me/playlists?limit=${limit}&offset=${offset}`,

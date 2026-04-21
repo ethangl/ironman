@@ -6,6 +6,7 @@ import { components } from "../_generated/api";
 import { type ActionCtx, internalAction } from "../_generated/server";
 import { requireSpotifyAccessToken } from "../spotifySession";
 import { spotifyFetch } from "./client";
+import { DAY_IN_MS } from "./constants";
 import { SpotifyApiError } from "./errors";
 import {
   isSpotifyArtist,
@@ -24,8 +25,6 @@ import {
   spotifyTrackValidator,
 } from "./validators";
 
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
-
 interface SearchResponse {
   tracks?: {
     items?: Array<SpotifyApiTrack | null>;
@@ -38,25 +37,25 @@ interface SearchResponse {
   };
 }
 
-const loadSearchResultsRef =
-  anyApi["spotify/search"].loadSearchResults as FunctionReference<
-    "action",
-    "internal",
-    {
-      query: string;
-    },
-    SpotifySearchResults
-  >;
+const loadSearchResultsRef = anyApi["spotify/search"]
+  .loadSearchResults as FunctionReference<
+  "action",
+  "internal",
+  {
+    query: string;
+  },
+  SpotifySearchResults
+>;
 
-const loadSearchTracksRef =
-  anyApi["spotify/search"].loadSearchTracks as FunctionReference<
-    "action",
-    "internal",
-    {
-      query: string;
-    },
-    SpotifyTrack[]
-  >;
+const loadSearchTracksRef = anyApi["spotify/search"]
+  .loadSearchTracks as FunctionReference<
+  "action",
+  "internal",
+  {
+    query: string;
+  },
+  SpotifyTrack[]
+>;
 
 function toSearchError(error: unknown) {
   if (!(error instanceof SpotifyApiError)) {
@@ -147,11 +146,14 @@ export const spotifySearchResultsCache = new ActionCache(
   },
 );
 
-export const spotifySearchTracksCache = new ActionCache(components.actionCache, {
-  action: loadSearchTracksRef,
-  name: "spotify-search-tracks-v1",
-  ttl: DAY_IN_MS,
-});
+export const spotifySearchTracksCache = new ActionCache(
+  components.actionCache,
+  {
+    action: loadSearchTracksRef,
+    name: "spotify-search-tracks-v1",
+    ttl: DAY_IN_MS,
+  },
+);
 
 export async function clearSearchCaches(ctx: ActionCtx) {
   await Promise.all([

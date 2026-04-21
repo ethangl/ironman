@@ -1,10 +1,9 @@
+import { SPOTIFY_API } from "./constants";
 import type {
   PlaybackCurrentlyPlayingResult,
   PlaybackResult,
   PlaybackState,
 } from "./types";
-
-const SPOTIFY_API = "https://api.spotify.com/v1";
 
 function getRetryAfterSeconds(response: Response) {
   const value = Number(response.headers.get("retry-after"));

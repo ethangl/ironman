@@ -6,6 +6,7 @@ import { components } from "../_generated/api";
 import { type ActionCtx, internalAction } from "../_generated/server";
 import { requireSpotifyAccessToken } from "../spotifySession";
 import { spotifyFetch } from "./client";
+import { DAY_IN_MS } from "./constants";
 import { SpotifyApiError } from "./errors";
 import {
   isSpotifyAlbum,
@@ -17,16 +18,15 @@ import {
   type SpotifyApiArtist,
   type SpotifyApiTrack,
 } from "./mappers";
-import type { SpotifyArtist, SpotifyArtistPageData, SpotifyTrack } from "./types";
+import type {
+  SpotifyArtist,
+  SpotifyArtistPageData,
+  SpotifyTrack,
+} from "./types";
 import {
   spotifyArtistPageDataValidator,
   spotifyArtistValidator,
 } from "./validators";
-
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
-
-export const FAVORITE_ARTISTS_DEFAULT_LIMIT = 50;
-export const TOP_ARTISTS_DEFAULT_LIMIT = 10;
 
 interface SearchResponse {
   tracks?: {
@@ -55,38 +55,38 @@ export interface ArtistPageDataResult {
   usedReleaseFallback: boolean;
 }
 
-const loadArtistPageRef =
-  anyApi["spotify/artists"].loadArtistPage as FunctionReference<
-    "action",
-    "internal",
-    {
-      artistId: string;
-      cacheScope: string;
-    },
-    SpotifyArtistPageData | null
-  >;
+const loadArtistPageRef = anyApi["spotify/artists"]
+  .loadArtistPage as FunctionReference<
+  "action",
+  "internal",
+  {
+    artistId: string;
+    cacheScope: string;
+  },
+  SpotifyArtistPageData | null
+>;
 
-const loadTopArtistsRef =
-  anyApi["spotify/artists"].loadTopArtists as FunctionReference<
-    "action",
-    "internal",
-    {
-      limit: number;
-      cacheScope: string;
-    },
-    SpotifyArtist[]
-  >;
+const loadTopArtistsRef = anyApi["spotify/artists"]
+  .loadTopArtists as FunctionReference<
+  "action",
+  "internal",
+  {
+    limit: number;
+    cacheScope: string;
+  },
+  SpotifyArtist[]
+>;
 
-const loadFavoriteArtistsRef =
-  anyApi["spotify/artists"].loadFavoriteArtists as FunctionReference<
-    "action",
-    "internal",
-    {
-      limit: number;
-      cacheScope: string;
-    },
-    SpotifyArtist[]
-  >;
+const loadFavoriteArtistsRef = anyApi["spotify/artists"]
+  .loadFavoriteArtists as FunctionReference<
+  "action",
+  "internal",
+  {
+    limit: number;
+    cacheScope: string;
+  },
+  SpotifyArtist[]
+>;
 
 function toArtistError(error: unknown) {
   if (!(error instanceof SpotifyApiError)) {
@@ -166,7 +166,9 @@ export async function getTopArtists(
   const artists = (data?.items ?? []).map(mapArtist);
 
   if (process.env.NODE_ENV !== "test") {
-    console.info(`[spotify] top artists limit=${limit} items=${artists.length}`);
+    console.info(
+      `[spotify] top artists limit=${limit} items=${artists.length}`,
+    );
   }
 
   return artists;
@@ -237,7 +239,10 @@ export async function getArtistPageDataResult(
   artistId: string,
   market?: string | null,
 ): Promise<ArtistPageDataResult> {
-  const artistData = await spotifyFetch<ArtistResponse>(`/artists/${artistId}`, token);
+  const artistData = await spotifyFetch<ArtistResponse>(
+    `/artists/${artistId}`,
+    token,
+  );
   if (!artistData) {
     throw new SpotifyApiError(404, `Artist ${artistId} not found`);
   }

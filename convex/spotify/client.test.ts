@@ -53,15 +53,13 @@ describe("spotify shared client rate-limit cooldown", () => {
   });
 
   it("fails fast on repeated strict fetches during an active retry-after cooldown", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        createResponse({
-          ok: false,
-          status: 429,
-          headers: { "retry-after": "30" },
-        }),
-      );
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      createResponse({
+        ok: false,
+        status: 429,
+        headers: { "retry-after": "30" },
+      }),
+    );
 
     vi.stubGlobal("fetch", fetchMock);
 
@@ -83,14 +81,12 @@ describe("spotify shared client rate-limit cooldown", () => {
   });
 
   it("returns fallback for optional fetches during an active cooldown", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        createResponse({
-          ok: false,
-          status: 429,
-        }),
-      );
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      createResponse({
+        ok: false,
+        status: 429,
+      }),
+    );
 
     vi.stubGlobal("fetch", fetchMock);
 
@@ -132,19 +128,18 @@ describe("spotify shared client rate-limit cooldown", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(
-      spotifyFetch("/me", "spotify-token"),
-    ).rejects.toMatchObject({
+    await expect(spotifyFetch("/me", "spotify-token")).rejects.toMatchObject({
       status: 429,
       retryAfterSeconds: null,
     });
 
     await vi.advanceTimersByTimeAsync(5_000);
 
-    await expect(spotifyFetch<{ country: string }>("/me", "spotify-token")).resolves
-      .toEqual({
-        country: "US",
-      });
+    await expect(
+      spotifyFetch<{ country: string }>("/me", "spotify-token"),
+    ).resolves.toEqual({
+      country: "US",
+    });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
@@ -194,10 +189,12 @@ describe("spotify shared client rate-limit cooldown", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(spotifyFetch<{ country: string }>("/me", "spotify-token")).resolves
-      .toEqual({ country: "US" });
-    await expect(spotifyFetch<{ country: string }>("/me", "spotify-token")).resolves
-      .toEqual({ country: "CA" });
+    await expect(
+      spotifyFetch<{ country: string }>("/me", "spotify-token"),
+    ).resolves.toEqual({ country: "US" });
+    await expect(
+      spotifyFetch<{ country: string }>("/me", "spotify-token"),
+    ).resolves.toEqual({ country: "CA" });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });

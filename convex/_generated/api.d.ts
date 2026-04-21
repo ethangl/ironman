@@ -19,6 +19,7 @@ import type * as spotify from "../spotify.js";
 import type * as spotify_albums from "../spotify/albums.js";
 import type * as spotify_artists from "../spotify/artists.js";
 import type * as spotify_client from "../spotify/client.js";
+import type * as spotify_constants from "../spotify/constants.js";
 import type * as spotify_errors from "../spotify/errors.js";
 import type * as spotify_mappers from "../spotify/mappers.js";
 import type * as spotify_playback from "../spotify/playback.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   "spotify/albums": typeof spotify_albums;
   "spotify/artists": typeof spotify_artists;
   "spotify/client": typeof spotify_client;
+  "spotify/constants": typeof spotify_constants;
   "spotify/errors": typeof spotify_errors;
   "spotify/mappers": typeof spotify_mappers;
   "spotify/playback": typeof spotify_playback;

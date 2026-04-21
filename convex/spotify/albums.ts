@@ -6,12 +6,11 @@ import { components } from "../_generated/api";
 import { type ActionCtx, internalAction } from "../_generated/server";
 import { requireSpotifyAccessToken } from "../spotifySession";
 import { spotifyFetch } from "./client";
+import { DAY_IN_MS } from "./constants";
 import { SpotifyApiError } from "./errors";
 import { mapTrack, type SpotifyAlbum, type SpotifyApiTrack } from "./mappers";
 import type { SpotifyTrack } from "./types";
 import { spotifyTrackValidator } from "./validators";
-
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 interface AlbumDetailsResponse extends SpotifyAlbum {
   tracks?: {

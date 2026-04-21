@@ -1,6 +1,6 @@
+import { SPOTIFY_API } from "./constants";
 import { SpotifyApiError } from "./errors";
 
-const SPOTIFY_API = "https://api.spotify.com/v1";
 const SPOTIFY_RATE_LIMIT_FALLBACK_MS = 5_000;
 const spotifyRequestCooldowns = new Map<string, number>();
 const spotifyGetRequestsInFlight = new Map<string, Promise<unknown>>();
@@ -31,10 +31,7 @@ function getRequestCooldownKey(method: string, path: string, token: string) {
   return `${method}:${path}:${token}`;
 }
 
-function setRequestCooldown(
-  key: string,
-  retryAfterSeconds?: number | null,
-) {
+function setRequestCooldown(key: string, retryAfterSeconds?: number | null) {
   const durationMs =
     typeof retryAfterSeconds === "number" && retryAfterSeconds > 0
       ? retryAfterSeconds * 1000

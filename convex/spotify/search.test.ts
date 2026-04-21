@@ -8,10 +8,10 @@ vi.mock("./client", () => ({
   spotifyFetch: vi.fn(),
 }));
 
-import { spotifyFetch } from "./client";
-import { SpotifyApiError } from "./errors";
 import { loadAlbumTracks } from "./albums";
 import { loadArtistPage } from "./artists";
+import { spotifyFetch } from "./client";
+import { SpotifyApiError } from "./errors";
 import { loadSearchResults } from "./search";
 
 const mockedSpotifyFetch = vi.mocked(spotifyFetch);
@@ -50,9 +50,7 @@ describe("spotify search loaders", () => {
   it("falls back to a marketless artist page request when profile market lookup is rate limited", async () => {
     const page = createArtistPage();
     mockedSpotifyFetch
-      .mockRejectedValueOnce(
-        new SpotifyApiError(429, "rate limited"),
-      )
+      .mockRejectedValueOnce(new SpotifyApiError(429, "rate limited"))
       .mockResolvedValueOnce({
         id: "artist-1",
         name: "ISIS",
@@ -73,31 +71,29 @@ describe("spotify search loaders", () => {
       });
 
     await expect(
-      runAction<
-        { artistId: string; cacheScope: string },
-        typeof page
-      >(loadArtistPage as unknown as RegisteredAction, {
-        artistId: "artist-1",
-        cacheScope: "user-1",
-      }),
+      runAction<{ artistId: string; cacheScope: string }, typeof page>(
+        loadArtistPage as unknown as RegisteredAction,
+        {
+          artistId: "artist-1",
+          cacheScope: "user-1",
+        },
+      ),
     ).resolves.toEqual(page);
   });
 
   it("returns null for spotify 404 artist misses", async () => {
     mockedSpotifyFetch
       .mockResolvedValueOnce({ country: "US" })
-      .mockRejectedValueOnce(
-        new SpotifyApiError(404, "not found"),
-      );
+      .mockRejectedValueOnce(new SpotifyApiError(404, "not found"));
 
     await expect(
-      runAction<
-        { artistId: string; cacheScope: string },
-        null
-      >(loadArtistPage as unknown as RegisteredAction, {
-        artistId: "missing-artist",
-        cacheScope: "user-1",
-      }),
+      runAction<{ artistId: string; cacheScope: string }, null>(
+        loadArtistPage as unknown as RegisteredAction,
+        {
+          artistId: "missing-artist",
+          cacheScope: "user-1",
+        },
+      ),
     ).resolves.toBeNull();
   });
 

@@ -1,10 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  getArtistPageDataResult,
-  getArtistPageData,
-} from "./artists";
 import { getAlbumTracks } from "./albums";
+import { getArtistPageData, getArtistPageDataResult } from "./artists";
 import { searchSpotify } from "./search";
 
 describe("searchSpotify", () => {
@@ -147,7 +144,10 @@ describe("getArtistPageData", () => {
                   id: "track-4",
                   name: "In Fiction",
                   artists: [{ id: "artist-1", name: "ISIS" }],
-                  album: { name: "Panopticon", images: [{ url: "fiction.jpg" }] },
+                  album: {
+                    name: "Panopticon",
+                    images: [{ url: "fiction.jpg" }],
+                  },
                   duration_ms: 500000,
                   popularity: 85,
                 },
@@ -321,10 +321,13 @@ describe("getArtistPageData", () => {
         ),
       )
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ error: { status: 429, message: "rate limited" } }), {
-          status: 429,
-          headers: { "Retry-After": "30" },
-        }),
+        new Response(
+          JSON.stringify({ error: { status: 429, message: "rate limited" } }),
+          {
+            status: 429,
+            headers: { "Retry-After": "30" },
+          },
+        ),
       );
 
     const result = await getArtistPageDataResult(

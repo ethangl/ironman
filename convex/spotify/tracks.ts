@@ -6,14 +6,14 @@ import { components } from "../_generated/api";
 import { type ActionCtx, internalAction } from "../_generated/server";
 import { requireSpotifyAccessToken } from "../spotifySession";
 import { spotifyFetch } from "./client";
+import { DAY_IN_MS, DEFAULT_LIMIT } from "./constants";
 import { SpotifyApiError } from "./errors";
 import { mapTrack, type SpotifyApiTrack } from "./mappers";
-import type { SpotifyRecentlyPlayedItem, SpotifyRecentlyPlayedResult } from "./types";
+import type {
+  SpotifyRecentlyPlayedItem,
+  SpotifyRecentlyPlayedResult,
+} from "./types";
 import { spotifyRecentlyPlayedResultValidator } from "./validators";
-
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
-
-export const RECENTLY_PLAYED_DEFAULT_LIMIT = 30;
 
 interface RecentlyPlayedResponse {
   items?: {
@@ -22,16 +22,16 @@ interface RecentlyPlayedResponse {
   }[];
 }
 
-const loadRecentlyPlayedRef =
-  anyApi["spotify/tracks"].loadRecentlyPlayed as FunctionReference<
-    "action",
-    "internal",
-    {
-      limit: number;
-      cacheScope: string;
-    },
-    SpotifyRecentlyPlayedResult
-  >;
+const loadRecentlyPlayedRef = anyApi["spotify/tracks"]
+  .loadRecentlyPlayed as FunctionReference<
+  "action",
+  "internal",
+  {
+    limit: number;
+    cacheScope: string;
+  },
+  SpotifyRecentlyPlayedResult
+>;
 
 function toTracksError(error: unknown, fallback: string) {
   if (!(error instanceof SpotifyApiError)) {
@@ -51,7 +51,7 @@ function toTracksError(error: unknown, fallback: string) {
 
 export async function getRecentlyPlayed(
   token: string,
-  limit = RECENTLY_PLAYED_DEFAULT_LIMIT,
+  limit = DEFAULT_LIMIT,
 ): Promise<SpotifyRecentlyPlayedItem[]> {
   const data = await spotifyFetch<RecentlyPlayedResponse>(
     `/me/player/recently-played?limit=${limit}`,
@@ -72,7 +72,7 @@ export async function loadRecentlyPlayedResult(args: {
   limit?: number;
   cacheScope?: string;
 }): Promise<SpotifyRecentlyPlayedResult> {
-  const limit = args.limit ?? RECENTLY_PLAYED_DEFAULT_LIMIT;
+  const limit = args.limit ?? DEFAULT_LIMIT;
 
   try {
     return {

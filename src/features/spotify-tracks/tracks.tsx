@@ -32,11 +32,9 @@ export const Tracks: FC<TracksProps> = ({
       </SectionHeader>
       <SectionContent>
         <List count={tracks.length}>
-          {tracks.map((song, i) => (
+          {tracks.map((song) => (
             <ListItem key={song.id}>
-              <TrackCell count={i + 1} track={song}>
-                {renderTrackAction?.(song)}
-              </TrackCell>
+              <TrackCell track={song}>{renderTrackAction?.(song)}</TrackCell>
             </ListItem>
           ))}
         </List>

@@ -1,4 +1,4 @@
-import { HeartIcon, Trash2Icon } from "lucide-react";
+import { HeartIcon, MetronomeIcon, Trash2Icon } from "lucide-react";
 
 import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { MoreMenu } from "@/components/more-menu";
@@ -15,6 +15,7 @@ import type { RoomDetails } from "../client/room-types";
 import { ResolvedRoomPlayback } from "../runtime/room-sync";
 import { useRooms } from "../runtime/rooms-provider";
 import { RoomNowPlaying } from "./room-now-playing";
+import { RoomPeople } from "./room-people";
 import { RoomQueueList } from "./room-queue-list";
 
 export function RoomQueue({
@@ -30,6 +31,7 @@ export function RoomQueue({
     followRoom,
     moveQueueItem,
     removeQueueItem,
+    repairSync,
     unfollowRoom,
   } = useRooms();
   const canControlPlayback = room.playback.canControlPlayback;
@@ -41,16 +43,14 @@ export function RoomQueue({
         <SectionTitle>
           {room.room.name}
           <nav className="flex gap-2 items-center">
-            <span className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
-              {room.presentCount} in room
-            </span>
-            <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-              {room.memberCount} roles
-            </span>
-            {!room.viewerMembership ? (
+            <RoomPeople people={room.roleHolders} />
+            <Button variant="ghost" size="icon-sm" onClick={repairSync}>
+              <MetronomeIcon />
+            </Button>
+            {!room.viewerMembership && (
               <Button
                 variant={room.viewerFollowsRoom ? "secondary" : "ghost"}
-                size="sm"
+                size="icon-sm"
                 onClick={() =>
                   room.viewerFollowsRoom
                     ? void unfollowRoom(room.room._id)
@@ -58,11 +58,12 @@ export function RoomQueue({
                 }
               >
                 <HeartIcon
-                  className={room.viewerFollowsRoom ? "fill-current" : undefined}
+                  className={
+                    room.viewerFollowsRoom ? "fill-current" : undefined
+                  }
                 />
-                {room.viewerFollowsRoom ? "Following" : "Follow"}
               </Button>
-            ) : null}
+            )}
             {canControlPlayback && (
               <MoreMenu>
                 <DropdownMenuItem

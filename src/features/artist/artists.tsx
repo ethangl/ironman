@@ -1,15 +1,14 @@
 import { FC } from "react";
 
-import { AppLink } from "@/components/app-link";
+import { List, ListLink } from "@/components/list";
 import {
   Section,
   SectionContent,
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import type { SpotifyArtist } from "@/features/spotify-client/types";
-import { Thumbnail } from "./artist-thumbnail";
+import { ArtistCell } from "./artist-cell";
 
 export type ArtistsProps = {
   action?: React.ReactNode;
@@ -26,15 +25,15 @@ export const Artists: FC<ArtistsProps> = ({ action, artists, title }) => {
           {action}
         </SectionTitle>
       </SectionHeader>
-      <ScrollArea>
-        <SectionContent className="flex gap-4 w-max">
+      <SectionContent>
+        <List count={artists.length}>
           {artists.map((artist) => (
-            <AppLink key={artist.id} href={`/artist/${artist.id}`}>
-              <Thumbnail name={artist.name} src={artist.image} />
-            </AppLink>
+            <ListLink key={artist.id} href={`/artist/${artist.id}`}>
+              <ArtistCell artist={artist} />
+            </ListLink>
           ))}
-        </SectionContent>
-      </ScrollArea>
+        </List>
+      </SectionContent>
     </Section>
   );
 };

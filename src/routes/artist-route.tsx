@@ -53,7 +53,7 @@ export function ArtistRoute() {
       <Section className="relative self-stretch">
         <SectionHeader title={artist.name} />
         {artist.image && (
-          <div className="absolute inset-0 mix-blend-overlay opacity-33 overflow-hidden rounded-3xl size-full">
+          <div className="absolute inset-0 mix-blend-overlay opacity-33 overflow-hidden size-full">
             <Shader className="absolute inset-0">
               <Dither colorMode="source" pattern="blueNoise" pixelSize={1}>
                 <ImageTexture url={artist.image} />

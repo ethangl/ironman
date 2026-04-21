@@ -1,6 +1,6 @@
 import { AlbumArt } from "@/components/album-art";
 import { Button } from "@/components/ui/button";
-import { MetronomeIcon, SkipForwardIcon } from "lucide-react";
+import { SkipForwardIcon } from "lucide-react";
 import type { RoomDetails } from "../client/room-types";
 import { formatRoomDuration, toRoomTrack } from "../client/room-utils";
 import { ResolvedRoomPlayback } from "../runtime/room-sync";
@@ -13,11 +13,10 @@ export function RoomNowPlaying({
   resolvedPlayback: ResolvedRoomPlayback | null;
   room: RoomDetails;
 }) {
-  const { activeRoom, openRoom, repairSync, skipRoom } = useRooms();
+  const { skipRoom } = useRooms();
 
   const currentQueueItem = resolvedPlayback?.currentQueueItem ?? null;
   const currentTrack = toRoomTrack(currentQueueItem);
-  const isActiveRoom = activeRoom?.room._id === room.room._id;
   const canControlPlayback = room.playback.canControlPlayback;
 
   return (
@@ -25,32 +24,21 @@ export function RoomNowPlaying({
       <AlbumArt src={currentTrack?.albumImage || null} className="size-16" />
       <div className="flex-1 space-y-1">
         <h2 className="text-2xl font-semibold">
-          {currentTrack?.name ?? "Queue is ready for its next track"}
+          {currentTrack?.name ?? "Queue is empty"}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          {currentTrack
-            ? `${currentTrack.artist} • ${formatRoomDuration(
-                resolvedPlayback?.currentOffsetMs ?? 0,
-              )}`
-            : "Use the search bar above to start filling this room."}
-        </p>
+        {currentTrack && (
+          <p className="text-sm text-muted-foreground">
+            {currentTrack.artist} •
+            {formatRoomDuration(resolvedPlayback?.currentOffsetMs ?? 0)}`
+          </p>
+        )}
       </div>
-      {isActiveRoom ? (
-        <Button variant="ghost" size="sm" onClick={repairSync}>
-          <MetronomeIcon />
-          Sync to room
-        </Button>
-      ) : (
-        <Button onClick={() => void openRoom(room.room._id)}>
-          Listen live
+
+      {canControlPlayback && currentQueueItem && (
+        <Button variant="ghost" onClick={() => void skipRoom(room.room._id)}>
+          <SkipForwardIcon />
         </Button>
       )}
-      {canControlPlayback && currentQueueItem ? (
-        <Button onClick={() => void skipRoom(room.room._id)}>
-          <SkipForwardIcon />
-          Skip
-        </Button>
-      ) : null}
     </div>
   );
 }

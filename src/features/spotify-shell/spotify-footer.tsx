@@ -1,7 +1,7 @@
 import { useAppAuth } from "@/app/app-runtime";
 import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { Avatar } from "@/components/avatar";
-import { Section } from "@/components/section";
+import { SidebarFooter } from "@/components/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +16,7 @@ export function SpotifyFooter() {
   const { signOut } = useAppAuth();
 
   return (
-    <Section className="flex flex-none gap-2 h-14 items-center justify-between px-4">
+    <SidebarFooter>
       <ClearSpotifyCacheButton />
       <DropdownMenu>
         <DropdownMenuTrigger>
@@ -33,6 +33,6 @@ export function SpotifyFooter() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </Section>
+    </SidebarFooter>
   );
 }

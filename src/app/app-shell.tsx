@@ -6,7 +6,13 @@ import { Outlet } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { convexAuthClient as authClient } from "@/lib/convex-auth-client";
 import { getConvexUrl } from "@/lib/convex-env";
-import { FilmGrain, Shader, Swirl, WaveDistortion } from "shaders/react";
+import {
+  FilmGrain,
+  Shader,
+  SimplexNoise,
+  Swirl,
+  WaveDistortion,
+} from "shaders/react";
 import { AppRuntimeProvider } from "./app-runtime";
 
 let cachedConvexClient: ConvexReactClient | null = null;
@@ -36,7 +42,7 @@ export function AppShell() {
               colorA="oklch(14.8% 0.004 228.8)"
               colorB="oklch(21.8% 0.008 223.9)"
               colorSpace="oklch"
-              speed={0.25}
+              speed={0.2}
             />
             <WaveDistortion
               angle={30}
@@ -47,6 +53,12 @@ export function AppShell() {
               strength={0.2}
               visible={true}
               waveType="bounce"
+            />
+            <SimplexNoise
+              scale={8.0}
+              speed={5}
+              blendMode="overlay"
+              opacity={0.4}
             />
             <FilmGrain strength={0.02} />
           </Shader>

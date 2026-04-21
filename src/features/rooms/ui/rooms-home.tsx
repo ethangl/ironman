@@ -6,7 +6,6 @@ import {
 } from "@/components/section";
 import { useRooms } from "../runtime/rooms-provider";
 import { RoomCard } from "./room-card";
-import { RoomCreateForm } from "./room-create-form";
 
 export function RoomsHome() {
   const { activeRoom, rooms, roomsLoading } = useRooms();
@@ -59,7 +58,7 @@ export function RoomsHome() {
           {roomsLoading ? (
             <p className="text-sm text-muted-foreground">Loading rooms...</p>
           ) : discoverRooms.length > 0 ? (
-            <div className="grid gap-3 lg:grid-cols-2">
+            <>
               {discoverRooms.map((roomSummary) => (
                 <RoomCard
                   key={roomSummary.room._id}
@@ -67,7 +66,7 @@ export function RoomsHome() {
                   active={activeRoomId === roomSummary.room._id}
                 />
               ))}
-            </div>
+            </>
           ) : (
             <p className="text-sm text-muted-foreground">
               There are no public rooms to discover right now.
@@ -75,7 +74,6 @@ export function RoomsHome() {
           )}
         </SectionContent>
       </Section>
-      <RoomCreateForm />
     </>
   );
 }

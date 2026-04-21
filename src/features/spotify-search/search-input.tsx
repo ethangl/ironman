@@ -15,7 +15,7 @@ export function SearchInput() {
   return (
     <div
       className={cn(
-        "absolute ease-elastic flex h-full left-0 items-center justify-center transition-all z-7",
+        "ease-elastic flex h-full items-center justify-center -mx-4 relative transition-all z-7",
         expanded ? "duration-1000 w-full" : "duration-444 w-16",
       )}
     >
@@ -29,7 +29,7 @@ export function SearchInput() {
         onBlur={() => setIsFocused(false)}
         onFocus={() => setIsFocused(true)}
         onValueChange={(v) => setQuery(v)}
-        placeholder="Search Spotify for songs, artists, or playlists..."
+        placeholder="Search Spotify..."
         className={cn(
           "duration-444 ease-elastic h-12 mx-2 text-lg! transition-all w-full",
           expanded

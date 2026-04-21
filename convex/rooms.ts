@@ -393,7 +393,6 @@ function resolveRoomPlaybackProjection(
     return {
       currentQueueItem: null,
       currentQueueItemId: null,
-      currentQueueItemIndex: -1,
       playedQueueItems: [] as RoomQueueItemDoc[],
       resolvedPlaybackState,
       visibleQueueItems: [...queueItems],
@@ -408,7 +407,6 @@ function resolveRoomPlaybackProjection(
     return {
       currentQueueItem: null,
       currentQueueItemId: null,
-      currentQueueItemIndex: -1,
       playedQueueItems: [...queueItems],
       resolvedPlaybackState,
       visibleQueueItems: [] as RoomQueueItemDoc[],
@@ -418,7 +416,6 @@ function resolveRoomPlaybackProjection(
   return {
     currentQueueItem: queueItems[currentQueueItemIndex] ?? null,
     currentQueueItemId: queueItems[currentQueueItemIndex]?._id ?? null,
-    currentQueueItemIndex,
     playedQueueItems: queueItems.slice(0, currentQueueItemIndex),
     resolvedPlaybackState,
     visibleQueueItems: queueItems.slice(currentQueueItemIndex + 1),
@@ -484,7 +481,6 @@ async function compactRoomQueuePlayback(
 
   return {
     ...projection,
-    currentQueueItemIndex: projection.currentQueueItem ? 0 : -1,
     currentQueueItemId: desiredCurrentQueueItemId,
     queueItems: retainedQueueItems,
     resolvedPlaybackState: {
@@ -501,6 +497,31 @@ async function compactRoomQueuePlayback(
     visibleQueueItems: projection.currentQueueItem
       ? retainedQueueItems.slice(1)
       : retainedQueueItems,
+  };
+}
+
+async function loadCompactedRoomState<TContext extends { room: RoomDoc }>(
+  ctx: MutationCtx,
+  roomContextPromise: Promise<TContext>,
+  now: number = Date.now(),
+) {
+  const roomContext = await roomContextPromise;
+  const [queueItems, playbackState] = await Promise.all([
+    getActiveQueueItems(ctx, roomContext.room._id),
+    getPlaybackStateDoc(ctx, roomContext.room._id),
+  ]);
+  const projection = await compactRoomQueuePlayback(
+    ctx,
+    playbackState,
+    queueItems,
+    now,
+  );
+
+  return {
+    now,
+    playbackState,
+    projection,
+    roomContext,
   };
 }
 
@@ -746,18 +767,11 @@ export const leave = mutation({
 export const enqueueTrack = mutation({
   args: enqueueTrackArgsValidator,
   handler: async (ctx, args) => {
-    const memberContext = await requireActiveMemberContext(ctx, args.roomId);
-    const [queueItems, playbackState] = await Promise.all([
-      getActiveQueueItems(ctx, memberContext.room._id),
-      getPlaybackStateDoc(ctx, memberContext.room._id),
-    ]);
-    const now = Date.now();
-    const projection = await compactRoomQueuePlayback(
-      ctx,
-      playbackState,
-      queueItems,
-      now,
-    );
+    const { now, playbackState, projection, roomContext: memberContext } =
+      await loadCompactedRoomState(
+        ctx,
+        requireActiveMemberContext(ctx, args.roomId),
+      );
     const [queueItemId] = await insertQueuedTracks(
       ctx,
       memberContext.room._id,
@@ -796,18 +810,11 @@ export const enqueueTracks = mutation({
       throw new Error("Add at least one track to queue a playlist.");
     }
 
-    const memberContext = await requireActiveMemberContext(ctx, args.roomId);
-    const [queueItems, playbackState] = await Promise.all([
-      getActiveQueueItems(ctx, memberContext.room._id),
-      getPlaybackStateDoc(ctx, memberContext.room._id),
-    ]);
-    const now = Date.now();
-    const projection = await compactRoomQueuePlayback(
-      ctx,
-      playbackState,
-      queueItems,
-      now,
-    );
+    const { now, playbackState, projection, roomContext: memberContext } =
+      await loadCompactedRoomState(
+        ctx,
+        requireActiveMemberContext(ctx, args.roomId),
+      );
     const queueItemIds = await insertQueuedTracks(
       ctx,
       memberContext.room._id,
@@ -841,18 +848,11 @@ export const removeQueueItem = mutation({
     queueItemId: v.id("roomQueueItems"),
   },
   handler: async (ctx, args) => {
-    const memberContext = await requireActiveMemberContext(ctx, args.roomId);
-    const [queueItems, playbackState] = await Promise.all([
-      getActiveQueueItems(ctx, memberContext.room._id),
-      getPlaybackStateDoc(ctx, memberContext.room._id),
-    ]);
-    const now = Date.now();
-    const projection = await compactRoomQueuePlayback(
-      ctx,
-      playbackState,
-      queueItems,
-      now,
-    );
+    const { now, projection, roomContext: memberContext } =
+      await loadCompactedRoomState(
+        ctx,
+        requireActiveMemberContext(ctx, args.roomId),
+      );
     const queueItem = projection.visibleQueueItems.find(
       (item) => item._id === args.queueItemId,
     );
@@ -900,17 +900,8 @@ export const moveQueueItem = mutation({
     targetIndex: v.number(),
   },
   handler: async (ctx, args) => {
-    const moderatorContext = await requireModeratorContext(ctx, args.roomId);
-    const [queueItems, playbackState] = await Promise.all([
-      getActiveQueueItems(ctx, moderatorContext.room._id),
-      getPlaybackStateDoc(ctx, moderatorContext.room._id),
-    ]);
-    const projection = await compactRoomQueuePlayback(
-      ctx,
-      playbackState,
-      queueItems,
-      Date.now(),
-    );
+    const { projection, roomContext: moderatorContext } =
+      await loadCompactedRoomState(ctx, requireModeratorContext(ctx, args.roomId));
 
     const reorderedQueueItemIds = moveRoomQueueItemIds(
       projection.visibleQueueItems.map((queueItem) => queueItem._id),
@@ -951,18 +942,8 @@ export const clearQueue = mutation({
     roomId: v.id("rooms"),
   },
   handler: async (ctx, args) => {
-    const moderatorContext = await requireModeratorContext(ctx, args.roomId);
-    const [queueItems, playbackState] = await Promise.all([
-      getActiveQueueItems(ctx, moderatorContext.room._id),
-      getPlaybackStateDoc(ctx, moderatorContext.room._id),
-    ]);
-    const now = Date.now();
-    const projection = await compactRoomQueuePlayback(
-      ctx,
-      playbackState,
-      queueItems,
-      now,
-    );
+    const { now, playbackState, projection, roomContext: moderatorContext } =
+      await loadCompactedRoomState(ctx, requireModeratorContext(ctx, args.roomId));
 
     for (const queueItem of projection.visibleQueueItems) {
       await ctx.db.patch(queueItem._id, {
@@ -995,18 +976,8 @@ export const play = mutation({
     offsetMs: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const moderatorContext = await requireModeratorContext(ctx, args.roomId);
-    const [queueItems, playbackState] = await Promise.all([
-      getActiveQueueItems(ctx, moderatorContext.room._id),
-      getPlaybackStateDoc(ctx, moderatorContext.room._id),
-    ]);
-    const now = Date.now();
-    const projection = await compactRoomQueuePlayback(
-      ctx,
-      playbackState,
-      queueItems,
-      now,
-    );
+    const { now, playbackState, projection, roomContext: moderatorContext } =
+      await loadCompactedRoomState(ctx, requireModeratorContext(ctx, args.roomId));
     const playbackQueueItems = projection.currentQueueItem
       ? [projection.currentQueueItem, ...projection.visibleQueueItems]
       : projection.visibleQueueItems;
@@ -1069,18 +1040,8 @@ export const pause = mutation({
     roomId: v.id("rooms"),
   },
   handler: async (ctx, args) => {
-    const moderatorContext = await requireModeratorContext(ctx, args.roomId);
-    const [queueItems, playbackState] = await Promise.all([
-      getActiveQueueItems(ctx, moderatorContext.room._id),
-      getPlaybackStateDoc(ctx, moderatorContext.room._id),
-    ]);
-    const now = Date.now();
-    const projection = await compactRoomQueuePlayback(
-      ctx,
-      playbackState,
-      queueItems,
-      now,
-    );
+    const { now, playbackState, projection, roomContext: moderatorContext } =
+      await loadCompactedRoomState(ctx, requireModeratorContext(ctx, args.roomId));
     const currentQueueItemId = projection.currentQueueItemId;
 
     await syncRoomPlaybackState(ctx, playbackState, {
@@ -1109,18 +1070,8 @@ export const resume = mutation({
     roomId: v.id("rooms"),
   },
   handler: async (ctx, args) => {
-    const moderatorContext = await requireModeratorContext(ctx, args.roomId);
-    const [queueItems, playbackState] = await Promise.all([
-      getActiveQueueItems(ctx, moderatorContext.room._id),
-      getPlaybackStateDoc(ctx, moderatorContext.room._id),
-    ]);
-    const now = Date.now();
-    const projection = await compactRoomQueuePlayback(
-      ctx,
-      playbackState,
-      queueItems,
-      now,
-    );
+    const { now, playbackState, projection, roomContext: moderatorContext } =
+      await loadCompactedRoomState(ctx, requireModeratorContext(ctx, args.roomId));
     const currentQueueItemId = projection.currentQueueItemId;
 
     if (!currentQueueItemId) {
@@ -1149,18 +1100,8 @@ export const skip = mutation({
     roomId: v.id("rooms"),
   },
   handler: async (ctx, args) => {
-    const moderatorContext = await requireModeratorContext(ctx, args.roomId);
-    const [queueItems, playbackState] = await Promise.all([
-      getActiveQueueItems(ctx, moderatorContext.room._id),
-      getPlaybackStateDoc(ctx, moderatorContext.room._id),
-    ]);
-    const now = Date.now();
-    const projection = await compactRoomQueuePlayback(
-      ctx,
-      playbackState,
-      queueItems,
-      now,
-    );
+    const { now, playbackState, projection, roomContext: moderatorContext } =
+      await loadCompactedRoomState(ctx, requireModeratorContext(ctx, args.roomId));
     const nextQueueItem = projection.visibleQueueItems[0] ?? null;
 
     if (projection.currentQueueItem) {

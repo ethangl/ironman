@@ -8,12 +8,11 @@ import {
   useState,
 } from "react";
 
-import {
-  RECENTLY_PLAYED_LIMIT,
-  spotifyActivityClient,
-} from "@/features/spotify/client";
+import { RECENTLY_PLAYED_LIMIT } from "@/features/spotify/client";
 import type { SpotifyTrack } from "@/types";
 import type { RecentTrack } from "@/types/spotify-activity";
+import { api } from "@api";
+import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify/client/spotify-convex-client";
 
 function dedupeRecent(raw: RecentTrack[]) {
   const seen = new Set<string>();
@@ -80,7 +79,10 @@ export function useSpotifyRecentlyPlayedState({
       }
 
       try {
-        const recentlyPlayed = await spotifyActivityClient.getRecentlyPlayed();
+        const client = await getAuthenticatedSpotifyConvexClient();
+        const recentlyPlayed = await client.action(api.spotify.recentlyPlayed, {
+          limit: RECENTLY_PLAYED_LIMIT,
+        });
         if (requestVersionRef.current !== requestVersion) {
           return;
         }

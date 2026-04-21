@@ -1,6 +1,6 @@
 import {
   createContext,
-  ReactNode,
+  type ReactNode,
   useContext,
   useEffect,
   useRef,
@@ -8,9 +8,10 @@ import {
 } from "react";
 import { useLocation } from "react-router-dom";
 
-import { spotifySearchClient } from "@/features/spotify/client";
 import { useDebounce } from "@/hooks/use-debounce";
 import { SpotifySearchResults } from "@/types";
+import { api } from "@api";
+import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify/client/spotify-convex-client";
 
 const EMPTY_RESULTS: SpotifySearchResults = {
   tracks: [],
@@ -73,8 +74,12 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
 
-    void spotifySearchClient
-      .searchResults(trimmed)
+    void getAuthenticatedSpotifyConvexClient()
+      .then((client) =>
+        client.action(api.spotify.search, {
+          query: trimmed,
+        }),
+      )
       .then((nextResults) => {
         if (requestVersionRef.current !== requestVersion) {
           return;

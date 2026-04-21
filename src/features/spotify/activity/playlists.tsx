@@ -11,8 +11,9 @@ import {
 } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { useOptionalRooms } from "@/features/rooms";
-import { spotifyActivityClient } from "@/features/spotify/client";
+import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify/client/spotify-convex-client";
 import type { SpotifyPlaylist, SpotifyTrack } from "@/types";
+import { api } from "@api";
 import { PlaylistCell } from "./playlist-cell";
 import { usePlayableTrackCollection } from "./use-playable-track-collection";
 
@@ -29,7 +30,11 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => {
 
   const loadTracks = useCallback(
     async (playlist: SpotifyPlaylist): Promise<SpotifyTrack[]> => {
-      return spotifyActivityClient.getPlaylistTracks(playlist.id);
+      const client = await getAuthenticatedSpotifyConvexClient();
+
+      return client.action(api.spotify.playlistTracks, {
+        playlistId: playlist.id,
+      });
     },
     [],
   );

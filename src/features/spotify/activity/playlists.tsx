@@ -34,12 +34,14 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => {
     [],
   );
 
-  const { getCachedTracks, loadItemTracks, loadingItemId, playItem } =
-    usePlayableTrackCollection<SpotifyPlaylist, SpotifyTrack>({
-      emptyMessage: "That playlist does not have any playable tracks.",
-      fallbackErrorMessage: "Could not load playlist tracks.",
-      loadTracks,
-    });
+  const { loadItemTracks, loadingItemId, playItem } = usePlayableTrackCollection<
+    SpotifyPlaylist,
+    SpotifyTrack
+  >({
+    emptyMessage: "That playlist does not have any playable tracks.",
+    fallbackErrorMessage: "Could not load playlist tracks.",
+    loadTracks,
+  });
   const canEnqueueToActiveRoom =
     !!activeRoom?.playback.canEnqueue && !!enqueueTracks;
 
@@ -89,7 +91,7 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => {
                     ? `${playlist.trackCount} songs by ${playlist.owner}`
                     : `${playlist.trackCount} songs`
                 }
-                tracks={getCachedTracks(playlist.id)}
+                tracks={[]}
                 onPlay={() => void playItem(playlist)}
               >
                 {canEnqueueToActiveRoom ? (

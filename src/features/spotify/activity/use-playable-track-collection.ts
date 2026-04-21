@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { useWebPlayerActions } from "@/features/spotify/player";
@@ -22,24 +22,12 @@ export function usePlayableTrackCollection<
 }) {
   const { playTracks } = useWebPlayerActions();
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
-  const tracksByIdRef = useRef(new Map<string, TTrack[]>());
-
-  const getCachedTracks = useCallback((itemId: string) => {
-    return tracksByIdRef.current.get(itemId) ?? [];
-  }, []);
 
   const loadItemTracks = useCallback(
     async (item: TItem) => {
-      const cached = tracksByIdRef.current.get(item.id);
-      if (cached) {
-        return cached;
-      }
-
       setLoadingItemId(item.id);
       try {
-        const tracks = await loadTracks(item);
-        tracksByIdRef.current.set(item.id, tracks);
-        return tracks;
+        return await loadTracks(item);
       } finally {
         setLoadingItemId((current) => (current === item.id ? null : current));
       }
@@ -68,7 +56,6 @@ export function usePlayableTrackCollection<
   );
 
   return {
-    getCachedTracks,
     loadItemTracks,
     loadingItemId,
     playItem,

@@ -1,143 +1,93 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 
-import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { useRoomDetails, useRoomList } from "../client/room-hooks";
-import type { RoomDetails, RoomId, RoomSummary } from "../client/room-types";
+import { type RoomDetails, type RoomSummary } from "../client/room-types";
 import { RoomsContext, type RoomsContextValue } from "./rooms-context";
 import type { ResolvedRoomPlayback } from "./room-sync";
 import { useRoomActions } from "./use-room-actions";
+import { useRoomPageState } from "./use-room-page-state";
 import { useRoomSyncController } from "./use-room-sync-controller";
-
-const ACTIVE_ROOM_STORAGE_KEY = "rooms.activeRoomId";
-
-function readActiveRoomId() {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const roomId = window.localStorage.getItem(ACTIVE_ROOM_STORAGE_KEY);
-  return roomId as RoomId | null;
-}
 
 interface RoomRuntimeState {
   activeRoom: RoomDetails | null;
-  activeRoomId: RoomId | null;
   activeRoomLoading: boolean;
+  roomId: Parameters<ReturnType<typeof useRoomPageState>["openRoom"]>[0] | null;
   resolvedPlayback: ResolvedRoomPlayback | null;
   rooms: RoomSummary[];
   roomsLoading: boolean;
-  selectActiveRoom: (roomId: RoomId | null) => void;
+  closeRoom: () => Promise<void>;
+  openRoom: (roomId: Parameters<ReturnType<typeof useRoomPageState>["openRoom"]>[0]) => Promise<void>;
 }
 
-function useRoomRuntimeState(sessionUserId: string | null): RoomRuntimeState {
+function useRoomRuntimeState(): RoomRuntimeState {
   const roomsQuery = useRoomList();
-  const [activeRoomId, setActiveRoomId] = useState<RoomId | null>(() =>
-    readActiveRoomId(),
-  );
-  const activeRoomQuery = useRoomDetails(activeRoomId ?? undefined);
+  const { closeRoom, openRoom, roomId } = useRoomPageState();
+  const activeRoomQuery = useRoomDetails(roomId ?? undefined);
   const activeRoom = activeRoomQuery.data?.viewerMembership
     ? activeRoomQuery.data
     : null;
-  const hasActiveRoomData = activeRoomQuery.data !== null;
-  const hasActiveMembership = !!activeRoomQuery.data?.viewerMembership;
-
-  useEffect(() => {
-    if (!sessionUserId) {
-      setActiveRoomId(null);
-    }
-  }, [sessionUserId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    if (!activeRoomId) {
-      window.localStorage.removeItem(ACTIVE_ROOM_STORAGE_KEY);
-      return;
-    }
-
-    window.localStorage.setItem(ACTIVE_ROOM_STORAGE_KEY, activeRoomId);
-  }, [activeRoomId]);
-
-  useEffect(() => {
-    if (activeRoomId && activeRoomQuery.notFound) {
-      setActiveRoomId(null);
-    }
-  }, [activeRoomId, activeRoomQuery.notFound]);
-
-  useEffect(() => {
-    if (activeRoomQuery.loading || !hasActiveRoomData) {
-      return;
-    }
-
-    if (!hasActiveMembership) {
-      setActiveRoomId(null);
-    }
-  }, [activeRoomQuery.loading, hasActiveMembership, hasActiveRoomData]);
-
-  const selectActiveRoom = useCallback((roomId: RoomId | null) => {
-    setActiveRoomId(roomId);
-  }, []);
 
   return useMemo(
     () => ({
       activeRoom,
-      activeRoomId,
       activeRoomLoading: activeRoomQuery.loading,
+      closeRoom,
+      openRoom,
+      roomId,
       resolvedPlayback: activeRoomQuery.resolvedPlayback,
       rooms: roomsQuery.data ?? [],
       roomsLoading: roomsQuery.loading,
-      selectActiveRoom,
     }),
     [
       activeRoom,
-      activeRoomId,
       activeRoomQuery.loading,
       activeRoomQuery.resolvedPlayback,
+      closeRoom,
+      openRoom,
+      roomId,
       roomsQuery.data,
       roomsQuery.loading,
-      selectActiveRoom,
     ],
   );
 }
 
 export function RoomsProvider({ children }: { children: ReactNode }) {
-  const session = useAuthenticatedSession();
-  const runtime = useRoomRuntimeState(session.user.id);
+  const runtime = useRoomRuntimeState();
   const sync = useRoomSyncController({
     activeRoom: runtime.activeRoom,
+    roomId: runtime.roomId,
     resolvedPlayback: runtime.resolvedPlayback,
   });
   const actions = useRoomActions({
-    activeRoomId: runtime.activeRoomId,
+    roomId: runtime.roomId,
+    closeRoom: runtime.closeRoom,
     onJoinRoom: sync.requestSync,
-    selectActiveRoom: runtime.selectActiveRoom,
+    openRoom: runtime.openRoom,
   });
 
   const value = useMemo<RoomsContextValue>(
     () => ({
       activeRoom: runtime.activeRoom,
       activeRoomLoading: runtime.activeRoomLoading,
+      closeRoom: actions.closeRoom,
       clearQueue: actions.clearQueue,
       createRoom: actions.createRoom,
       enqueueTrack: actions.enqueueTrack,
       enqueueTracks: actions.enqueueTracks,
-      isListeningToRoom: sync.isListeningToRoom,
       joinRoom: actions.joinRoom,
       leaveRoom: actions.leaveRoom,
       moveQueueItem: actions.moveQueueItem,
+      openRoom: actions.openRoom,
       removeQueueItem: actions.removeQueueItem,
       repairSync: sync.repairSync,
       resolvedPlayback: runtime.resolvedPlayback,
       rooms: runtime.rooms,
       roomsLoading: runtime.roomsLoading,
-      selectActiveRoom: runtime.selectActiveRoom,
       skipRoom: actions.skipRoom,
-      stopListening: sync.stopListening,
       syncState: sync.syncState,
     }),
     [
+      actions.closeRoom,
       actions.clearQueue,
       actions.createRoom,
       actions.enqueueTrack,
@@ -145,17 +95,16 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
       actions.joinRoom,
       actions.leaveRoom,
       actions.moveQueueItem,
+      actions.openRoom,
       actions.removeQueueItem,
       actions.skipRoom,
       runtime.activeRoom,
       runtime.activeRoomLoading,
+      runtime.roomId,
       runtime.resolvedPlayback,
       runtime.rooms,
       runtime.roomsLoading,
-      runtime.selectActiveRoom,
-      sync.isListeningToRoom,
       sync.repairSync,
-      sync.stopListening,
       sync.syncState,
     ],
   );

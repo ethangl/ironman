@@ -14,7 +14,7 @@ export function RoomCard({
   active: boolean;
   roomSummary: RoomSummary;
 }) {
-  const { joinRoom, selectActiveRoom } = useRooms();
+  const { joinRoom, openRoom } = useRooms();
   const isJoined = !!roomSummary.viewerMembership;
 
   return (
@@ -47,7 +47,7 @@ export function RoomCard({
             variant={isJoined ? "secondary" : "default"}
             onClick={() =>
               isJoined
-                ? selectActiveRoom(roomSummary.room._id)
+                ? void openRoom(roomSummary.room._id)
                 : void joinRoom(roomSummary.room._id)
             }
           >

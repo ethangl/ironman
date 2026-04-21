@@ -18,11 +18,10 @@ export function MiniPlayer() {
   const nowPlaying = useNowPlaying();
   const rooms = useOptionalRooms();
   const activeRoom = rooms?.activeRoom ?? null;
-  const isListeningToRoom = rooms?.isListeningToRoom ?? true;
+  const closeRoom = rooms?.closeRoom;
   const repairSync = rooms?.repairSync;
   const resolvedPlayback = rooms?.resolvedPlayback ?? null;
   const skipRoom = rooms?.skipRoom;
-  const stopListening = rooms?.stopListening;
   const syncState = rooms?.syncState ?? {
     code: "idle",
     label: "Not listening to a room",
@@ -33,8 +32,7 @@ export function MiniPlayer() {
   const canControlPlayback = !!activeRoom?.playback.canControlPlayback;
   const hasRoomTrack = !!resolvedPlayback?.currentQueueItem;
   const roomPaused = resolvedPlayback?.paused ?? false;
-  const canToggleListening =
-    hasRoomTrack && !roomPaused;
+  const canToggleListening = hasRoomTrack;
   const displayImage = activeRoom
     ? roomTrack?.albumImage ?? null
     : nowPlaying.displayImage;
@@ -61,16 +59,11 @@ export function MiniPlayer() {
       return;
     }
 
-    if (isListeningToRoom) {
-      if (!stopListening) {
-        return;
-      }
-
-      void stopListening();
+    if (!closeRoom) {
       return;
     }
 
-    repairSync?.();
+    void closeRoom();
   };
 
   return (
@@ -122,7 +115,7 @@ export function MiniPlayer() {
                 size="icon-sm"
                 className="bg-white/10 hover:bg-white/5"
                 disabled={!canToggleListening}
-                playing={canToggleListening && isListeningToRoom}
+                playing={canToggleListening && !roomPaused}
                 onClick={handleRoomToggle}
               />
               {canControlPlayback ? (

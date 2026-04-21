@@ -8,11 +8,9 @@ import {
 } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useRoomPageState } from "../runtime/use-room-page-state";
 import { useRooms } from "../runtime/rooms-provider";
 
 export function RoomCreateForm() {
-  const { openRoom } = useRoomPageState();
   const { createRoom } = useRooms();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -26,17 +24,16 @@ export function RoomCreateForm() {
 
     setSubmitting(true);
     try {
-      const roomId = await createRoom({
+      const createdRoomId = await createRoom({
         name,
         description,
       });
-      if (!roomId) {
+      if (!createdRoomId) {
         return;
       }
 
       setName("");
       setDescription("");
-      await openRoom(roomId);
     } finally {
       setSubmitting(false);
     }

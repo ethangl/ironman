@@ -34,15 +34,17 @@ function toQueuedTrack(track: SpotifyTrack) {
 }
 
 interface UseRoomActionsOptions {
-  activeRoomId: RoomId | null;
-  onJoinRoom: (roomId: RoomId) => void;
-  selectActiveRoom: (roomId: RoomId | null) => void;
+  roomId: RoomId | null;
+  closeRoom: () => Promise<void>;
+  onJoinRoom: (roomId?: RoomId | null) => void;
+  openRoom: (roomId: RoomId) => Promise<void>;
 }
 
 export function useRoomActions({
-  activeRoomId,
+  roomId,
+  closeRoom,
   onJoinRoom,
-  selectActiveRoom,
+  openRoom,
 }: UseRoomActionsOptions) {
   const createRoomMutation = useMutation(api.rooms.create);
   const joinRoomMutation = useMutation(api.rooms.join);
@@ -62,7 +64,7 @@ export function useRoomActions({
           description: description?.trim() || undefined,
         });
         const roomId = result.roomId as RoomId;
-        selectActiveRoom(roomId);
+        await openRoom(roomId);
         onJoinRoom(roomId);
         return roomId;
       } catch (error) {
@@ -70,64 +72,64 @@ export function useRoomActions({
         return null;
       }
     },
-    [createRoomMutation, onJoinRoom, selectActiveRoom],
+    [createRoomMutation, onJoinRoom, openRoom],
   );
 
   const joinRoom = useCallback(
     async (roomId: RoomId) => {
       try {
         await joinRoomMutation({ roomId });
-        selectActiveRoom(roomId);
+        await openRoom(roomId);
         onJoinRoom(roomId);
       } catch (error) {
         reportRoomError(error);
       }
     },
-    [joinRoomMutation, onJoinRoom, selectActiveRoom],
+    [joinRoomMutation, onJoinRoom, openRoom],
   );
 
   const leaveRoom = useCallback(
-    async (roomId?: RoomId | null) => {
-      const nextRoomId = roomId ?? activeRoomId;
-      if (!nextRoomId) {
+    async (nextRoomId?: RoomId | null) => {
+      const targetRoomId = nextRoomId ?? roomId;
+      if (!targetRoomId) {
         return;
       }
 
       try {
-        await leaveRoomMutation({ roomId: nextRoomId });
-        if (nextRoomId === activeRoomId) {
-          selectActiveRoom(null);
+        await leaveRoomMutation({ roomId: targetRoomId });
+        if (targetRoomId === roomId) {
+          await closeRoom();
         }
       } catch (error) {
         reportRoomError(error);
       }
     },
-    [activeRoomId, leaveRoomMutation, selectActiveRoom],
+    [closeRoom, leaveRoomMutation, roomId],
   );
 
   const enqueueTrack = useCallback(
-    async (track: SpotifyTrack, roomId?: RoomId | null) => {
-      const nextRoomId = getRequiredRoomId(roomId ?? activeRoomId);
-      if (!nextRoomId) {
+    async (track: SpotifyTrack, nextRoomId?: RoomId | null) => {
+      const targetRoomId = getRequiredRoomId(nextRoomId ?? roomId);
+      if (!targetRoomId) {
         return;
       }
 
       try {
         await enqueueTrackMutation({
-          roomId: nextRoomId,
+          roomId: targetRoomId,
           ...toQueuedTrack(track),
         });
       } catch (error) {
         reportRoomError(error);
       }
     },
-    [activeRoomId, enqueueTrackMutation],
+    [enqueueTrackMutation, roomId],
   );
 
   const enqueueTracks = useCallback(
-    async (tracks: SpotifyTrack[], roomId?: RoomId | null) => {
-      const nextRoomId = getRequiredRoomId(roomId ?? activeRoomId);
-      if (!nextRoomId) {
+    async (tracks: SpotifyTrack[], nextRoomId?: RoomId | null) => {
+      const targetRoomId = getRequiredRoomId(nextRoomId ?? roomId);
+      if (!targetRoomId) {
         return;
       }
 
@@ -138,14 +140,14 @@ export function useRoomActions({
 
       try {
         await enqueueTracksMutation({
-          roomId: nextRoomId,
+          roomId: targetRoomId,
           tracks: tracks.map(toQueuedTrack),
         });
       } catch (error) {
         reportRoomError(error);
       }
     },
-    [activeRoomId, enqueueTracksMutation],
+    [enqueueTracksMutation, roomId],
   );
 
   const removeQueueItem = useCallback(
@@ -197,6 +199,7 @@ export function useRoomActions({
   );
 
   return {
+    closeRoom,
     clearQueue,
     createRoom,
     enqueueTrack,
@@ -204,6 +207,7 @@ export function useRoomActions({
     joinRoom,
     leaveRoom,
     moveQueueItem,
+    openRoom,
     removeQueueItem,
     skipRoom,
   };

@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { RoomDetails } from "../client/room-types";
@@ -114,7 +114,7 @@ describe("useRoomSyncController", () => {
     };
   });
 
-  it("stops following room updates until the listener explicitly syncs again", async () => {
+  it("follows room updates until the room closes, then stops local playback", async () => {
     const initialRoom = createRoomDetails();
     const nextRoom = {
       ...createRoomDetails(),
@@ -138,17 +138,26 @@ describe("useRoomSyncController", () => {
       },
     };
 
-    const { result, rerender } = renderHook(
-      ({ activeRoom, resolvedPlayback }) =>
+    type HookProps = {
+      activeRoom: RoomDetails | null;
+      resolvedPlayback: ReturnType<typeof resolveRoomPlayback>;
+    };
+
+    const { result, rerender } = renderHook<
+      ReturnType<typeof useRoomSyncController>,
+      HookProps
+    >(
+      ({ activeRoom, resolvedPlayback }: HookProps) =>
         useRoomSyncController({
           activeRoom,
+          roomId: activeRoom?.room._id ?? null,
           resolvedPlayback,
         }),
       {
         initialProps: {
           activeRoom: initialRoom,
           resolvedPlayback: resolveRoomPlayback(initialRoom, 40_000),
-        },
+        } satisfies HookProps,
       },
     );
 
@@ -161,30 +170,9 @@ describe("useRoomSyncController", () => {
 
     syncTrack.mockClear();
 
-    await act(async () => {
-      await result.current.stopListening();
-    });
-
-    expect(result.current.isListeningToRoom).toBe(false);
-    expect(result.current.syncState).toMatchObject({
-      code: "detached",
-      label: "Stopped listening",
-    });
-    expect(togglePlay).toHaveBeenCalledTimes(1);
-
     rerender({
       activeRoom: nextRoom,
       resolvedPlayback: resolveRoomPlayback(nextRoom, 220_000),
-    });
-
-    await waitFor(() => {
-      expect(result.current.syncState.code).toBe("detached");
-    });
-
-    expect(syncTrack).not.toHaveBeenCalled();
-
-    act(() => {
-      result.current.repairSync();
     });
 
     await waitFor(() => {
@@ -194,6 +182,27 @@ describe("useRoomSyncController", () => {
       );
     });
 
-    expect(result.current.isListeningToRoom).toBe(true);
+    expect(result.current.syncState).toMatchObject({
+      code: "synced",
+      label: "Following room",
+    });
+
+    syncTrack.mockClear();
+    togglePlay.mockClear();
+
+    rerender({
+      activeRoom: null,
+      resolvedPlayback: null,
+    });
+
+    await waitFor(() => {
+      expect(togglePlay).toHaveBeenCalledTimes(1);
+    });
+
+    expect(syncTrack).not.toHaveBeenCalled();
+    expect(result.current.syncState).toMatchObject({
+      code: "idle",
+      label: "Not listening to a room",
+    });
   });
 });

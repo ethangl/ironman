@@ -13,7 +13,6 @@ import type { ResolvedRoomPlayback } from "./room-sync";
 export interface RoomsContextValue {
   activeRoom: RoomDetails | null;
   activeRoomLoading: boolean;
-  isListeningToRoom: boolean;
   resolvedPlayback: ResolvedRoomPlayback | null;
   rooms: RoomSummary[];
   roomsLoading: boolean;
@@ -22,9 +21,10 @@ export interface RoomsContextValue {
     name: string;
     description?: string;
   }) => Promise<RoomId | null>;
+  openRoom: (roomId: RoomId) => Promise<void>;
+  closeRoom: () => Promise<void>;
   joinRoom: (roomId: RoomId) => Promise<void>;
   leaveRoom: (roomId?: RoomId | null) => Promise<void>;
-  selectActiveRoom: (roomId: RoomId | null) => void;
   enqueueTrack: (track: SpotifyTrack, roomId?: RoomId | null) => Promise<void>;
   enqueueTracks: (
     tracks: SpotifyTrack[],
@@ -42,7 +42,6 @@ export interface RoomsContextValue {
   clearQueue: (roomId: RoomId) => Promise<void>;
   skipRoom: (roomId: RoomId) => Promise<void>;
   repairSync: () => void;
-  stopListening: () => Promise<void>;
 }
 
 export const RoomsContext = createContext<RoomsContextValue | null>(null);

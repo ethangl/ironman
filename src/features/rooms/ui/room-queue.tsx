@@ -1,4 +1,4 @@
-import { HeartCrackIcon, HeartIcon, Trash2Icon } from "lucide-react";
+import { HeartIcon, Trash2Icon } from "lucide-react";
 
 import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { MoreMenu } from "@/components/more-menu";
@@ -25,9 +25,15 @@ export function RoomQueue({
   resolvedPlayback: ResolvedRoomPlayback | null;
 }) {
   const session = useAuthenticatedSession();
-  const { clearQueue, joinRoom, leaveRoom, moveQueueItem, removeQueueItem } =
-    useRooms();
+  const {
+    clearQueue,
+    followRoom,
+    moveQueueItem,
+    removeQueueItem,
+    unfollowRoom,
+  } = useRooms();
   const canControlPlayback = room.playback.canControlPlayback;
+  const canManageOwnQueueItems = !!room.viewerMembership;
 
   return (
     <Section>
@@ -35,26 +41,28 @@ export function RoomQueue({
         <SectionTitle>
           {room.room.name}
           <nav className="flex gap-2 items-center">
-            <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-              {room.memberCount} listening
+            <span className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-[11px] font-medium text-emerald-200">
+              {room.presentCount} in room
             </span>
-            {room.viewerMembership ? (
+            <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+              {room.memberCount} roles
+            </span>
+            {!room.viewerMembership ? (
               <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => void leaveRoom(room.room._id)}
+                variant={room.viewerFollowsRoom ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() =>
+                  room.viewerFollowsRoom
+                    ? void unfollowRoom(room.room._id)
+                    : void followRoom(room.room._id)
+                }
               >
-                <HeartIcon />
+                <HeartIcon
+                  className={room.viewerFollowsRoom ? "fill-current" : undefined}
+                />
+                {room.viewerFollowsRoom ? "Following" : "Follow"}
               </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => void joinRoom(room.room._id)}
-              >
-                <HeartCrackIcon />
-              </Button>
-            )}
+            ) : null}
             {canControlPlayback && (
               <MoreMenu>
                 <DropdownMenuItem
@@ -78,8 +86,9 @@ export function RoomQueue({
           currentQueueItemId={resolvedPlayback?.currentQueueItemId ?? null}
           canManageQueue={room.playback.canManageQueue}
           canRemoveQueueItem={(queueItem) =>
-            room.playback.canManageQueue ||
-            queueItem.addedByUserId === session.user.id
+            canManageOwnQueueItems &&
+            (room.playback.canManageQueue ||
+              queueItem.addedByUserId === session.user.id)
           }
           onMove={(nextRoomId, queueItemId, targetIndex) =>
             void moveQueueItem(nextRoomId, queueItemId, targetIndex)

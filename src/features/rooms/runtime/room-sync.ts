@@ -74,26 +74,16 @@ export function resolveRoomPlayback(
 }
 
 export function getRoomSyncState({
-  hasActiveMembership,
-  isListeningToRoom = true,
+  hasActiveRoom,
   resolvedPlayback,
 }: {
-  hasActiveMembership: boolean;
-  isListeningToRoom?: boolean;
+  hasActiveRoom: boolean;
   resolvedPlayback: ResolvedRoomPlayback | null;
 }): RoomSyncState {
-  if (!hasActiveMembership || !resolvedPlayback) {
+  if (!hasActiveRoom || !resolvedPlayback) {
     return {
       code: "idle",
       label: "Not listening to a room",
-      driftMs: null,
-    };
-  }
-
-  if (!isListeningToRoom) {
-    return {
-      code: "detached",
-      label: "Stopped listening",
       driftMs: null,
     };
   }

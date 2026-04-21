@@ -1,71 +1,109 @@
 import { useMemo, type ReactNode } from "react";
 
-import { useAuthenticatedSession } from "@/app/require-authenticated-session";
+import { useRoomDetails, useRoomList } from "../client/room-hooks";
+import { type RoomDetails, type RoomSummary } from "../client/room-types";
 import { RoomsContext, type RoomsContextValue } from "./rooms-context";
-import { useRoomMembershipActions } from "./use-room-membership-actions";
-import { useRoomPlaybackActions } from "./use-room-playback-actions";
-import { useRoomQueueActions } from "./use-room-queue-actions";
-import { useRoomRuntimeState } from "./use-room-runtime-state";
+import type { ResolvedRoomPlayback } from "./room-sync";
+import { useRoomActions } from "./use-room-actions";
+import { useRoomPageState } from "./use-room-page-state";
+import { useRoomPresence } from "./use-room-presence";
 import { useRoomSyncController } from "./use-room-sync-controller";
 
+interface RoomRuntimeState {
+  activeRoom: RoomDetails | null;
+  activeRoomLoading: boolean;
+  roomId: Parameters<ReturnType<typeof useRoomPageState>["openRoom"]>[0] | null;
+  resolvedPlayback: ResolvedRoomPlayback | null;
+  rooms: RoomSummary[];
+  roomsLoading: boolean;
+  closeRoom: () => Promise<void>;
+  openRoom: (roomId: Parameters<ReturnType<typeof useRoomPageState>["openRoom"]>[0]) => Promise<void>;
+}
+
+function useRoomRuntimeState(): RoomRuntimeState {
+  const roomsQuery = useRoomList();
+  const { closeRoom, openRoom, roomId } = useRoomPageState();
+  const activeRoomQuery = useRoomDetails(roomId ?? undefined);
+  const activeRoom = activeRoomQuery.data;
+
+  return useMemo(
+    () => ({
+      activeRoom,
+      activeRoomLoading: activeRoomQuery.loading,
+      closeRoom,
+      openRoom,
+      roomId,
+      resolvedPlayback: activeRoomQuery.resolvedPlayback,
+      rooms: roomsQuery.data ?? [],
+      roomsLoading: roomsQuery.loading,
+    }),
+    [
+      activeRoom,
+      activeRoomQuery.loading,
+      activeRoomQuery.resolvedPlayback,
+      closeRoom,
+      openRoom,
+      roomId,
+      roomsQuery.data,
+      roomsQuery.loading,
+    ],
+  );
+}
+
 export function RoomsProvider({ children }: { children: ReactNode }) {
-  const session = useAuthenticatedSession();
-  const runtime = useRoomRuntimeState(session.user.id);
+  const runtime = useRoomRuntimeState();
+  useRoomPresence(runtime.activeRoom?.room._id ?? null);
   const sync = useRoomSyncController({
     activeRoom: runtime.activeRoom,
+    roomId: runtime.roomId,
     resolvedPlayback: runtime.resolvedPlayback,
   });
-  const membership = useRoomMembershipActions({
-    activeRoomId: runtime.activeRoomId,
-    onJoinRoom: sync.requestSync,
-    selectActiveRoom: runtime.selectActiveRoom,
+  const actions = useRoomActions({
+    roomId: runtime.roomId,
+    closeRoom: runtime.closeRoom,
+    openRoom: runtime.openRoom,
   });
-  const queue = useRoomQueueActions(runtime.activeRoomId);
-  const playback = useRoomPlaybackActions();
 
   const value = useMemo<RoomsContextValue>(
     () => ({
       activeRoom: runtime.activeRoom,
-      activeRoomId: runtime.activeRoomId,
       activeRoomLoading: runtime.activeRoomLoading,
-      clearQueue: queue.clearQueue,
-      createRoom: membership.createRoom,
-      enqueueTrack: queue.enqueueTrack,
-      enqueueTracks: queue.enqueueTracks,
-      isListeningToRoom: sync.isListeningToRoom,
-      joinRoom: membership.joinRoom,
-      leaveRoom: membership.leaveRoom,
-      moveQueueItem: queue.moveQueueItem,
-      removeQueueItem: queue.removeQueueItem,
+      closeRoom: actions.closeRoom,
+      clearQueue: actions.clearQueue,
+      createRoom: actions.createRoom,
+      enqueueTrack: actions.enqueueTrack,
+      enqueueTracks: actions.enqueueTracks,
+      followRoom: actions.followRoom,
+      moveQueueItem: actions.moveQueueItem,
+      openRoom: actions.openRoom,
+      removeQueueItem: actions.removeQueueItem,
       repairSync: sync.repairSync,
       resolvedPlayback: runtime.resolvedPlayback,
       rooms: runtime.rooms,
       roomsLoading: runtime.roomsLoading,
-      selectActiveRoom: runtime.selectActiveRoom,
-      skipRoom: playback.skipRoom,
-      stopListening: sync.stopListening,
+      skipRoom: actions.skipRoom,
       syncState: sync.syncState,
+      unfollowRoom: actions.unfollowRoom,
     }),
     [
-      membership.createRoom,
-      membership.joinRoom,
-      membership.leaveRoom,
-      playback.skipRoom,
-      queue.clearQueue,
-      queue.enqueueTrack,
-      queue.enqueueTracks,
-      queue.moveQueueItem,
-      queue.removeQueueItem,
+      actions.closeRoom,
+      actions.clearQueue,
+      actions.createRoom,
+      actions.enqueueTrack,
+      actions.enqueueTracks,
+      actions.followRoom,
+      actions.moveQueueItem,
+      actions.openRoom,
+      actions.removeQueueItem,
+      actions.skipRoom,
+      actions.unfollowRoom,
       runtime.activeRoom,
-      runtime.activeRoomId,
       runtime.activeRoomLoading,
+      runtime.roomId,
       runtime.resolvedPlayback,
       runtime.rooms,
       runtime.roomsLoading,
-      runtime.selectActiveRoom,
-      sync.isListeningToRoom,
       sync.repairSync,
-      sync.stopListening,
       sync.syncState,
     ],
   );

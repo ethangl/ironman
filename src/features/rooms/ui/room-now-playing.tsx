@@ -13,16 +13,11 @@ export function RoomNowPlaying({
   resolvedPlayback: ResolvedRoomPlayback | null;
   room: RoomDetails;
 }) {
-  const {
-    activeRoomId,
-    repairSync,
-    selectActiveRoom,
-    skipRoom,
-  } = useRooms();
+  const { activeRoom, openRoom, repairSync, skipRoom } = useRooms();
 
   const currentQueueItem = resolvedPlayback?.currentQueueItem ?? null;
   const currentTrack = toRoomTrack(currentQueueItem);
-  const isActiveRoom = activeRoomId === room.room._id;
+  const isActiveRoom = activeRoom?.room._id === room.room._id;
   const canControlPlayback = room.playback.canControlPlayback;
 
   return (
@@ -46,7 +41,7 @@ export function RoomNowPlaying({
           Sync to room
         </Button>
       ) : (
-        <Button onClick={() => selectActiveRoom(room.room._id)}>
+        <Button onClick={() => void openRoom(room.room._id)}>
           Listen live
         </Button>
       )}

@@ -14,6 +14,7 @@ const roomDetails: RoomDetails = {
     createdAt: 1_000,
     archivedAt: null,
   },
+  viewerFollowsRoom: false,
   viewerMembership: {
     _id: "membership-1",
     role: "member",
@@ -22,6 +23,28 @@ const roomDetails: RoomDetails = {
     leftAt: null,
   },
   memberCount: 2,
+  presentCount: 1,
+  presentUsers: [
+    {
+      userId: "user-1",
+      name: "User One",
+      image: null,
+    },
+  ],
+  roleHolders: [
+    {
+      userId: "user-1",
+      name: "User One",
+      image: null,
+      role: "member",
+    },
+    {
+      userId: "user-2",
+      name: "User Two",
+      image: null,
+      role: "moderator",
+    },
+  ],
   queueLength: 2,
   queue: [
     {
@@ -50,25 +73,6 @@ const roomDetails: RoomDetails = {
     },
   ],
   playback: {
-    room: {
-      _id: "room-1" as never,
-      slug: "midnight-room",
-      name: "Midnight Room",
-      description: "Late-night queue",
-      visibility: "public",
-      ownerUserId: "user-1",
-      createdAt: 1_000,
-      archivedAt: null,
-    },
-    viewerMembership: {
-      _id: "membership-1",
-      role: "member",
-      active: true,
-      joinedAt: 1_000,
-      leftAt: null,
-    },
-    memberCount: 2,
-    queueLength: 2,
     currentQueueItemId: "queue-1" as never,
     currentQueueItem: {
       _id: "queue-1" as never,
@@ -82,7 +86,6 @@ const roomDetails: RoomDetails = {
       addedByUserId: "user-1",
       addedAt: 1_000,
     },
-    expectedOffsetMs: 30_000,
     startedAt: 10_000,
     startOffsetMs: 0,
     paused: false,
@@ -109,7 +112,7 @@ describe("room-sync", () => {
 
     expect(
       getRoomSyncState({
-        hasActiveMembership: true,
+        hasActiveRoom: true,
         resolvedPlayback,
       }),
     ).toMatchObject({
@@ -123,7 +126,7 @@ describe("room-sync", () => {
 
     expect(
       getRoomSyncState({
-        hasActiveMembership: true,
+        hasActiveRoom: true,
         resolvedPlayback,
       }),
     ).toMatchObject({
@@ -163,7 +166,6 @@ describe("room-sync", () => {
         ...roomDetails.playback,
         currentQueueItemId: null,
         currentQueueItem: null,
-        expectedOffsetMs: 0,
         startedAt: null,
         startOffsetMs: 0,
         paused: true,

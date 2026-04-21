@@ -11,7 +11,7 @@ import { RoomStatusBadge } from "./room-status-badge";
 export function RoomPlayerPanel() {
   const {
     activeRoom,
-    leaveRoom,
+    closeRoom,
     moveQueueItem,
     removeQueueItem,
     repairSync,
@@ -26,6 +26,7 @@ export function RoomPlayerPanel() {
   }
 
   const canControlPlayback = activeRoom.playback.canControlPlayback;
+  const canManageOwnQueueItems = !!activeRoom.viewerMembership;
   const currentQueueItem = resolvedPlayback?.currentQueueItem ?? null;
 
   return (
@@ -71,9 +72,9 @@ export function RoomPlayerPanel() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => void leaveRoom(activeRoom.room._id)}
+          onClick={() => void closeRoom()}
         >
-          Leave room
+          Stop listening
         </Button>
       </div>
 
@@ -86,8 +87,9 @@ export function RoomPlayerPanel() {
           currentQueueItemId={resolvedPlayback?.currentQueueItemId ?? null}
           canManageQueue={activeRoom.playback.canManageQueue}
           canRemoveQueueItem={(queueItem) =>
-            activeRoom.playback.canManageQueue ||
-            queueItem.addedByUserId === session.user.id
+            canManageOwnQueueItems &&
+            (activeRoom.playback.canManageQueue ||
+              queueItem.addedByUserId === session.user.id)
           }
           onMove={(roomId, queueItemId, targetIndex) =>
             void moveQueueItem(roomId, queueItemId, targetIndex)

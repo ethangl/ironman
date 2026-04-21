@@ -63,6 +63,7 @@ function createRoomsValue(
         createdAt: 1,
         archivedAt: null,
       },
+      viewerFollowsRoom: false,
       viewerMembership: {
         _id: "membership-1",
         role: "member",
@@ -71,31 +72,33 @@ function createRoomsValue(
         leftAt: null,
       },
       memberCount: 2,
+      presentCount: 1,
+      presentUsers: [
+        {
+          userId: "user-1",
+          name: "User One",
+          image: null,
+        },
+      ],
+      roleHolders: [
+        {
+          userId: "user-1",
+          name: "User One",
+          image: null,
+          role: "member",
+        },
+        {
+          userId: "user-2",
+          name: "User Two",
+          image: null,
+          role: "moderator",
+        },
+      ],
       queueLength: 0,
       queue: [],
       playback: {
-        room: {
-          _id: "room-1" as never,
-          slug: "night-shift",
-          name: "Night Shift",
-          description: null,
-          visibility: "public",
-          ownerUserId: "user-1",
-          createdAt: 1,
-          archivedAt: null,
-        },
-        viewerMembership: {
-          _id: "membership-1",
-          role: "member",
-          active: true,
-          joinedAt: 1,
-          leftAt: null,
-        },
-        memberCount: 2,
-        queueLength: 0,
         currentQueueItemId: null,
         currentQueueItem: null,
-        expectedOffsetMs: 0,
         startedAt: null,
         startOffsetMs: 0,
         paused: true,
@@ -106,29 +109,27 @@ function createRoomsValue(
         canControlPlayback: false,
       },
     },
-    activeRoomId: "room-1" as never,
     activeRoomLoading: false,
     clearQueue: vi.fn(),
     createRoom: vi.fn(),
     enqueueTrack: vi.fn(),
     enqueueTracks: (...args: unknown[]) => mockEnqueueTracks(...args),
-    isListeningToRoom: false,
-    joinRoom: vi.fn(),
-    leaveRoom: vi.fn(),
+    followRoom: vi.fn(),
     moveQueueItem: vi.fn(),
+    openRoom: vi.fn(),
+    closeRoom: vi.fn(),
     removeQueueItem: vi.fn(),
     repairSync: vi.fn(),
     resolvedPlayback: null,
     rooms: [],
     roomsLoading: false,
-    selectActiveRoom: vi.fn(),
     skipRoom: vi.fn(),
-    stopListening: vi.fn(),
     syncState: {
       code: "idle",
       label: "Idle",
       driftMs: null,
     },
+    unfollowRoom: vi.fn(),
     ...overrides,
   };
 }
@@ -239,7 +240,6 @@ describe("Playlists", () => {
     renderPlaylists({
       rooms: {
         activeRoom: null,
-        activeRoomId: null,
       },
     });
 

@@ -25,6 +25,16 @@ export interface RoomMembershipSnapshot {
   leftAt: number | null;
 }
 
+export interface RoomUserSnapshot {
+  userId: string;
+  name: string;
+  image: string | null;
+}
+
+export interface RoomRoleHolderSnapshot extends RoomUserSnapshot {
+  role: RoomRole;
+}
+
 export interface RoomQueueItem {
   _id: RoomQueueItemId;
   roomId: RoomId;
@@ -40,17 +50,13 @@ export interface RoomQueueItem {
 
 export interface RoomSummary {
   room: RoomSnapshot;
+  viewerFollowsRoom: boolean;
   viewerMembership: RoomMembershipSnapshot | null;
 }
 
 export interface RoomPlaybackSnapshot {
-  room: RoomSnapshot;
-  viewerMembership: RoomMembershipSnapshot | null;
-  memberCount: number;
-  queueLength: number;
   currentQueueItemId: RoomQueueItemId | null;
   currentQueueItem: RoomQueueItem | null;
-  expectedOffsetMs: number;
   startedAt: number | null;
   startOffsetMs: number;
   paused: boolean;
@@ -63,8 +69,12 @@ export interface RoomPlaybackSnapshot {
 
 export interface RoomDetails {
   room: RoomSnapshot;
+  viewerFollowsRoom: boolean;
   viewerMembership: RoomMembershipSnapshot | null;
   memberCount: number;
+  presentCount: number;
+  presentUsers: RoomUserSnapshot[];
+  roleHolders: RoomRoleHolderSnapshot[];
   queueLength: number;
   queue: RoomQueueItem[];
   playback: RoomPlaybackSnapshot;
@@ -72,7 +82,6 @@ export interface RoomDetails {
 
 export type RoomSyncCode =
   | "idle"
-  | "detached"
   | "queue_empty"
   | "paused"
   | "syncing"

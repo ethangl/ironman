@@ -8,7 +8,7 @@ import { convexAuthClient as authClient } from "@/lib/convex-auth-client";
 import { getConvexUrl } from "@/lib/convex-env";
 import { FilmGrain, Shader, Swirl, WaveDistortion } from "shaders/react";
 import { AppRuntimeProvider } from "./app-runtime";
-import { getConvexReactClient } from "./convex-react-client";
+import { getConvexReactClient } from "./lib/convex-react-client";
 
 export function AppShell() {
   const convexUrl = getConvexUrl("the Vite app shell");

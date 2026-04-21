@@ -1,4 +1,4 @@
-import { convexAuthClient as authClient } from "./convex-auth-client";
+import { convexAuthClient as authClient } from "../../lib/convex-auth-client";
 
 const TOKEN_EXPIRY_SKEW_MS = 30_000;
 const FALLBACK_TOKEN_TTL_MS = 60_000;

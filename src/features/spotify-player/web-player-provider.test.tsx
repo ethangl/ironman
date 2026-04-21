@@ -3,10 +3,10 @@ import { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppRuntimeProvider } from "@/app";
-import { SpotifyActivityProvider } from "@/features/spotify-shell";
+import { clearCachedSpotifyAccessToken } from "@/app/lib/spotify-access-token";
+import { clearCachedSpotifyAccountLink } from "@/app/lib/spotify-account-link";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
-import { clearCachedSpotifyAccessToken } from "@/lib/spotify-access-token";
-import { clearCachedSpotifyAccountLink } from "@/lib/spotify-account-link";
+import { SpotifyActivityProvider } from "@/features/spotify-shell";
 import { getFunctionName } from "convex/server";
 import { usePlayerQueueListing } from "./use-player-queue-listing";
 import { useWebPlayerActions, useWebPlayerState } from "./use-web-player";
@@ -138,7 +138,10 @@ function QueueListingProbe() {
 }
 
 interface SpotifyActivityOverrides {
-  getFavoriteArtists?: (limit?: number, forceRefresh?: boolean) => Promise<
+  getFavoriteArtists?: (
+    limit?: number,
+    forceRefresh?: boolean,
+  ) => Promise<
     Array<{
       id: string;
       name: string;

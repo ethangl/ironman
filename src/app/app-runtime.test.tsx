@@ -3,8 +3,8 @@ import { ReactNode } from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { clearCachedSpotifyAccessToken } from "@/lib/spotify-access-token";
-import { clearCachedSpotifyAccountLink } from "@/lib/spotify-account-link";
+import { clearCachedSpotifyAccessToken } from "@/app/lib/spotify-access-token";
+import { clearCachedSpotifyAccountLink } from "@/app/lib/spotify-account-link";
 import { AppRuntimeProvider, useAppRuntime } from "./app-runtime";
 
 const mockUseSession = vi.fn();

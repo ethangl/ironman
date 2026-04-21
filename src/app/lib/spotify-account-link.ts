@@ -1,4 +1,4 @@
-import { convexAuthClient as authClient } from "./convex-auth-client";
+import { convexAuthClient as authClient } from "../../lib/convex-auth-client";
 
 type LinkedAccount = { providerId: string };
 

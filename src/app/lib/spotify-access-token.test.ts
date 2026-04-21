@@ -11,7 +11,7 @@ vi.mock("@/lib/convex-auth-client", () => ({
 import {
   clearCachedSpotifyAccessToken,
   getCachedSpotifyAccessToken,
-} from "./spotify-access-token";
+} from "../../lib/spotify-access-token";
 
 function createDeferred<T>() {
   let resolve!: (value: T) => void;
@@ -88,8 +88,12 @@ describe("getCachedSpotifyAccessToken", () => {
         },
       });
 
-    await expect(getCachedSpotifyAccessToken("user-1")).resolves.toBe("token-1");
-    await expect(getCachedSpotifyAccessToken("user-2")).resolves.toBe("token-2");
+    await expect(getCachedSpotifyAccessToken("user-1")).resolves.toBe(
+      "token-1",
+    );
+    await expect(getCachedSpotifyAccessToken("user-2")).resolves.toBe(
+      "token-2",
+    );
 
     expect(mockGetAccessToken).toHaveBeenCalledTimes(2);
   });

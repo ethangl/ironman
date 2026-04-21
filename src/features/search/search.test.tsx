@@ -8,12 +8,9 @@ import {
 import { MemoryRouter, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  spotifyActivityClient,
-  spotifySearchClient,
-  type SearchClient,
-  type SpotifyActivityClient,
-} from "@/features/spotify/client";
+import type { SpotifySearchResults, SpotifyTrack } from "@/types";
+import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify/client/spotify-convex-client";
+import { getFunctionName } from "convex/server";
 import { SearchInput } from "./search-input";
 import { SearchProvider } from "./search-provider";
 import { SearchResults } from "./search-results";
@@ -22,6 +19,10 @@ const mockPlayTrack = vi.fn();
 const mockPlayTracks = vi.fn();
 const mockToastError = vi.fn();
 const mockScrollTo = vi.fn();
+
+vi.mock("@/features/spotify/client/spotify-convex-client", () => ({
+  getAuthenticatedSpotifyConvexClient: vi.fn(),
+}));
 
 vi.mock("@/features/spotify/player", () => ({
   PlaylistCell: ({
@@ -102,43 +103,49 @@ vi.mock("sonner", () => ({
   },
 }));
 
+interface SearchOverrides {
+  searchResults?: (query: string) => Promise<SpotifySearchResults>;
+}
+
+interface SpotifyReadOverrides {
+  getPlaylistTracks?: (playlistId: string) => Promise<SpotifyTrack[]>;
+}
+
 function renderSearch(
   overrides: {
-    search?: Partial<SearchClient>;
-    spotifyActivity?: Partial<SpotifyActivityClient>;
+    search?: SearchOverrides;
+    spotifyReads?: SpotifyReadOverrides;
   } = {},
   options?: { extraUi?: React.ReactNode },
 ) {
-  vi.spyOn(spotifySearchClient, "searchResults").mockImplementation(
+  const searchResults =
     overrides.search?.searchResults ??
-      vi.fn().mockResolvedValue({
-        tracks: [],
-        playlists: [],
-        artists: [],
-      }),
-  );
-  vi.spyOn(spotifySearchClient, "searchTracks").mockImplementation(
-    overrides.search?.searchTracks ?? vi.fn().mockResolvedValue([]),
-  );
-  vi.spyOn(spotifyActivityClient, "getFavoriteArtists").mockImplementation(
-    overrides.spotifyActivity?.getFavoriteArtists ??
-      vi.fn().mockResolvedValue([]),
-  );
-  vi.spyOn(spotifyActivityClient, "getRecentlyPlayed").mockImplementation(
-    overrides.spotifyActivity?.getRecentlyPlayed ??
-      vi.fn().mockResolvedValue({ items: [], rateLimited: false }),
-  );
-  vi.spyOn(spotifyActivityClient, "getPlaylistsPage").mockImplementation(
-    overrides.spotifyActivity?.getPlaylistsPage ??
-      vi.fn().mockResolvedValue({ items: [], total: 0 }),
-  );
-  vi.spyOn(spotifyActivityClient, "getPlaylistTracks").mockImplementation(
-    overrides.spotifyActivity?.getPlaylistTracks ??
-      vi.fn().mockResolvedValue([]),
-  );
-  vi.spyOn(spotifyActivityClient, "getTopArtists").mockImplementation(
-    overrides.spotifyActivity?.getTopArtists ?? vi.fn().mockResolvedValue([]),
-  );
+    vi.fn().mockResolvedValue({
+      tracks: [],
+      playlists: [],
+      artists: [],
+    });
+  const getPlaylistTracks =
+    overrides.spotifyReads?.getPlaylistTracks ??
+    vi.fn().mockResolvedValue([]);
+
+  const action = vi.fn((ref: unknown, args: unknown) => {
+    const functionName = getFunctionName(ref as never);
+
+    if (functionName === "spotify:search") {
+      return searchResults((args as { query: string }).query);
+    }
+
+    if (functionName === "spotify:playlistTracks") {
+      return getPlaylistTracks((args as { playlistId: string }).playlistId);
+    }
+
+    throw new Error(`Unexpected Spotify action: ${functionName}`);
+  });
+
+  vi.mocked(getAuthenticatedSpotifyConvexClient).mockResolvedValue({
+    action,
+  } as never);
 
   return render(
     <MemoryRouter initialEntries={["/home"]}>
@@ -216,7 +223,6 @@ describe("search", () => {
             },
           ],
         }),
-        searchTracks: vi.fn().mockResolvedValue([]),
       },
     });
     await searchFor("isis");
@@ -238,7 +244,6 @@ describe("search", () => {
         searchResults: vi
           .fn()
           .mockRejectedValue(new Error("Could not search Spotify right now.")),
-        searchTracks: vi.fn().mockResolvedValue([]),
       },
     });
     await searchFor("isis");
@@ -268,14 +273,8 @@ describe("search", () => {
           ],
           artists: [],
         }),
-        searchTracks: vi.fn().mockResolvedValue([]),
       },
-      spotifyActivity: {
-        getFavoriteArtists: vi.fn().mockResolvedValue([]),
-        getRecentlyPlayed: vi
-          .fn()
-          .mockResolvedValue({ items: [], rateLimited: false }),
-        getPlaylistsPage: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+      spotifyReads: {
         getPlaylistTracks: vi.fn().mockResolvedValue([
           {
             id: "track-1",
@@ -285,7 +284,6 @@ describe("search", () => {
             durationMs: 640000,
           },
         ]),
-        getTopArtists: vi.fn().mockResolvedValue([]),
       },
     });
     await searchFor("heavy");
@@ -328,7 +326,6 @@ describe("search", () => {
               },
             ],
           }),
-          searchTracks: vi.fn().mockResolvedValue([]),
         },
       },
       { extraUi: <NavigateButton /> },

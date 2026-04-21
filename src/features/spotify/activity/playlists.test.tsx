@@ -2,19 +2,21 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  spotifyActivityClient,
-  type SpotifyActivityClient,
-} from "@/features/spotify/client";
-import {
   RoomsContext,
   type RoomsContextValue,
 } from "@/features/rooms/runtime/rooms-context";
+import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify/client/spotify-convex-client";
+import { getFunctionName } from "convex/server";
 import { Playlists } from "./playlists";
 
 const mockPlayTracks = vi.fn();
 const mockToastError = vi.fn();
 const mockEnqueueTracks = vi.fn();
 const mockGetPlaylistTracks = vi.fn();
+
+vi.mock("@/features/spotify/client/spotify-convex-client", () => ({
+  getAuthenticatedSpotifyConvexClient: vi.fn(),
+}));
 
 vi.mock("@/features/spotify/player", () => ({
   useWebPlayerActions: () => ({
@@ -41,6 +43,10 @@ vi.mock("sonner", () => ({
     error: (...args: unknown[]) => mockToastError(...args),
   },
 }));
+
+interface SpotifyReadOverrides {
+  getPlaylistTracks?: (playlistId: string) => Promise<unknown[]>;
+}
 
 function createRoomsValue(
   overrides: Partial<RoomsContextValue> = {},
@@ -129,28 +135,25 @@ function createRoomsValue(
 
 function renderPlaylists(options?: {
   rooms?: Partial<RoomsContextValue> | null;
-  spotifyActivity?: Partial<SpotifyActivityClient>;
+  spotifyActivity?: SpotifyReadOverrides;
 }) {
-  vi.spyOn(spotifyActivityClient, "getFavoriteArtists").mockImplementation(
-    options?.spotifyActivity?.getFavoriteArtists ??
-      vi.fn().mockResolvedValue([]),
-  );
-  vi.spyOn(spotifyActivityClient, "getRecentlyPlayed").mockImplementation(
-    options?.spotifyActivity?.getRecentlyPlayed ??
-      vi.fn().mockResolvedValue({ items: [], rateLimited: false }),
-  );
-  vi.spyOn(spotifyActivityClient, "getPlaylistsPage").mockImplementation(
-    options?.spotifyActivity?.getPlaylistsPage ??
-      vi.fn().mockResolvedValue({ items: [], total: 0 }),
-  );
-  vi.spyOn(spotifyActivityClient, "getPlaylistTracks").mockImplementation(
+  const getPlaylistTracks =
     options?.spotifyActivity?.getPlaylistTracks ??
-      ((...args: unknown[]) => mockGetPlaylistTracks(...args)),
-  );
-  vi.spyOn(spotifyActivityClient, "getTopArtists").mockImplementation(
-    options?.spotifyActivity?.getTopArtists ??
-      vi.fn().mockResolvedValue([]),
-  );
+    ((...args: unknown[]) => mockGetPlaylistTracks(...args));
+
+  const action = vi.fn((ref: unknown, args: unknown) => {
+    const functionName = getFunctionName(ref as never);
+
+    if (functionName === "spotify:playlistTracks") {
+      return getPlaylistTracks((args as { playlistId: string }).playlistId);
+    }
+
+    throw new Error(`Unexpected Spotify action: ${functionName}`);
+  });
+
+  vi.mocked(getAuthenticatedSpotifyConvexClient).mockResolvedValue({
+    action,
+  } as never);
 
   const content = (
     <Playlists

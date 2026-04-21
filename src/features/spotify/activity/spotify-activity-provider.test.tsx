@@ -7,24 +7,25 @@ import {
 } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  PLAYLIST_PAGE_SIZE,
-  RECENTLY_PLAYED_LIMIT,
-  spotifyActivityClient,
-} from "@/features/spotify/client";
+import { PLAYLIST_PAGE_SIZE, RECENTLY_PLAYED_LIMIT } from "@/features/spotify/client";
 import {
   useSpotifyFavoriteArtists,
   useSpotifyPlaylists,
   useSpotifyRecentlyPlayed,
 } from "@/features/spotify/activity";
 import type { SpotifyTrack } from "@/types";
-import type { SpotifyActivityClient } from "@/features/spotify/client/spotify-activity-client";
+import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify/client/spotify-convex-client";
+import { getFunctionName } from "convex/server";
 import { SpotifyActivityProvider } from "./spotify-activity-provider";
 
 vi.mock("@/app", () => ({
   useAppCapabilities: () => ({
     canBrowsePersonalSpotify: true,
   }),
+}));
+
+vi.mock("@/features/spotify/client/spotify-convex-client", () => ({
+  getAuthenticatedSpotifyConvexClient: vi.fn(),
 }));
 
 function createDeferred<T>() {
@@ -98,24 +99,71 @@ function ActivityConsumer() {
   );
 }
 
-function renderProvider(overrides: Partial<SpotifyActivityClient> = {}) {
-  vi.spyOn(spotifyActivityClient, "getFavoriteArtists").mockImplementation(
-    overrides.getFavoriteArtists ?? vi.fn().mockResolvedValue([]),
-  );
-  vi.spyOn(spotifyActivityClient, "getRecentlyPlayed").mockImplementation(
+interface SpotifyActivityOverrides {
+  getFavoriteArtists?: (limit?: number, forceRefresh?: boolean) => Promise<
+    Array<{
+      id: string;
+      name: string;
+      image: string | null;
+      followerCount: number;
+      genres: string[];
+    }>
+  >;
+  getRecentlyPlayed?: () => Promise<{ items: unknown[]; rateLimited: boolean }>;
+  getPlaylistsPage?: (
+    limit?: number,
+    offset?: number,
+    forceRefresh?: boolean,
+  ) => Promise<{ items: ReturnType<typeof playlist>[]; total: number }>;
+  getPlaylistTracks?: (playlistId: string) => Promise<SpotifyTrack[]>;
+}
+
+function renderProvider(overrides: SpotifyActivityOverrides = {}) {
+  const getFavoriteArtists =
+    overrides.getFavoriteArtists ?? vi.fn().mockResolvedValue([]);
+  const getRecentlyPlayed =
     overrides.getRecentlyPlayed ??
-      vi.fn().mockResolvedValue({ items: [], rateLimited: false }),
-  );
-  vi.spyOn(spotifyActivityClient, "getPlaylistsPage").mockImplementation(
+    vi.fn().mockResolvedValue({ items: [], rateLimited: false });
+  const getPlaylistsPage =
     overrides.getPlaylistsPage ??
-      vi.fn().mockResolvedValue({ items: [], total: 0 }),
-  );
-  vi.spyOn(spotifyActivityClient, "getPlaylistTracks").mockImplementation(
-    overrides.getPlaylistTracks ?? vi.fn().mockResolvedValue([]),
-  );
-  vi.spyOn(spotifyActivityClient, "getTopArtists").mockImplementation(
-    overrides.getTopArtists ?? vi.fn().mockResolvedValue([]),
-  );
+    vi.fn().mockResolvedValue({ items: [], total: 0 });
+  const getPlaylistTracks =
+    overrides.getPlaylistTracks ?? vi.fn().mockResolvedValue([]);
+
+  const action = vi.fn((ref: unknown, args: unknown) => {
+    const functionName = getFunctionName(ref as never);
+
+    if (functionName === "spotify:favoriteArtists") {
+      const { limit, forceRefresh } = args as {
+        limit: number;
+        forceRefresh?: boolean;
+      };
+      return getFavoriteArtists(limit, forceRefresh);
+    }
+
+    if (functionName === "spotify:recentlyPlayed") {
+      return getRecentlyPlayed();
+    }
+
+    if (functionName === "spotify:playlistsPage") {
+      const { limit, offset, forceRefresh } = args as {
+        limit: number;
+        offset: number;
+        forceRefresh?: boolean;
+      };
+      return getPlaylistsPage(limit, offset, forceRefresh);
+    }
+
+    if (functionName === "spotify:playlistTracks") {
+      return getPlaylistTracks((args as { playlistId: string }).playlistId);
+    }
+
+    throw new Error(`Unexpected Spotify action: ${functionName}`);
+  });
+
+  vi.mocked(getAuthenticatedSpotifyConvexClient).mockResolvedValue({
+    action,
+  } as never);
 
   return render(
     <>
@@ -167,9 +215,21 @@ describe("SpotifyActivityProvider", () => {
     fireEvent.click(loadMore);
     fireEvent.click(loadMore);
 
-    expect(getPlaylistsPage).toHaveBeenCalledTimes(2);
-    expect(getPlaylistsPage).toHaveBeenNthCalledWith(1, PLAYLIST_PAGE_SIZE, 0);
-    expect(getPlaylistsPage).toHaveBeenNthCalledWith(2, PLAYLIST_PAGE_SIZE, 1);
+    await waitFor(() => {
+      expect(getPlaylistsPage).toHaveBeenCalledTimes(2);
+    });
+    expect(getPlaylistsPage).toHaveBeenNthCalledWith(
+      1,
+      PLAYLIST_PAGE_SIZE,
+      0,
+      false,
+    );
+    expect(getPlaylistsPage).toHaveBeenNthCalledWith(
+      2,
+      PLAYLIST_PAGE_SIZE,
+      1,
+      false,
+    );
 
     await act(async () => {
       nextPage.resolve({
@@ -223,7 +283,11 @@ describe("SpotifyActivityProvider", () => {
     });
 
     expect(getPlaylistsPage).toHaveBeenCalledTimes(1);
-    expect(getPlaylistsPage).toHaveBeenCalledWith(PLAYLIST_PAGE_SIZE, 0);
+    expect(getPlaylistsPage).toHaveBeenCalledWith(
+      PLAYLIST_PAGE_SIZE,
+      0,
+      false,
+    );
   });
 
   it("refreshes playlists with force refresh", async () => {
@@ -246,7 +310,12 @@ describe("SpotifyActivityProvider", () => {
       expect(screen.getByTestId("playlist-count")).toHaveTextContent("1");
     });
 
-    expect(getPlaylistsPage).toHaveBeenNthCalledWith(1, PLAYLIST_PAGE_SIZE, 0);
+    expect(getPlaylistsPage).toHaveBeenNthCalledWith(
+      1,
+      PLAYLIST_PAGE_SIZE,
+      0,
+      false,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh playlists" }));
 
@@ -280,7 +349,7 @@ describe("SpotifyActivityProvider", () => {
     });
 
     expect(getFavoriteArtists).toHaveBeenCalledTimes(1);
-    expect(getFavoriteArtists).toHaveBeenCalledWith(50);
+    expect(getFavoriteArtists).toHaveBeenCalledWith(50, false);
   });
 
   it("refreshes favorite artists with force refresh", async () => {
@@ -313,7 +382,7 @@ describe("SpotifyActivityProvider", () => {
       expect(screen.getByTestId("favorite-artists-count")).toHaveTextContent("1");
     });
 
-    expect(getFavoriteArtists).toHaveBeenNthCalledWith(1, 50);
+    expect(getFavoriteArtists).toHaveBeenNthCalledWith(1, 50, false);
 
     fireEvent.click(
       screen.getByRole("button", { name: "Refresh favorite artists" }),
@@ -360,17 +429,35 @@ describe("SpotifyActivityProvider", () => {
       );
     }
 
-    vi.spyOn(spotifyActivityClient, "getFavoriteArtists").mockResolvedValue([]);
-    vi.spyOn(spotifyActivityClient, "getRecentlyPlayed").mockResolvedValue({
-      items: [],
-      rateLimited: false,
-    });
-    vi.spyOn(spotifyActivityClient, "getPlaylistsPage").mockResolvedValue({
-      items: [],
-      total: 0,
-    });
-    vi.spyOn(spotifyActivityClient, "getPlaylistTracks").mockResolvedValue([]);
-    vi.spyOn(spotifyActivityClient, "getTopArtists").mockResolvedValue([]);
+    vi.mocked(getAuthenticatedSpotifyConvexClient).mockResolvedValue({
+      action: vi.fn((ref: unknown) => {
+        const functionName = getFunctionName(ref as never);
+
+        if (functionName === "spotify:favoriteArtists") {
+          return Promise.resolve([]);
+        }
+
+        if (functionName === "spotify:recentlyPlayed") {
+          return Promise.resolve({
+            items: [],
+            rateLimited: false,
+          });
+        }
+
+        if (functionName === "spotify:playlistsPage") {
+          return Promise.resolve({
+            items: [],
+            total: 0,
+          });
+        }
+
+        if (functionName === "spotify:playlistTracks") {
+          return Promise.resolve([]);
+        }
+
+        throw new Error(`Unexpected Spotify action: ${functionName}`);
+      }),
+    } as never);
 
     render(
       <SpotifyActivityProvider>

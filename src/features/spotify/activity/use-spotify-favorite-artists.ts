@@ -7,8 +7,9 @@ import {
   useState,
 } from "react";
 
-import { spotifyActivityClient } from "@/features/spotify/client";
 import type { SpotifyArtist } from "@/types";
+import { api } from "@api";
+import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify/client/spotify-convex-client";
 
 const FAVORITE_ARTISTS_LIMIT = 50;
 
@@ -38,14 +39,14 @@ export function useSpotifyFavoriteArtistsState({
       setFavoriteArtistsLoading(true);
 
       try {
-        const nextFavoriteArtists = forceRefresh
-          ? await spotifyActivityClient.getFavoriteArtists(
-              FAVORITE_ARTISTS_LIMIT,
-              true,
-            )
-          : await spotifyActivityClient.getFavoriteArtists(
-              FAVORITE_ARTISTS_LIMIT,
-            );
+        const client = await getAuthenticatedSpotifyConvexClient();
+        const nextFavoriteArtists = await client.action(
+          api.spotify.favoriteArtists,
+          {
+            limit: FAVORITE_ARTISTS_LIMIT,
+            forceRefresh,
+          },
+        );
         setFavoriteArtists(nextFavoriteArtists);
       } finally {
         setFavoriteArtistsLoading(false);

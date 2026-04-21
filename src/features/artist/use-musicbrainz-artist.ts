@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-import { spotifyArtistsClient } from "@/features/spotify/client";
 import type { MusicBrainzArtistMatch } from "@/types";
+import { getMusicBrainzArtist } from "./musicbrainz-client";
 
 export function useMusicBrainzArtist(artistId: string) {
   const [data, setData] = useState<MusicBrainzArtistMatch | null>(null);
@@ -15,8 +15,7 @@ export function useMusicBrainzArtist(artistId: string) {
       return;
     }
 
-    void spotifyArtistsClient
-      .getMusicBrainzArtist(artistId)
+    void getMusicBrainzArtist(artistId)
       .then((nextData) => {
         if (requestVersionRef.current !== requestVersion) {
           return;

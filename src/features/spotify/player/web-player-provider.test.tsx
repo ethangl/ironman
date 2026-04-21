@@ -4,12 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppRuntimeProvider } from "@/app";
 import { SpotifyActivityProvider } from "@/features/spotify/activity";
-import {
-  spotifyActivityClient,
-  type SpotifyActivityClient,
-} from "@/features/spotify/client";
+import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify/client/spotify-convex-client";
 import { clearCachedSpotifyAccessToken } from "@/lib/spotify-access-token";
 import { clearCachedSpotifyAccountLink } from "@/lib/spotify-account-link";
+import { getFunctionName } from "convex/server";
 import { usePlayerQueueListing } from "./use-player-queue-listing";
 import { useWebPlayerActions, useWebPlayerState } from "./use-web-player";
 import { WebPlayerProvider } from "./web-player-provider";
@@ -41,6 +39,10 @@ vi.mock("sonner", () => ({
 
 vi.mock("../sdk/use-spotify", () => ({
   useSpotify: (...args: unknown[]) => mockUseSpotify(...args),
+}));
+
+vi.mock("@/features/spotify/client/spotify-convex-client", () => ({
+  getAuthenticatedSpotifyConvexClient: vi.fn(),
 }));
 
 vi.mock("./mini-player", () => ({
@@ -135,30 +137,74 @@ function QueueListingProbe() {
   );
 }
 
+interface SpotifyActivityOverrides {
+  getFavoriteArtists?: (limit?: number, forceRefresh?: boolean) => Promise<
+    Array<{
+      id: string;
+      name: string;
+      image: string | null;
+      followerCount: number;
+      genres: string[];
+    }>
+  >;
+  getRecentlyPlayed?: () => Promise<{ items: unknown[]; rateLimited: boolean }>;
+  getPlaylistsPage?: (
+    limit?: number,
+    offset?: number,
+    forceRefresh?: boolean,
+  ) => Promise<{ items: unknown[]; total: number }>;
+  getPlaylistTracks?: (playlistId: string) => Promise<unknown[]>;
+}
+
 function renderProvider(
-  spotifyClient?: { spotifyActivity?: Partial<SpotifyActivityClient> },
+  spotifyReads?: SpotifyActivityOverrides,
   children?: ReactNode,
 ) {
-  vi.spyOn(spotifyActivityClient, "getFavoriteArtists").mockImplementation(
-    spotifyClient?.spotifyActivity?.getFavoriteArtists ??
-      vi.fn().mockResolvedValue([]),
-  );
-  vi.spyOn(spotifyActivityClient, "getRecentlyPlayed").mockImplementation(
-    spotifyClient?.spotifyActivity?.getRecentlyPlayed ??
-      vi.fn().mockResolvedValue({ items: [], rateLimited: false }),
-  );
-  vi.spyOn(spotifyActivityClient, "getPlaylistsPage").mockImplementation(
-    spotifyClient?.spotifyActivity?.getPlaylistsPage ??
-      vi.fn().mockResolvedValue({ items: [], total: 0 }),
-  );
-  vi.spyOn(spotifyActivityClient, "getPlaylistTracks").mockImplementation(
-    spotifyClient?.spotifyActivity?.getPlaylistTracks ??
-      vi.fn().mockResolvedValue([]),
-  );
-  vi.spyOn(spotifyActivityClient, "getTopArtists").mockImplementation(
-    spotifyClient?.spotifyActivity?.getTopArtists ??
-      vi.fn().mockResolvedValue([]),
-  );
+  const getFavoriteArtists =
+    spotifyReads?.getFavoriteArtists ?? vi.fn().mockResolvedValue([]);
+  const getRecentlyPlayed =
+    spotifyReads?.getRecentlyPlayed ??
+    vi.fn().mockResolvedValue({ items: [], rateLimited: false });
+  const getPlaylistsPage =
+    spotifyReads?.getPlaylistsPage ??
+    vi.fn().mockResolvedValue({ items: [], total: 0 });
+  const getPlaylistTracks =
+    spotifyReads?.getPlaylistTracks ?? vi.fn().mockResolvedValue([]);
+
+  const action = vi.fn((ref: unknown, args: unknown) => {
+    const functionName = getFunctionName(ref as never);
+
+    if (functionName === "spotify:favoriteArtists") {
+      const { limit, forceRefresh } = args as {
+        limit: number;
+        forceRefresh?: boolean;
+      };
+      return getFavoriteArtists(limit, forceRefresh);
+    }
+
+    if (functionName === "spotify:recentlyPlayed") {
+      return getRecentlyPlayed();
+    }
+
+    if (functionName === "spotify:playlistsPage") {
+      const { limit, offset, forceRefresh } = args as {
+        limit: number;
+        offset: number;
+        forceRefresh?: boolean;
+      };
+      return getPlaylistsPage(limit, offset, forceRefresh);
+    }
+
+    if (functionName === "spotify:playlistTracks") {
+      return getPlaylistTracks((args as { playlistId: string }).playlistId);
+    }
+
+    throw new Error(`Unexpected Spotify action: ${functionName}`);
+  });
+
+  vi.mocked(getAuthenticatedSpotifyConvexClient).mockResolvedValue({
+    action,
+  } as never);
 
   return render(
     <AppRuntimeProvider>
@@ -172,6 +218,7 @@ function renderProvider(
 describe("WebPlayerProvider", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.mocked(getAuthenticatedSpotifyConvexClient).mockReset();
     clearCachedSpotifyAccountLink();
     clearCachedSpotifyAccessToken();
     mockToastError.mockReset();

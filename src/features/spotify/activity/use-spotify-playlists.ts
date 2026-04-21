@@ -8,11 +8,10 @@ import {
   useState,
 } from "react";
 
-import {
-  PLAYLIST_PAGE_SIZE,
-  spotifyActivityClient,
-} from "@/features/spotify/client";
+import { PLAYLIST_PAGE_SIZE } from "@/features/spotify/client";
 import type { Playlist } from "@/types/spotify-activity";
+import { api } from "@api";
+import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify/client/spotify-convex-client";
 
 interface SpotifyPlaylistsContextValue {
   loadMorePlaylists: () => Promise<void>;
@@ -69,16 +68,12 @@ export function useSpotifyPlaylistsState({
       setPlaylistsLoading(true);
 
       try {
-        const nextPlaylistsPage = forceRefresh
-          ? await spotifyActivityClient.getPlaylistsPage(
-              PLAYLIST_PAGE_SIZE,
-              0,
-              true,
-            )
-          : await spotifyActivityClient.getPlaylistsPage(
-              PLAYLIST_PAGE_SIZE,
-              0,
-            );
+        const client = await getAuthenticatedSpotifyConvexClient();
+        const nextPlaylistsPage = await client.action(api.spotify.playlistsPage, {
+          limit: PLAYLIST_PAGE_SIZE,
+          offset: 0,
+          forceRefresh,
+        });
         applyPlaylistsPage(nextPlaylistsPage.items, nextPlaylistsPage.total);
       } finally {
         setPlaylistsLoading(false);
@@ -110,10 +105,12 @@ export function useSpotifyPlaylistsState({
     loadingPlaylistOffsetsRef.current.add(requestedOffset);
 
     try {
-      const data = await spotifyActivityClient.getPlaylistsPage(
-        PLAYLIST_PAGE_SIZE,
-        requestedOffset,
-      );
+      const client = await getAuthenticatedSpotifyConvexClient();
+      const data = await client.action(api.spotify.playlistsPage, {
+        limit: PLAYLIST_PAGE_SIZE,
+        offset: requestedOffset,
+        forceRefresh: false,
+      });
 
       if (
         generation !== playlistsGenerationRef.current ||

@@ -1,5 +1,5 @@
-import { FC, useCallback } from "react";
 import { PlusIcon } from "lucide-react";
+import { FC, useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { List, ListItem } from "@/components/list";
@@ -11,10 +11,11 @@ import {
 } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { useOptionalRooms } from "@/features/rooms";
-import { spotifyActivityClient } from "@/features/spotify/client";
+import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify/client/spotify-convex-client";
+import { useWebPlayerActions } from "@/features/spotify/player";
 import type { SpotifyPlaylist, SpotifyTrack } from "@/types";
+import { api } from "@api";
 import { PlaylistCell } from "./playlist-cell";
-import { usePlayableTrackCollection } from "./use-playable-track-collection";
 
 export type PlaylistsProps = {
   action?: React.ReactNode;
@@ -26,24 +27,52 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => {
   const rooms = useOptionalRooms();
   const activeRoom = rooms?.activeRoom ?? null;
   const enqueueTracks = rooms?.enqueueTracks;
+  const { playTracks } = useWebPlayerActions();
+  const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
 
-  const loadTracks = useCallback(
+  const loadPlaylistTracks = useCallback(
     async (playlist: SpotifyPlaylist): Promise<SpotifyTrack[]> => {
-      return spotifyActivityClient.getPlaylistTracks(playlist.id);
+      setLoadingItemId(playlist.id);
+
+      try {
+        const client = await getAuthenticatedSpotifyConvexClient();
+
+        return await client.action(api.spotify.playlistTracks, {
+          playlistId: playlist.id,
+        });
+      } finally {
+        setLoadingItemId((current) =>
+          current === playlist.id ? null : current,
+        );
+      }
     },
     [],
   );
 
-  const { loadItemTracks, loadingItemId, playItem } = usePlayableTrackCollection<
-    SpotifyPlaylist,
-    SpotifyTrack
-  >({
-    emptyMessage: "That playlist does not have any playable tracks.",
-    fallbackErrorMessage: "Could not load playlist tracks.",
-    loadTracks,
-  });
   const canEnqueueToActiveRoom =
     !!activeRoom?.playback.canEnqueue && !!enqueueTracks;
+
+  const playPlaylist = useCallback(
+    async (playlist: SpotifyPlaylist) => {
+      try {
+        const tracks = await loadPlaylistTracks(playlist);
+
+        if (tracks.length === 0) {
+          toast.error("That playlist does not have any playable tracks.");
+          return;
+        }
+
+        await playTracks(tracks);
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Could not load playlist tracks.",
+        );
+      }
+    },
+    [loadPlaylistTracks, playTracks],
+  );
 
   const enqueuePlaylist = useCallback(
     async (playlist: SpotifyPlaylist) => {
@@ -52,7 +81,7 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => {
       }
 
       try {
-        const tracks = await loadItemTracks(playlist);
+        const tracks = await loadPlaylistTracks(playlist);
         if (tracks.length === 0) {
           toast.error("That playlist does not have any playable tracks.");
           return;
@@ -67,7 +96,7 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => {
         );
       }
     },
-    [enqueueTracks, loadItemTracks],
+    [enqueueTracks, loadPlaylistTracks],
   );
 
   return (
@@ -92,7 +121,7 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => {
                     : `${playlist.trackCount} songs`
                 }
                 tracks={[]}
-                onPlay={() => void playItem(playlist)}
+                onPlay={() => void playPlaylist(playlist)}
               >
                 {canEnqueueToActiveRoom ? (
                   <Button

@@ -1,66 +1,51 @@
 import { v } from "convex/values";
 
-import { components, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 import { action } from "./_generated/server";
+import { clearAlbumsCaches, spotifyAlbumTracksCache } from "./spotify/albums";
 import {
-  requireAuthUser,
-  requireSpotifyAccessToken,
-} from "./spotifySession";
-import {
-  spotifyAlbumTracksCache,
+  clearArtistsCaches,
   spotifyArtistPageCache,
   spotifyFavoriteArtistsCache,
+  spotifyTopArtistsCache,
+} from "./spotify/artists";
+import { DEFAULT_LIMIT, DEFAULT_OFFSET } from "./spotify/constants";
+import {
+  getCurrentlyPlaying,
+  pausePlayback,
+  playUri,
+  resumePlayback,
+  setRepeatMode,
+  setVolumePercent,
+} from "./spotify/playback";
+import {
+  clearPlaylistsCaches,
   spotifyPlaylistsPageCache,
   spotifyPlaylistTracksCache,
-  spotifyRecentlyPlayedCache,
+} from "./spotify/playlists";
+import {
+  clearSearchCaches,
   spotifySearchResultsCache,
   spotifySearchTracksCache,
-  spotifyTopArtistsCache,
-} from "./spotifyCaches";
+} from "./spotify/search";
+import {
+  clearTracksCaches,
+  spotifyRecentlyPlayedCache,
+} from "./spotify/tracks";
 import {
   spotifyArtistPageDataValidator,
   spotifyArtistValidator,
+  spotifyPlaybackCurrentlyPlayingResultValidator,
+  spotifyPlaybackResultValidator,
   spotifyPlaylistsPageValidator,
   spotifyRecentlyPlayedResultValidator,
   spotifySearchResultsValidator,
   spotifyTrackValidator,
-} from "./components/spotify/validators";
+} from "./spotify/validators";
+import { requireAuthUser, requireSpotifyAccessToken } from "./spotifySession";
 
-const RECENTLY_PLAYED_DEFAULT_LIMIT = 30;
-const PLAYLISTS_DEFAULT_LIMIT = 50;
-const PLAYLISTS_DEFAULT_OFFSET = 0;
-const FAVORITE_ARTISTS_DEFAULT_LIMIT = 50;
-const TOP_ARTISTS_DEFAULT_LIMIT = 10;
 const SPOTIFY_AUTH_COOLDOWN_KEY = "spotify-auth-cooldown";
 
-const playbackArtistValidator = v.object({
-  name: v.string(),
-});
-
-const playbackItemValidator = v.union(
-  v.object({
-    id: v.string(),
-    name: v.string(),
-    duration_ms: v.number(),
-    artists: v.optional(v.array(playbackArtistValidator)),
-  }),
-  v.null(),
-);
-
-const playbackStateValidator = v.union(
-  v.object({
-    is_playing: v.boolean(),
-    progress_ms: v.number(),
-    item: playbackItemValidator,
-  }),
-  v.null(),
-);
-
-const playResultValidator = v.object({
-  ok: v.boolean(),
-  retryAfterSeconds: v.optional(v.number()),
-  status: v.number(),
-});
 export const search = action({
   args: {
     query: v.string(),
@@ -117,7 +102,7 @@ export const recentlyPlayed = action({
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
     return spotifyRecentlyPlayedCache.fetch(ctx, {
-      limit: args.limit ?? RECENTLY_PLAYED_DEFAULT_LIMIT,
+      limit: args.limit ?? DEFAULT_LIMIT,
       cacheScope: String(user._id),
     });
   },
@@ -135,8 +120,8 @@ export const playlistsPage = action({
     return spotifyPlaylistsPageCache.fetch(
       ctx,
       {
-        limit: args.limit ?? PLAYLISTS_DEFAULT_LIMIT,
-        offset: args.offset ?? PLAYLISTS_DEFAULT_OFFSET,
+        limit: args.limit ?? DEFAULT_LIMIT,
+        offset: args.offset ?? DEFAULT_OFFSET,
         cacheScope: String(user._id),
       },
       args.forceRefresh ? { force: true } : undefined,
@@ -166,7 +151,7 @@ export const topArtists = action({
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
     return spotifyTopArtistsCache.fetch(ctx, {
-      limit: args.limit ?? TOP_ARTISTS_DEFAULT_LIMIT,
+      limit: args.limit ?? DEFAULT_LIMIT,
       cacheScope: String(user._id),
     });
   },
@@ -183,7 +168,7 @@ export const favoriteArtists = action({
     return spotifyFavoriteArtistsCache.fetch(
       ctx,
       {
-        limit: args.limit ?? FAVORITE_ARTISTS_DEFAULT_LIMIT,
+        limit: args.limit ?? DEFAULT_LIMIT,
         cacheScope: String(user._id),
       },
       args.forceRefresh ? { force: true } : undefined,
@@ -197,15 +182,11 @@ export const clearCache = action({
   handler: async (ctx) => {
     await requireAuthUser(ctx);
     await Promise.all([
-      spotifySearchResultsCache.removeAllForName(ctx),
-      spotifySearchTracksCache.removeAllForName(ctx),
-      spotifyArtistPageCache.removeAllForName(ctx),
-      spotifyAlbumTracksCache.removeAllForName(ctx),
-      spotifyRecentlyPlayedCache.removeAllForName(ctx),
-      spotifyPlaylistsPageCache.removeAllForName(ctx),
-      spotifyPlaylistTracksCache.removeAllForName(ctx),
-      spotifyTopArtistsCache.removeAllForName(ctx),
-      spotifyFavoriteArtistsCache.removeAllForName(ctx),
+      clearSearchCaches(ctx),
+      clearArtistsCaches(ctx),
+      clearAlbumsCaches(ctx),
+      clearTracksCaches(ctx),
+      clearPlaylistsCaches(ctx),
       ctx.runMutation(internal.spotifyAuthCooldown.clear, {
         key: SPOTIFY_AUTH_COOLDOWN_KEY,
       }),
@@ -216,17 +197,10 @@ export const clearCache = action({
 
 export const playbackCurrentlyPlaying = action({
   args: {},
-  returns: v.object({
-    retryAfterSeconds: v.optional(v.number()),
-    status: v.number(),
-    playback: playbackStateValidator,
-  }),
+  returns: spotifyPlaybackCurrentlyPlayingResultValidator,
   handler: async (ctx) => {
     const accessToken = await requireSpotifyAccessToken(ctx);
-
-    return ctx.runAction(components.spotify.playback.currentlyPlaying, {
-      accessToken,
-    });
+    return getCurrentlyPlaying(accessToken);
   },
 });
 
@@ -236,38 +210,28 @@ export const playbackPlay = action({
     deviceId: v.optional(v.string()),
     offsetMs: v.optional(v.number()),
   },
-  returns: playResultValidator,
+  returns: spotifyPlaybackResultValidator,
   handler: async (ctx, args) => {
     const accessToken = await requireSpotifyAccessToken(ctx);
-
-    return ctx.runAction(components.spotify.playback.play, {
-      ...args,
-      accessToken,
-    });
+    return playUri(args.uri, accessToken, args.deviceId, args.offsetMs);
   },
 });
 
 export const playbackResume = action({
   args: {},
-  returns: playResultValidator,
+  returns: spotifyPlaybackResultValidator,
   handler: async (ctx) => {
     const accessToken = await requireSpotifyAccessToken(ctx);
-
-    return ctx.runAction(components.spotify.playback.resume, {
-      accessToken,
-    });
+    return resumePlayback(accessToken);
   },
 });
 
 export const playbackPause = action({
   args: {},
-  returns: playResultValidator,
+  returns: spotifyPlaybackResultValidator,
   handler: async (ctx) => {
     const accessToken = await requireSpotifyAccessToken(ctx);
-
-    return ctx.runAction(components.spotify.playback.pause, {
-      accessToken,
-    });
+    return pausePlayback(accessToken);
   },
 });
 
@@ -276,14 +240,10 @@ export const playbackSetRepeat = action({
     state: v.union(v.literal("track"), v.literal("context"), v.literal("off")),
     deviceId: v.optional(v.string()),
   },
-  returns: playResultValidator,
+  returns: spotifyPlaybackResultValidator,
   handler: async (ctx, args) => {
     const accessToken = await requireSpotifyAccessToken(ctx);
-
-    return ctx.runAction(components.spotify.playback.setRepeat, {
-      ...args,
-      accessToken,
-    });
+    return setRepeatMode(args.state, accessToken, args.deviceId);
   },
 });
 
@@ -291,13 +251,9 @@ export const playbackSetVolume = action({
   args: {
     percent: v.number(),
   },
-  returns: playResultValidator,
+  returns: spotifyPlaybackResultValidator,
   handler: async (ctx, args) => {
     const accessToken = await requireSpotifyAccessToken(ctx);
-
-    return ctx.runAction(components.spotify.playback.setVolume, {
-      ...args,
-      accessToken,
-    });
+    return setVolumePercent(args.percent, accessToken);
   },
 });

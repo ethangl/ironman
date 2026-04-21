@@ -245,8 +245,7 @@ Today the Spotify play path only starts a track from the beginning:
 
 - `src/features/spotify/client/spotify-playback-client.ts`
 - `convex/spotify.ts`
-- `convex/components/spotify/playback.ts`
-- `convex/components/spotify/playbackApi.ts`
+- `convex/spotify/playback.ts`
 
 To support room joins and resync, we will need end-to-end support for:
 

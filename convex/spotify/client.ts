@@ -1,6 +1,6 @@
+import { SPOTIFY_API } from "./constants";
 import { SpotifyApiError } from "./errors";
 
-const SPOTIFY_API = "https://api.spotify.com/v1";
 const SPOTIFY_RATE_LIMIT_FALLBACK_MS = 5_000;
 const spotifyRequestCooldowns = new Map<string, number>();
 const spotifyGetRequestsInFlight = new Map<string, Promise<unknown>>();
@@ -12,7 +12,9 @@ function logSpotifyRequest(details: {
   durationMs: number;
   retryAfterSeconds?: number | null;
 }) {
-  if (process.env.NODE_ENV === "test") return;
+  if (process.env.NODE_ENV === "test") {
+    return;
+  }
 
   const parts = [
     `[spotify] ${details.method} ${details.path}`,
@@ -29,10 +31,7 @@ function getRequestCooldownKey(method: string, path: string, token: string) {
   return `${method}:${path}:${token}`;
 }
 
-function setRequestCooldown(
-  key: string,
-  retryAfterSeconds?: number | null,
-) {
+function setRequestCooldown(key: string, retryAfterSeconds?: number | null) {
   const durationMs =
     typeof retryAfterSeconds === "number" && retryAfterSeconds > 0
       ? retryAfterSeconds * 1000
@@ -112,7 +111,9 @@ export async function spotifyFetch<T>(
       retryAfterSeconds,
     });
 
-    if (res.status === 204 || res.status === 202) return null;
+    if (res.status === 204 || res.status === 202) {
+      return null;
+    }
     const text = await res.text();
     if (!res.ok) {
       if (res.status === 429) {
@@ -124,7 +125,9 @@ export async function spotifyFetch<T>(
         retryAfterSeconds,
       );
     }
-    if (!text) return null;
+    if (!text) {
+      return null;
+    }
     try {
       return JSON.parse(text) as T;
     } catch {

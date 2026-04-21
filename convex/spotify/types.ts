@@ -34,6 +34,21 @@ export interface SpotifyPlaylist {
   trackCount: number;
 }
 
+export interface SpotifyPlaylistsPage {
+  items: SpotifyPlaylist[];
+  total: number;
+}
+
+export interface SpotifyRecentlyPlayedItem {
+  playedAt: string;
+  track: SpotifyTrack;
+}
+
+export interface SpotifyRecentlyPlayedResult {
+  items: SpotifyRecentlyPlayedItem[];
+  rateLimited: boolean;
+}
+
 export interface SpotifySearchResults {
   tracks: SpotifyTrack[];
   artists: SpotifyArtist[];
@@ -56,4 +71,16 @@ export interface PlaybackState {
     duration_ms: number;
     artists: { name: string }[];
   } | null;
+}
+
+export interface PlaybackResult {
+  ok: boolean;
+  retryAfterSeconds?: number;
+  status: number;
+}
+
+export interface PlaybackCurrentlyPlayingResult {
+  retryAfterSeconds?: number;
+  status: number;
+  playback: PlaybackState | null;
 }

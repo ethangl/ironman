@@ -25,7 +25,6 @@ export function SpotifyActivity() {
       <Tracks
         title="Recent Tracks"
         tracks={recentTracks.map(({ track }) => track)}
-        display="thumbnails"
       />
       <Playlists
         title="Your Playlists"

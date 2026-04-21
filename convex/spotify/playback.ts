@@ -1,6 +1,9 @@
-import { PlaybackState } from "./types";
-
-const SPOTIFY_API = "https://api.spotify.com/v1";
+import { SPOTIFY_API } from "./constants";
+import type {
+  PlaybackCurrentlyPlayingResult,
+  PlaybackResult,
+  PlaybackState,
+} from "./types";
 
 function getRetryAfterSeconds(response: Response) {
   const value = Number(response.headers.get("retry-after"));
@@ -62,11 +65,7 @@ function normalizePlaybackState(raw: unknown): PlaybackState | null {
 
 export async function getCurrentlyPlaying(
   token: string,
-): Promise<{
-  status: number;
-  playback: PlaybackState | null;
-  retryAfterSeconds?: number;
-}> {
+): Promise<PlaybackCurrentlyPlayingResult> {
   try {
     const res = await fetch(`${SPOTIFY_API}/me/player/currently-playing`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -100,7 +99,7 @@ export async function playUri(
   token: string,
   deviceId?: string,
   offsetMs?: number,
-) {
+): Promise<PlaybackResult> {
   const query = deviceId ? `?device_id=${deviceId}` : "";
   const positionMs = normalizePositionMs(offsetMs);
   const res = await fetch(`${SPOTIFY_API}/me/player/play${query}`, {
@@ -122,7 +121,7 @@ export async function playUri(
   };
 }
 
-export async function resumePlayback(token: string) {
+export async function resumePlayback(token: string): Promise<PlaybackResult> {
   const res = await fetch(`${SPOTIFY_API}/me/player/play`, {
     method: "PUT",
     headers: { Authorization: `Bearer ${token}` },
@@ -135,7 +134,7 @@ export async function resumePlayback(token: string) {
   };
 }
 
-export async function pausePlayback(token: string) {
+export async function pausePlayback(token: string): Promise<PlaybackResult> {
   try {
     const res = await fetch(`${SPOTIFY_API}/me/player/pause`, {
       method: "PUT",
@@ -152,7 +151,10 @@ export async function pausePlayback(token: string) {
   }
 }
 
-export async function setVolumePercent(percent: number, token: string) {
+export async function setVolumePercent(
+  percent: number,
+  token: string,
+): Promise<PlaybackResult> {
   try {
     const res = await fetch(
       `${SPOTIFY_API}/me/player/volume?volume_percent=${percent}`,
@@ -173,7 +175,7 @@ export async function setRepeatMode(
   state: "track" | "context" | "off",
   token: string,
   deviceId?: string,
-) {
+): Promise<PlaybackResult> {
   const query = deviceId ? `&device_id=${deviceId}` : "";
   try {
     const res = await fetch(

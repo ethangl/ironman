@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { playUri } from "./playbackApi";
+import { playUri } from "./playback";
 
 function createResponse({
   headers,
@@ -68,7 +68,12 @@ describe("playUri", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await playUri("spotify:track:track-1", "spotify-token", undefined, Number.NaN);
+    await playUri(
+      "spotify:track:track-1",
+      "spotify-token",
+      undefined,
+      Number.NaN,
+    );
 
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.spotify.com/v1/me/player/play",

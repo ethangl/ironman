@@ -63,3 +63,38 @@ export const spotifyArtistPageDataValidator = v.object({
   albums: v.array(spotifyAlbumReleaseValidator),
   singles: v.array(spotifyAlbumReleaseValidator),
 });
+
+export const spotifyPlaybackArtistValidator = v.object({
+  name: v.string(),
+});
+
+export const spotifyPlaybackItemValidator = v.union(
+  v.object({
+    id: v.string(),
+    name: v.string(),
+    duration_ms: v.number(),
+    artists: v.optional(v.array(spotifyPlaybackArtistValidator)),
+  }),
+  v.null(),
+);
+
+export const spotifyPlaybackStateValidator = v.union(
+  v.object({
+    is_playing: v.boolean(),
+    progress_ms: v.number(),
+    item: spotifyPlaybackItemValidator,
+  }),
+  v.null(),
+);
+
+export const spotifyPlaybackResultValidator = v.object({
+  ok: v.boolean(),
+  retryAfterSeconds: v.optional(v.number()),
+  status: v.number(),
+});
+
+export const spotifyPlaybackCurrentlyPlayingResultValidator = v.object({
+  retryAfterSeconds: v.optional(v.number()),
+  status: v.number(),
+  playback: spotifyPlaybackStateValidator,
+});

@@ -2,7 +2,7 @@ import { Clock3Icon } from "lucide-react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
-import { useAppAuth } from "@/app";
+import { useAppAuth } from "@/app/app-runtime";
 import { Button } from "@/components/ui/button";
 import {
   replaceBrowserUrl,

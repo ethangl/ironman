@@ -1,7 +1,7 @@
 import {
   extractPaletteFromRawPixels,
   PALETTE_SAMPLE_SIZE,
-} from "@shared/palette";
+} from "./palette";
 
 export async function extractPaletteInBrowser(
   imageUrl: string,

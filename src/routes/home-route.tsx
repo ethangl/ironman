@@ -1,10 +1,11 @@
 import { Navigate, useLocation } from "react-router-dom";
 
-import { useAppAuth, AuthPendingState } from "@/app";
-import { PublicHomeRoute } from "./public-home-route";
+import { useAppAuth } from "@/app/app-runtime";
+import { AuthPendingState } from "@/app/auth-pending-state";
+import { LoginButton } from "@/features/auth";
 
 export function HomeRoute() {
-  const { isAuthenticated, isPending } = useAppAuth();
+  const { isPending, session } = useAppAuth();
   const location = useLocation();
 
   if (isPending) {
@@ -16,7 +17,7 @@ export function HomeRoute() {
     );
   }
 
-  if (isAuthenticated) {
+  if (session) {
     return (
       <Navigate
         to={{
@@ -28,5 +29,9 @@ export function HomeRoute() {
     );
   }
 
-  return <PublicHomeRoute />;
+  return (
+    <div className="flex h-dvh items-center justify-center w-dvw">
+      <LoginButton />
+    </div>
+  );
 }

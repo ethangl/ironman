@@ -1,6 +1,6 @@
 import { SkipForwardIcon } from "lucide-react";
 
-import { useAppAuth } from "@/app";
+import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { Button } from "@/components/ui/button";
 import { formatRoomSyncLabel } from "../client/room-utils";
 import { useRooms } from "../runtime/rooms-provider";
@@ -19,7 +19,7 @@ export function RoomPlayerPanel() {
     skipRoom,
     syncState,
   } = useRooms();
-  const { session } = useAppAuth();
+  const session = useAuthenticatedSession();
 
   if (!activeRoom) {
     return null;
@@ -87,7 +87,7 @@ export function RoomPlayerPanel() {
           canManageQueue={activeRoom.playback.canManageQueue}
           canRemoveQueueItem={(queueItem) =>
             activeRoom.playback.canManageQueue ||
-            queueItem.addedByUserId === session?.user.id
+            queueItem.addedByUserId === session.user.id
           }
           onMove={(roomId, queueItemId, targetIndex) =>
             void moveQueueItem(roomId, queueItemId, targetIndex)

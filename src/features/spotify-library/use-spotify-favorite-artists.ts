@@ -22,20 +22,12 @@ interface SpotifyFavoriteArtistsContextValue {
 export const SpotifyFavoriteArtistsContext =
   createContext<SpotifyFavoriteArtistsContextValue | null>(null);
 
-export function useSpotifyFavoriteArtistsState({
-  canBrowsePersonalSpotify,
-}: {
-  canBrowsePersonalSpotify: boolean;
-}): SpotifyFavoriteArtistsContextValue {
+export function useSpotifyFavoriteArtistsState(): SpotifyFavoriteArtistsContextValue {
   const [favoriteArtists, setFavoriteArtists] = useState<SpotifyArtist[]>([]);
   const [favoriteArtistsLoading, setFavoriteArtistsLoading] = useState(false);
 
   const loadFavoriteArtists = useCallback(
     async (forceRefresh = false) => {
-      if (!canBrowsePersonalSpotify) {
-        return;
-      }
-
       setFavoriteArtistsLoading(true);
 
       try {
@@ -52,18 +44,12 @@ export function useSpotifyFavoriteArtistsState({
         setFavoriteArtistsLoading(false);
       }
     },
-    [canBrowsePersonalSpotify],
+    [],
   );
 
   useEffect(() => {
-    if (!canBrowsePersonalSpotify) {
-      setFavoriteArtists([]);
-      setFavoriteArtistsLoading(false);
-      return;
-    }
-
     void loadFavoriteArtists();
-  }, [canBrowsePersonalSpotify, loadFavoriteArtists]);
+  }, [loadFavoriteArtists]);
 
   return useMemo(
     () => ({

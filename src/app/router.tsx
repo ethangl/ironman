@@ -15,12 +15,7 @@ export const router = createBrowserRouter([
   {
     element: <AppShell />,
     children: [
-      {
-        children: [
-          { index: true, element: <HomeRoute /> },
-          { path: "*", element: <NotFoundRoute /> },
-        ],
-      },
+      { index: true, element: <HomeRoute /> },
       {
         element: <RequireAuthenticatedSession />,
         children: [
@@ -37,6 +32,7 @@ export const router = createBrowserRouter([
           },
         ],
       },
+      { path: "*", element: <NotFoundRoute /> },
     ],
   },
 ]);

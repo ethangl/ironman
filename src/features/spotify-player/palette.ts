@@ -57,7 +57,9 @@ export function extractPaletteFromRgbPixels(pixels: RGB[]): string[] {
 }
 
 function quantizeChannel(value: number): number {
-  return Math.round(value / PALETTE_QUANTIZATION_STEP) * PALETTE_QUANTIZATION_STEP;
+  return (
+    Math.round(value / PALETTE_QUANTIZATION_STEP) * PALETTE_QUANTIZATION_STEP
+  );
 }
 
 function pickClosest(arr: LCH[], target: number, fallback: LCH): LCH {

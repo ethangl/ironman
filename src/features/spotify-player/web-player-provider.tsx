@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useAppAuth, useAppCapabilities } from "@/app";
+import { useAppAuth, useAppCapabilities } from "@/app/app-runtime";
+import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { useSpotifyRecentlyPlayed } from "@/features/spotify-library";
 import type {
   SpotifyTrack,
@@ -18,7 +19,8 @@ import {
 } from "./use-web-player";
 
 export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
-  const { session, getSpotifyAccessToken } = useAppAuth();
+  const session = useAuthenticatedSession();
+  const { getSpotifyAccessToken } = useAppAuth();
   const { canControlPlayback } = useAppCapabilities();
   const { appendRecentTrack } = useSpotifyRecentlyPlayed();
   const tokenRef = useRef<string | null>(null);
@@ -30,7 +32,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     tokenRef.current = null;
-  }, [session?.user.id]);
+  }, [session.user.id]);
 
   const refreshAccessToken = useCallback(async () => {
     const token = await getSpotifyAccessToken();

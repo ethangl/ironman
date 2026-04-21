@@ -18,12 +18,6 @@ import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/s
 import { getFunctionName } from "convex/server";
 import { SpotifyActivityProvider } from "./spotify-activity-provider";
 
-vi.mock("@/app", () => ({
-  useAppCapabilities: () => ({
-    canBrowsePersonalSpotify: true,
-  }),
-}));
-
 vi.mock("@/features/spotify-client/spotify-convex-client", () => ({
   getAuthenticatedSpotifyConvexClient: vi.fn(),
 }));

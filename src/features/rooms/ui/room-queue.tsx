@@ -1,6 +1,6 @@
 import { HeartCrackIcon, HeartIcon, Trash2Icon } from "lucide-react";
 
-import { useAppAuth } from "@/app";
+import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { MoreMenu } from "@/components/more-menu";
 import {
   Section,
@@ -24,7 +24,7 @@ export function RoomQueue({
   room: RoomDetails;
   resolvedPlayback: ResolvedRoomPlayback | null;
 }) {
-  const { session } = useAppAuth();
+  const session = useAuthenticatedSession();
   const { clearQueue, joinRoom, leaveRoom, moveQueueItem, removeQueueItem } =
     useRooms();
   const canControlPlayback = room.playback.canControlPlayback;
@@ -79,7 +79,7 @@ export function RoomQueue({
           canManageQueue={room.playback.canManageQueue}
           canRemoveQueueItem={(queueItem) =>
             room.playback.canManageQueue ||
-            queueItem.addedByUserId === session?.user.id
+            queueItem.addedByUserId === session.user.id
           }
           onMove={(nextRoomId, queueItemId, targetIndex) =>
             void moveQueueItem(nextRoomId, queueItemId, targetIndex)

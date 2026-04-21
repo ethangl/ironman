@@ -3,9 +3,13 @@ import { ReactNode } from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { clearCachedSpotifyAccessToken } from "@/app/lib/spotify-access-token";
-import { clearCachedSpotifyAccountLink } from "@/app/lib/spotify-account-link";
-import { AppRuntimeProvider, useAppRuntime } from "./app-runtime";
+import { clearCachedSpotifyAccessToken } from "@/features/spotify-client/spotify-access-token";
+import { clearCachedSpotifyAccountLink } from "@/features/spotify-client/spotify-account-link";
+import {
+  AppRuntimeProvider,
+  useAppAuth,
+  useAppCapabilities,
+} from "./app-runtime";
 
 const mockUseSession = vi.fn();
 const mockGetAccessToken = vi.fn();
@@ -41,6 +45,13 @@ function wrapper({ children }: { children: ReactNode }) {
   return <AppRuntimeProvider>{children}</AppRuntimeProvider>;
 }
 
+function useRuntimeProbe() {
+  return {
+    auth: useAppAuth(),
+    capabilities: useAppCapabilities(),
+  };
+}
+
 describe("AppRuntimeProvider", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -55,18 +66,17 @@ describe("AppRuntimeProvider", () => {
       isPending: false,
     });
 
-    const { result } = renderHook(() => useAppRuntime(), { wrapper });
+    const { result } = renderHook(() => useRuntimeProbe(), { wrapper });
 
-    expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
+    expect(result.current.auth.isPending).toBe(true);
 
     await act(async () => {
       vi.advanceTimersByTime(400);
     });
 
-    expect(result.current.auth.isAuthenticated).toBe(false);
-    expect(result.current.capabilities.hasSession).toBe(false);
-    expect(result.current.capabilities.spotifyStatus.code).toBe("signed_out");
-    expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(false);
+    expect(result.current.auth.session).toBeNull();
+    expect(result.current.auth.isPending).toBe(false);
+    expect(result.current.capabilities.spotifyConnection).toBe("disconnected");
     expect(result.current.capabilities.canControlPlayback).toBe(false);
     expect(mockAuthFetch).not.toHaveBeenCalled();
     expect(mockGetAccessToken).not.toHaveBeenCalled();
@@ -85,11 +95,10 @@ describe("AppRuntimeProvider", () => {
       >();
     mockAuthFetch.mockReturnValue(deferred.promise);
 
-    const { result } = renderHook(() => useAppRuntime(), { wrapper });
+    const { result } = renderHook(() => useRuntimeProbe(), { wrapper });
 
-    expect(result.current.capabilities.hasSession).toBe(true);
-    expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
-    expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(false);
+    expect(result.current.auth.session).toEqual({ user: { id: "user-1" } });
+    expect(result.current.capabilities.spotifyConnection).toBe("unknown");
     expect(result.current.capabilities.canControlPlayback).toBe(false);
     expect(mockGetAccessToken).not.toHaveBeenCalled();
 
@@ -117,18 +126,17 @@ describe("AppRuntimeProvider", () => {
       },
     ]);
 
-    const { result } = renderHook(() => useAppRuntime(), { wrapper });
+    const { result } = renderHook(() => useRuntimeProbe(), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
+      expect(result.current.capabilities.spotifyConnection).toBe("connected");
     });
 
-    expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(true);
     expect(result.current.capabilities.canControlPlayback).toBe(true);
     expect(mockGetAccessToken).not.toHaveBeenCalled();
   });
 
-  it("keeps browsing enabled but disables playback after a spotify token fetch fails", async () => {
+  it("keeps spotify connected but disables playback after a spotify token fetch fails", async () => {
     let accessToken: string | null = null;
 
     mockUseSession.mockReturnValue({
@@ -147,10 +155,10 @@ describe("AppRuntimeProvider", () => {
       data: { accessToken },
     }));
 
-    const { result } = renderHook(() => useAppRuntime(), { wrapper });
+    const { result } = renderHook(() => useRuntimeProbe(), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
+      expect(result.current.capabilities.spotifyConnection).toBe("connected");
     });
 
     await act(async () => {
@@ -159,12 +167,7 @@ describe("AppRuntimeProvider", () => {
       );
     });
 
-    await waitFor(() => {
-      expect(result.current.capabilities.spotifyStatus.code).toBe(
-        "reconnect_required",
-      );
-    });
-    expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(false);
+    expect(result.current.capabilities.spotifyConnection).toBe("connected");
     expect(result.current.capabilities.canControlPlayback).toBe(false);
 
     accessToken = "fresh-token";
@@ -175,9 +178,7 @@ describe("AppRuntimeProvider", () => {
       );
     });
 
-    await waitFor(() => {
-      expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
-    });
+    expect(result.current.capabilities.spotifyConnection).toBe("connected");
     expect(result.current.capabilities.canControlPlayback).toBe(true);
   });
 
@@ -197,18 +198,18 @@ describe("AppRuntimeProvider", () => {
       },
     ]);
 
-    const { result, rerender } = renderHook(() => useAppRuntime(), {
+    const { result, rerender } = renderHook(() => useRuntimeProbe(), {
       wrapper,
     });
 
     await waitFor(() => {
-      expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
+      expect(result.current.capabilities.spotifyConnection).toBe("connected");
     });
 
     sessionValue.data = { user: { id: "user-1" } };
     rerender();
 
-    expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
+    expect(result.current.capabilities.spotifyConnection).toBe("connected");
     expect(mockAuthFetch).toHaveBeenCalledTimes(1);
     expect(mockGetAccessToken).not.toHaveBeenCalled();
   });
@@ -232,14 +233,14 @@ describe("AppRuntimeProvider", () => {
       },
     ]);
 
-    const { result, rerender } = renderHook(() => useAppRuntime(), {
+    const { result, rerender } = renderHook(() => useRuntimeProbe(), {
       wrapper,
     });
 
     await waitFor(() => {
-      expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
+      expect(result.current.capabilities.spotifyConnection).toBe("connected");
     });
-    expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(true);
+    expect(result.current.capabilities.canControlPlayback).toBe(true);
 
     sessionState.data = null;
     sessionState.isPending = true;
@@ -247,8 +248,8 @@ describe("AppRuntimeProvider", () => {
       rerender();
     });
 
-    expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
-    expect(result.current.capabilities.canBrowsePersonalSpotify).toBe(true);
+    expect(result.current.auth.isPending).toBe(true);
+    expect(result.current.capabilities.spotifyConnection).toBe("connected");
     expect(result.current.capabilities.canControlPlayback).toBe(true);
   });
 
@@ -272,9 +273,11 @@ describe("AppRuntimeProvider", () => {
       },
     ]);
 
-    const { result, rerender } = renderHook(() => useAppRuntime(), { wrapper });
+    const { result, rerender } = renderHook(() => useRuntimeProbe(), {
+      wrapper,
+    });
 
-    expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
+    expect(result.current.auth.isPending).toBe(true);
 
     sessionState.isPending = false;
     sessionState.data = null;
@@ -282,7 +285,7 @@ describe("AppRuntimeProvider", () => {
       rerender();
     });
 
-    expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
+    expect(result.current.auth.isPending).toBe(true);
 
     await act(async () => {
       vi.advanceTimersByTime(200);
@@ -294,7 +297,7 @@ describe("AppRuntimeProvider", () => {
       await Promise.resolve();
     });
 
-    expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
+    expect(result.current.capabilities.spotifyConnection).toBe("connected");
     vi.useRealTimers();
   });
 
@@ -315,7 +318,9 @@ describe("AppRuntimeProvider", () => {
     mockUseSession.mockImplementation(() => sessionState);
     mockAuthFetch.mockImplementation(() => deferred.promise);
 
-    const { result, rerender } = renderHook(() => useAppRuntime(), { wrapper });
+    const { result, rerender } = renderHook(() => useRuntimeProbe(), {
+      wrapper,
+    });
 
     await act(async () => {
       vi.useFakeTimers();
@@ -328,7 +333,7 @@ describe("AppRuntimeProvider", () => {
       rerender();
     });
 
-    expect(result.current.capabilities.spotifyStatus.code).toBe("checking");
+    expect(result.current.capabilities.spotifyConnection).toBe("unknown");
 
     deferred.resolve([
       {
@@ -340,7 +345,7 @@ describe("AppRuntimeProvider", () => {
     ]);
 
     await waitFor(() => {
-      expect(result.current.capabilities.spotifyStatus.code).toBe("connected");
+      expect(result.current.capabilities.spotifyConnection).toBe("connected");
     });
   });
 
@@ -350,8 +355,8 @@ describe("AppRuntimeProvider", () => {
       isPending: false,
     });
 
-    expect(() => renderHook(() => useAppRuntime())).toThrow(
-      "useAppRuntime must be used within an AppRuntimeProvider.",
+    expect(() => renderHook(() => useRuntimeProbe())).toThrow(
+      "useAppAuth must be used within an AppRuntimeProvider.",
     );
   });
 });

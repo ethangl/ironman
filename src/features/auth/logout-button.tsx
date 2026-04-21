@@ -1,7 +1,7 @@
 import { LogOutIcon } from "lucide-react";
 
+import { useAppAuth } from "@/app/app-runtime";
 import { Button } from "@/components/ui/button";
-import { useAppAuth } from "@/app";
 
 export function LogoutButton() {
   const { session, signOut } = useAppAuth();

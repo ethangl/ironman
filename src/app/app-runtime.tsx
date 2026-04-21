@@ -1,99 +1,133 @@
 import {
   convexSignIn as signIn,
   convexSignOut as signOut,
-  useConvexSession as useSession,
+  useConvexSession,
 } from "@/lib/convex-auth-client";
-import { createContext, type ReactNode, useContext, useMemo } from "react";
-import { getSpotifyStatus } from "./app-runtime-status";
-import type { AppRuntime } from "./app-runtime-types";
-import { useSettledSession } from "./use-settled-session";
-import { useSpotifyRuntimeCapabilities } from "./use-spotify-runtime-capabilities";
+import { useSpotifyRuntimeCapabilities } from "@/features/spotify-client/use-spotify-runtime-capabilities";
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-export type {
-  AppAuthRuntime,
-  AppCapabilities,
-  AppRuntime,
-  SessionData,
-  SpotifyStatus,
-} from "./app-runtime-types";
+type SessionState = ReturnType<typeof useConvexSession>;
+export type SessionData = SessionState["data"];
+export type SpotifyConnection = "unknown" | "connected" | "disconnected";
 
-const AppRuntimeContext = createContext<AppRuntime | null>(null);
+const SESSION_SETTLE_DELAY_MS = 400;
 
-function useAuthRuntimeValue(): AppRuntime {
-  const { data: session, isPending } = useSession();
-  const { effectiveSession, isSessionPending } = useSettledSession({
-    isPending,
-    session,
-  });
+export interface AppAuthRuntime {
+  session: SessionData;
+  isPending: boolean;
+  signIn: typeof signIn;
+  signOut: typeof signOut;
+  getSpotifyAccessToken: () => Promise<string | null>;
+}
+
+export interface AppCapabilities {
+  spotifyConnection: SpotifyConnection;
+  canControlPlayback: boolean;
+}
+
+const AppAuthContext = createContext<AppAuthRuntime | null>(null);
+const AppCapabilitiesContext = createContext<AppCapabilities | null>(null);
+
+function useSettledSession() {
+  const { data: session, isPending } = useConvexSession();
+  const [lastResolvedSession, setLastResolvedSession] =
+    useState<SessionData>(session);
+  const [isSessionSettled, setIsSessionSettled] = useState(() => !!session);
+
+  useEffect(() => {
+    if (session) {
+      setIsSessionSettled(true);
+      setLastResolvedSession(session);
+      return;
+    }
+
+    if (isPending) {
+      setIsSessionSettled(false);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setLastResolvedSession(null);
+      setIsSessionSettled(true);
+    }, SESSION_SETTLE_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [isPending, session]);
+
+  return {
+    effectiveSession: session ?? (!isSessionSettled ? lastResolvedSession : null),
+    isSessionPending: isPending || !isSessionSettled,
+  };
+}
+
+function useRuntimeValues() {
+  const { effectiveSession, isSessionPending } = useSettledSession();
   const sessionUserId = effectiveSession?.user.id ?? null;
   const {
-    canBrowsePersonalSpotify,
     canControlPlayback,
     getSpotifyAccessToken,
     spotifyConnection,
   } = useSpotifyRuntimeCapabilities(sessionUserId);
 
-  const spotifyStatus = getSpotifyStatus({
-    isPending: isSessionPending,
-    session: effectiveSession,
-    spotifyConnection: effectiveSession ? spotifyConnection : "disconnected",
-  });
-
-  return useMemo(
+  const auth = useMemo(
     () => ({
-      auth: {
-        session: effectiveSession,
-        isPending: isSessionPending,
-        isAuthenticated: !!effectiveSession,
-        signIn,
-        signOut,
-        getSpotifyAccessToken,
-      },
-      capabilities: {
-        hasSession: !!effectiveSession,
-        spotifyConnection: effectiveSession
-          ? spotifyConnection
-          : "disconnected",
-        spotifyStatus,
-        canBrowsePersonalSpotify,
-        canControlPlayback,
-      },
-    }),
-    [
-      canBrowsePersonalSpotify,
-      canControlPlayback,
-      effectiveSession,
+      session: effectiveSession,
+      isPending: isSessionPending,
+      signIn,
+      signOut,
       getSpotifyAccessToken,
-      isSessionPending,
-      spotifyStatus,
-      spotifyConnection,
-    ],
+    }),
+    [getSpotifyAccessToken, isSessionPending, effectiveSession],
   );
+
+  const capabilities = useMemo(
+    () => ({
+      spotifyConnection,
+      canControlPlayback,
+    }),
+    [canControlPlayback, spotifyConnection],
+  );
+
+  return { auth, capabilities };
 }
 
 export function AppRuntimeProvider({ children }: { children: ReactNode }) {
-  const value = useAuthRuntimeValue();
+  const { auth, capabilities } = useRuntimeValues();
 
   return (
-    <AppRuntimeContext.Provider value={value}>
-      {children}
-    </AppRuntimeContext.Provider>
+    <AppAuthContext.Provider value={auth}>
+      <AppCapabilitiesContext.Provider value={capabilities}>
+        {children}
+      </AppCapabilitiesContext.Provider>
+    </AppAuthContext.Provider>
   );
 }
 
-export function useAppRuntime() {
-  const context = useContext(AppRuntimeContext);
+export function useAppAuth() {
+  const context = useContext(AppAuthContext);
   if (!context) {
-    throw new Error("useAppRuntime must be used within an AppRuntimeProvider.");
+    throw new Error("useAppAuth must be used within an AppRuntimeProvider.");
   }
 
   return context;
 }
 
-export function useAppAuth() {
-  return useAppRuntime().auth;
-}
-
 export function useAppCapabilities() {
-  return useAppRuntime().capabilities;
+  const context = useContext(AppCapabilitiesContext);
+  if (!context) {
+    throw new Error(
+      "useAppCapabilities must be used within an AppRuntimeProvider.",
+    );
+  }
+
+  return context;
 }

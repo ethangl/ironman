@@ -3,6 +3,7 @@ import {
   type ReactNode,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -17,6 +18,18 @@ const EMPTY_RESULTS: SpotifySearchResults = {
   tracks: [],
   artists: [],
   playlists: [],
+};
+
+type SearchState = {
+  error: string | null;
+  loading: boolean;
+  results: SpotifySearchResults;
+};
+
+const IDLE_SEARCH_STATE: SearchState = {
+  error: null,
+  loading: false,
+  results: EMPTY_RESULTS,
 };
 
 interface SearchContextValue {
@@ -38,14 +51,12 @@ export function useSearch() {
 export function SearchProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SpotifySearchResults>(EMPTY_RESULTS);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [searchState, setSearchState] = useState(IDLE_SEARCH_STATE);
   const debouncedQuery = useDebounce(query, 300);
-  const requestVersionRef = useRef(0);
   const lastLocationKeyRef = useRef(location.key);
-  const trimmed = query.trim();
-  const debouncedTrimmed = debouncedQuery.trim();
+  const trimmedQuery = query.trim();
+  const canSearch =
+    trimmedQuery !== "" && debouncedQuery.trim() === trimmedQuery;
 
   useEffect(() => {
     if (lastLocationKeyRef.current === location.key) {
@@ -55,66 +66,72 @@ export function SearchProvider({ children }: { children: ReactNode }) {
     lastLocationKeyRef.current = location.key;
     window.scrollTo(0, 0);
     setQuery("");
-    setResults(EMPTY_RESULTS);
-    setLoading(false);
-    setError(null);
+    setSearchState(IDLE_SEARCH_STATE);
   }, [location.key]);
 
   useEffect(() => {
-    const requestVersion = ++requestVersionRef.current;
-
-    if (!trimmed || trimmed !== debouncedTrimmed) {
-      setResults(EMPTY_RESULTS);
-      setLoading(false);
-      setError(null);
+    if (!canSearch) {
+      setSearchState(IDLE_SEARCH_STATE);
       return;
     }
 
-    setResults(EMPTY_RESULTS);
-    setLoading(true);
-    setError(null);
+    let cancelled = false;
+
+    setSearchState({
+      error: null,
+      loading: true,
+      results: EMPTY_RESULTS,
+    });
 
     void getAuthenticatedSpotifyConvexClient()
       .then((client) =>
         client.action(api.spotify.search, {
-          query: trimmed,
+          query: trimmedQuery,
         }),
       )
       .then((nextResults) => {
-        if (requestVersionRef.current !== requestVersion) {
+        if (cancelled) {
           return;
         }
-        setResults(nextResults);
+
+        setSearchState({
+          error: null,
+          loading: false,
+          results: nextResults,
+        });
       })
       .catch((nextError) => {
-        if (requestVersionRef.current !== requestVersion) {
+        if (cancelled) {
           return;
         }
-        setError(
-          nextError instanceof Error
-            ? nextError.message
-            : "Could not search Spotify right now.",
-        );
-      })
-      .finally(() => {
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
-        setLoading(false);
+
+        setSearchState({
+          error:
+            nextError instanceof Error
+              ? nextError.message
+              : "Could not search Spotify right now.",
+          loading: false,
+          results: EMPTY_RESULTS,
+        });
       });
-  }, [debouncedTrimmed, trimmed]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canSearch, trimmedQuery]);
+
+  const value = useMemo(
+    () => ({
+      error: canSearch ? searchState.error : null,
+      loading: canSearch ? searchState.loading : false,
+      query,
+      results: canSearch ? searchState.results : EMPTY_RESULTS,
+      setQuery,
+    }),
+    [canSearch, query, searchState],
+  );
 
   return (
-    <SearchContext.Provider
-      value={{
-        query,
-        setQuery,
-        results: trimmed ? results : EMPTY_RESULTS,
-        loading: trimmed !== "" && trimmed === debouncedTrimmed && loading,
-        error: trimmed ? error : null,
-      }}
-    >
-      {children}
-    </SearchContext.Provider>
+    <SearchContext.Provider value={value}>{children}</SearchContext.Provider>
   );
 }

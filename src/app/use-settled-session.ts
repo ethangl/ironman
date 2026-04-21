@@ -1,16 +1,12 @@
+import { useConvexSession } from "@/lib/convex-auth-client";
 import { useEffect, useState } from "react";
 
-import type { SessionData } from "./app-runtime-types";
+type SessionData = ReturnType<typeof useConvexSession>["data"];
 
 const SESSION_SETTLE_DELAY_MS = 400;
 
-export function useSettledSession({
-  isPending,
-  session,
-}: {
-  isPending: boolean;
-  session: SessionData;
-}) {
+export function useSettledSession() {
+  const { data: session, isPending } = useConvexSession();
   const [lastResolvedSession, setLastResolvedSession] =
     useState<SessionData>(session);
   const [isSessionSettled, setIsSessionSettled] = useState(() => !!session);

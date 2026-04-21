@@ -5,7 +5,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { clearCachedSpotifyAccessToken } from "@/features/spotify-client/spotify-access-token";
 import { clearCachedSpotifyAccountLink } from "@/features/spotify-client/spotify-account-link";
-import { AppRuntimeProvider, useAppRuntime } from "./app-runtime";
+import {
+  AppRuntimeProvider,
+  useAppAuth,
+  useAppCapabilities,
+} from "./app-runtime";
 
 const mockUseSession = vi.fn();
 const mockGetAccessToken = vi.fn();
@@ -41,6 +45,13 @@ function wrapper({ children }: { children: ReactNode }) {
   return <AppRuntimeProvider>{children}</AppRuntimeProvider>;
 }
 
+function useRuntimeProbe() {
+  return {
+    auth: useAppAuth(),
+    capabilities: useAppCapabilities(),
+  };
+}
+
 describe("AppRuntimeProvider", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -55,7 +66,7 @@ describe("AppRuntimeProvider", () => {
       isPending: false,
     });
 
-    const { result } = renderHook(() => useAppRuntime(), { wrapper });
+    const { result } = renderHook(() => useRuntimeProbe(), { wrapper });
 
     expect(result.current.auth.isPending).toBe(true);
 
@@ -84,7 +95,7 @@ describe("AppRuntimeProvider", () => {
       >();
     mockAuthFetch.mockReturnValue(deferred.promise);
 
-    const { result } = renderHook(() => useAppRuntime(), { wrapper });
+    const { result } = renderHook(() => useRuntimeProbe(), { wrapper });
 
     expect(result.current.auth.isAuthenticated).toBe(true);
     expect(result.current.capabilities.spotifyConnection).toBe("unknown");
@@ -115,7 +126,7 @@ describe("AppRuntimeProvider", () => {
       },
     ]);
 
-    const { result } = renderHook(() => useAppRuntime(), { wrapper });
+    const { result } = renderHook(() => useRuntimeProbe(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.capabilities.spotifyConnection).toBe("connected");
@@ -144,7 +155,7 @@ describe("AppRuntimeProvider", () => {
       data: { accessToken },
     }));
 
-    const { result } = renderHook(() => useAppRuntime(), { wrapper });
+    const { result } = renderHook(() => useRuntimeProbe(), { wrapper });
 
     await waitFor(() => {
       expect(result.current.capabilities.spotifyConnection).toBe("connected");
@@ -187,7 +198,7 @@ describe("AppRuntimeProvider", () => {
       },
     ]);
 
-    const { result, rerender } = renderHook(() => useAppRuntime(), {
+    const { result, rerender } = renderHook(() => useRuntimeProbe(), {
       wrapper,
     });
 
@@ -222,7 +233,7 @@ describe("AppRuntimeProvider", () => {
       },
     ]);
 
-    const { result, rerender } = renderHook(() => useAppRuntime(), {
+    const { result, rerender } = renderHook(() => useRuntimeProbe(), {
       wrapper,
     });
 
@@ -262,7 +273,9 @@ describe("AppRuntimeProvider", () => {
       },
     ]);
 
-    const { result, rerender } = renderHook(() => useAppRuntime(), { wrapper });
+    const { result, rerender } = renderHook(() => useRuntimeProbe(), {
+      wrapper,
+    });
 
     expect(result.current.auth.isPending).toBe(true);
 
@@ -305,7 +318,9 @@ describe("AppRuntimeProvider", () => {
     mockUseSession.mockImplementation(() => sessionState);
     mockAuthFetch.mockImplementation(() => deferred.promise);
 
-    const { result, rerender } = renderHook(() => useAppRuntime(), { wrapper });
+    const { result, rerender } = renderHook(() => useRuntimeProbe(), {
+      wrapper,
+    });
 
     await act(async () => {
       vi.useFakeTimers();
@@ -340,8 +355,8 @@ describe("AppRuntimeProvider", () => {
       isPending: false,
     });
 
-    expect(() => renderHook(() => useAppRuntime())).toThrow(
-      "useAppRuntime must be used within an AppRuntimeProvider.",
+    expect(() => renderHook(() => useRuntimeProbe())).toThrow(
+      "useAppAuth must be used within an AppRuntimeProvider.",
     );
   });
 });

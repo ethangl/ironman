@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 
-import { useAppAuth, AuthPendingState } from "@/app";
-import { PublicHomeRoute } from "./public-home-route";
+import { AuthPendingState, useAppAuth } from "@/app";
+import { LoginButton } from "@/features/auth";
 
 export function HomeRoute() {
   const { isAuthenticated, isPending } = useAppAuth();
@@ -28,5 +28,9 @@ export function HomeRoute() {
     );
   }
 
-  return <PublicHomeRoute />;
+  return (
+    <div className="flex h-dvh items-center justify-center w-dvw">
+      <LoginButton />
+    </div>
+  );
 }

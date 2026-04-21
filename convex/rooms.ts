@@ -583,100 +583,31 @@ export const get = query({
       viewerMembership: buildMembershipSnapshot(visibleRoomContext.membership),
       memberCount: activeMemberships.length,
       queueLength: projection.visibleQueueItems.length,
+      queue: projection.visibleQueueItems.map((queueItem, index) =>
+        buildQueueItemSnapshot(queueItem, index),
+      ),
       playback: {
         currentQueueItemId: projection.currentQueueItemId,
         currentQueueItem: projection.currentQueueItem
           ? buildQueueItemSnapshot(projection.currentQueueItem)
           : null,
-        expectedOffsetMs: projection.currentQueueItem
-          ? projection.resolvedPlaybackState.currentOffsetMs
+        startedAt: projection.currentQueueItem
+          ? projection.resolvedPlaybackState.startedAt
+          : null,
+        startOffsetMs: projection.currentQueueItem
+          ? projection.resolvedPlaybackState.startOffsetMs
           : 0,
         paused: projection.currentQueueItem
           ? projection.resolvedPlaybackState.paused
           : true,
+        pausedAt: projection.currentQueueItem
+          ? projection.resolvedPlaybackState.pausedAt
+          : playbackState.pausedAt,
+        updatedAt: playbackState.updatedAt,
+        canEnqueue: !!visibleRoomContext.membership,
+        canManageQueue: isModeratorRole(visibleRoomContext.membership),
+        canControlPlayback: isModeratorRole(visibleRoomContext.membership),
       },
-    };
-  },
-});
-
-export const getQueue = query({
-  args: {
-    roomId: v.id("rooms"),
-  },
-  handler: async (ctx, args) => {
-    const visibleRoomContext = await getVisibleRoomContext(ctx, args.roomId, undefined);
-    if (!visibleRoomContext) {
-      return null;
-    }
-
-    const [queueItems, playbackState] = await Promise.all([
-      getActiveQueueItems(ctx, visibleRoomContext.room._id),
-      getPlaybackStateDoc(ctx, visibleRoomContext.room._id),
-    ]);
-    const projection = resolveRoomPlaybackProjection(
-      queueItems,
-      playbackState,
-      Date.now(),
-    );
-    return {
-      room: buildRoomSnapshot(visibleRoomContext.room),
-      viewerMembership: buildMembershipSnapshot(visibleRoomContext.membership),
-      queue: projection.visibleQueueItems.map((queueItem, index) =>
-        buildQueueItemSnapshot(queueItem, index),
-      ),
-    };
-  },
-});
-
-export const getPlaybackState = query({
-  args: {
-    roomId: v.id("rooms"),
-  },
-  handler: async (ctx, args) => {
-    const visibleRoomContext = await getVisibleRoomContext(ctx, args.roomId, undefined);
-    if (!visibleRoomContext) {
-      return null;
-    }
-
-    const [queueItems, playbackState, activeMemberships] = await Promise.all([
-      getActiveQueueItems(ctx, visibleRoomContext.room._id),
-      getPlaybackStateDoc(ctx, visibleRoomContext.room._id),
-      getActiveRoomMemberships(ctx, visibleRoomContext.room._id),
-    ]);
-    const projection = resolveRoomPlaybackProjection(
-      queueItems,
-      playbackState,
-      Date.now(),
-    );
-
-    return {
-      room: buildRoomSnapshot(visibleRoomContext.room),
-      viewerMembership: buildMembershipSnapshot(visibleRoomContext.membership),
-      memberCount: activeMemberships.length,
-      queueLength: projection.visibleQueueItems.length,
-      currentQueueItemId: projection.currentQueueItemId,
-      currentQueueItem: projection.currentQueueItem
-        ? buildQueueItemSnapshot(projection.currentQueueItem)
-        : null,
-      expectedOffsetMs: projection.currentQueueItem
-        ? projection.resolvedPlaybackState.currentOffsetMs
-        : 0,
-      startedAt: projection.currentQueueItem
-        ? projection.resolvedPlaybackState.startedAt
-        : null,
-      startOffsetMs: projection.currentQueueItem
-        ? projection.resolvedPlaybackState.startOffsetMs
-        : 0,
-      paused: projection.currentQueueItem
-        ? projection.resolvedPlaybackState.paused
-        : true,
-      pausedAt: projection.currentQueueItem
-        ? projection.resolvedPlaybackState.pausedAt
-        : playbackState.pausedAt,
-      updatedAt: playbackState.updatedAt,
-      canEnqueue: !!visibleRoomContext.membership,
-      canManageQueue: isModeratorRole(visibleRoomContext.membership),
-      canControlPlayback: isModeratorRole(visibleRoomContext.membership),
     };
   },
 });

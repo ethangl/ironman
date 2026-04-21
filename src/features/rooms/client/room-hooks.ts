@@ -10,7 +10,6 @@ import {
 import type {
   RoomDetails,
   RoomId,
-  RoomPlaybackSnapshot,
   RoomSummary,
 } from "./room-types";
 
@@ -37,34 +36,13 @@ export function useRoomList(): QueryState<RoomSummary[]> {
 export function useRoomDetails(
   roomId: RoomId | undefined,
 ): RoomDetailsQueryState {
-  const summary = useStableQuery(api.rooms.get, roomId ? { roomId } : "skip");
-  const queue = useStableQuery(
-    api.rooms.getQueue,
-    roomId ? { roomId } : "skip",
-  );
-  const playback = useStableQuery(
-    api.rooms.getPlaybackState,
-    roomId ? { roomId } : "skip",
-  );
+  const roomDetails = useStableQuery(api.rooms.get, roomId ? { roomId } : "skip");
 
-  const loading =
-    !!roomId &&
-    (summary === undefined || queue === undefined || playback === undefined);
-  const notFound =
-    !!roomId && (summary === null || queue === null || playback === null);
+  const loading = !!roomId && roomDetails === undefined;
+  const notFound = !!roomId && roomDetails === null;
   const data = useMemo(
-    () =>
-      !roomId || loading || notFound || !summary || !queue || !playback
-        ? null
-        : {
-            room: summary.room,
-            viewerMembership: summary.viewerMembership,
-            memberCount: summary.memberCount,
-            queueLength: summary.queueLength,
-            queue: queue.queue,
-            playback: playback as RoomPlaybackSnapshot,
-          },
-    [loading, notFound, playback, queue, summary],
+    () => (!roomId || loading || notFound || !roomDetails ? null : roomDetails),
+    [loading, notFound, roomDetails, roomId],
   );
   const [now, setNow] = useState(() => Date.now());
   const hasRoomData = data !== null;

@@ -44,13 +44,8 @@ export interface RoomSummary {
 }
 
 export interface RoomPlaybackSnapshot {
-  room: RoomSnapshot;
-  viewerMembership: RoomMembershipSnapshot | null;
-  memberCount: number;
-  queueLength: number;
   currentQueueItemId: RoomQueueItemId | null;
   currentQueueItem: RoomQueueItem | null;
-  expectedOffsetMs: number;
   startedAt: number | null;
   startOffsetMs: number;
   paused: boolean;

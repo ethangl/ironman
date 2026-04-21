@@ -7,12 +7,12 @@ import {
   type MutationCtx,
   type QueryCtx,
 } from "./_generated/server";
+import { requireAuthUser } from "./betterAuth";
 import {
   moveRoomQueueItemIds,
   normalizeRoomPlaybackForContinuousStream,
   resolveRoomPlaybackState,
 } from "../shared/rooms-state";
-import { requireAuthUser } from "./spotifySession";
 
 const roomVisibilityValidator = v.union(
   v.literal("public"),

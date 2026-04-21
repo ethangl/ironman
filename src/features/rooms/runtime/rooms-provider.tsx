@@ -2,9 +2,7 @@ import { useMemo, type ReactNode } from "react";
 
 import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { RoomsContext, type RoomsContextValue } from "./rooms-context";
-import { useRoomMembershipActions } from "./use-room-membership-actions";
-import { useRoomPlaybackActions } from "./use-room-playback-actions";
-import { useRoomQueueActions } from "./use-room-queue-actions";
+import { useRoomActions } from "./use-room-actions";
 import { useRoomRuntimeState } from "./use-room-runtime-state";
 import { useRoomSyncController } from "./use-room-sync-controller";
 
@@ -15,47 +13,45 @@ export function RoomsProvider({ children }: { children: ReactNode }) {
     activeRoom: runtime.activeRoom,
     resolvedPlayback: runtime.resolvedPlayback,
   });
-  const membership = useRoomMembershipActions({
+  const actions = useRoomActions({
     activeRoomId: runtime.activeRoomId,
     onJoinRoom: sync.requestSync,
     selectActiveRoom: runtime.selectActiveRoom,
   });
-  const queue = useRoomQueueActions(runtime.activeRoomId);
-  const playback = useRoomPlaybackActions();
 
   const value = useMemo<RoomsContextValue>(
     () => ({
       activeRoom: runtime.activeRoom,
       activeRoomId: runtime.activeRoomId,
       activeRoomLoading: runtime.activeRoomLoading,
-      clearQueue: queue.clearQueue,
-      createRoom: membership.createRoom,
-      enqueueTrack: queue.enqueueTrack,
-      enqueueTracks: queue.enqueueTracks,
+      clearQueue: actions.clearQueue,
+      createRoom: actions.createRoom,
+      enqueueTrack: actions.enqueueTrack,
+      enqueueTracks: actions.enqueueTracks,
       isListeningToRoom: sync.isListeningToRoom,
-      joinRoom: membership.joinRoom,
-      leaveRoom: membership.leaveRoom,
-      moveQueueItem: queue.moveQueueItem,
-      removeQueueItem: queue.removeQueueItem,
+      joinRoom: actions.joinRoom,
+      leaveRoom: actions.leaveRoom,
+      moveQueueItem: actions.moveQueueItem,
+      removeQueueItem: actions.removeQueueItem,
       repairSync: sync.repairSync,
       resolvedPlayback: runtime.resolvedPlayback,
       rooms: runtime.rooms,
       roomsLoading: runtime.roomsLoading,
       selectActiveRoom: runtime.selectActiveRoom,
-      skipRoom: playback.skipRoom,
+      skipRoom: actions.skipRoom,
       stopListening: sync.stopListening,
       syncState: sync.syncState,
     }),
     [
-      membership.createRoom,
-      membership.joinRoom,
-      membership.leaveRoom,
-      playback.skipRoom,
-      queue.clearQueue,
-      queue.enqueueTrack,
-      queue.enqueueTracks,
-      queue.moveQueueItem,
-      queue.removeQueueItem,
+      actions.clearQueue,
+      actions.createRoom,
+      actions.enqueueTrack,
+      actions.enqueueTracks,
+      actions.joinRoom,
+      actions.leaveRoom,
+      actions.moveQueueItem,
+      actions.removeQueueItem,
+      actions.skipRoom,
       runtime.activeRoom,
       runtime.activeRoomId,
       runtime.activeRoomLoading,

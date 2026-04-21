@@ -123,3 +123,14 @@ export const createAuth = (ctx: Parameters<typeof authComponent.adapter>[0]) =>
   });
 
 export const { getAuthUser } = authComponent.clientApi();
+
+export async function requireAuthUser(ctx: unknown) {
+  const user = await authComponent.getAuthUser(
+    ctx as Parameters<typeof authComponent.getAuthUser>[0],
+  );
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  return user;
+}

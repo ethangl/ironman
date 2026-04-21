@@ -1,4 +1,4 @@
-import { authComponent, createAuth } from "./betterAuth";
+import { authComponent, createAuth, requireAuthUser } from "./betterAuth";
 
 const SPOTIFY_ACCESS_TOKEN_EXPIRY_SKEW_MS = 30_000;
 const SPOTIFY_ACCESS_TOKEN_FALLBACK_TTL_MS = 60_000;
@@ -8,17 +8,6 @@ const spotifyAccessTokenCache = new Map<
   { accessToken: string; expiresAt: number }
 >();
 const spotifyAccessTokenInFlight = new Map<string, Promise<string>>();
-
-export async function requireAuthUser(ctx: unknown) {
-  const user = await authComponent.getAuthUser(
-    ctx as Parameters<typeof authComponent.getAuthUser>[0],
-  );
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
-
-  return user;
-}
 
 function normalizeExpiry(expiresAt: Date | number | null | undefined) {
   if (expiresAt instanceof Date) {

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { internal } from "./_generated/api";
 import { action } from "./_generated/server";
+import { requireAuthUser } from "./betterAuth";
 import { clearAlbumsCaches, spotifyAlbumTracksCache } from "./spotify/albums";
 import {
   clearArtistsCaches,
@@ -42,7 +43,7 @@ import {
   spotifySearchResultsValidator,
   spotifyTrackValidator,
 } from "./spotify/validators";
-import { requireAuthUser, requireSpotifyAccessToken } from "./spotifySession";
+import { requireSpotifyAccessToken } from "./spotifySession";
 
 const SPOTIFY_AUTH_COOLDOWN_KEY = "spotify-auth-cooldown";
 

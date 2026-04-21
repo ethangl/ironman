@@ -9,7 +9,8 @@ import { RoomCard } from "./room-card";
 import { RoomCreateForm } from "./room-create-form";
 
 export function RoomsHome() {
-  const { activeRoomId, rooms, roomsLoading } = useRooms();
+  const { activeRoom, rooms, roomsLoading } = useRooms();
+  const activeRoomId = activeRoom?.room._id ?? null;
   const joinedRooms = rooms.filter(
     (roomSummary) => !!roomSummary.viewerMembership,
   );

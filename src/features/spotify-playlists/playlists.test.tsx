@@ -86,7 +86,6 @@ function createRoomsValue(
         canControlPlayback: false,
       },
     },
-    activeRoomId: "room-1" as never,
     activeRoomLoading: false,
     clearQueue: vi.fn(),
     createRoom: vi.fn(),
@@ -219,7 +218,6 @@ describe("Playlists", () => {
     renderPlaylists({
       rooms: {
         activeRoom: null,
-        activeRoomId: null,
       },
     });
 

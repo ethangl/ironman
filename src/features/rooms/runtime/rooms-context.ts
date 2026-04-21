@@ -12,7 +12,6 @@ import type { ResolvedRoomPlayback } from "./room-sync";
 
 export interface RoomsContextValue {
   activeRoom: RoomDetails | null;
-  activeRoomId: RoomId | null;
   activeRoomLoading: boolean;
   isListeningToRoom: boolean;
   resolvedPlayback: ResolvedRoomPlayback | null;

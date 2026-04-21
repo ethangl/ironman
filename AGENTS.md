@@ -22,3 +22,10 @@ Convex agent skills for common tasks can be installed by running `npx convex ai-
 - the Spotify API is extremely rate-sensitive; `429` cooldown windows can last 6+ hours, so be conservative when adding new queries
 - prefer one-time reads, durable caching, local state updates, and explicit user-triggered refresh over polling or background re-sync
 - treat `429` handling as emergency fallback, not as a normal control-flow strategy; if we are seeing Spotify `429`s in ordinary app usage, the query design is wrong and should be reduced or restructured
+
+## Remember: Testing
+
+- write tests that protect real behavior, not module layout
+- prefer coverage for request shaping, parsing/mapping, auth handoff, caching/dedupe, error handling, and user-visible flows
+- avoid tests that only prove one thin wrapper called the next wrapper
+- if a refactor makes a test noisy without reducing real bug risk, prefer deleting or rewriting the test over preserving churn-heavy coverage

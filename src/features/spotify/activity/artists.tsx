@@ -12,7 +12,7 @@ import { Thumbnail } from "@/features/spotify/activity/thumbnail";
 import { SpotifyArtist } from "@/types";
 
 export type ArtistsProps = {
-  action: React.ReactNode;
+  action?: React.ReactNode;
   artists: SpotifyArtist[];
   title: string;
 };

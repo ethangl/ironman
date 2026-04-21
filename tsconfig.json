@@ -12,6 +12,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
+    "types": ["vite/client", "node"],
     "incremental": true,
     "paths": {
       "@api": ["./convex/_generated/api"],

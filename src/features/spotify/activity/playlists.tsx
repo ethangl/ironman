@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useOptionalRooms } from "@/features/rooms";
 import { useSpotifyClient } from "@/features/spotify/client";
-import { SpotifyPlaylist, Track } from "@/types";
+import type { SpotifyPlaylist, SpotifyTrack } from "@/types";
 import { PlaylistCell } from "./playlist-cell";
 import { usePlayableTrackCollection } from "./use-playable-track-collection";
 
@@ -29,14 +29,14 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => {
   const enqueueTracks = rooms?.enqueueTracks;
 
   const loadTracks = useCallback(
-    async (playlist: SpotifyPlaylist): Promise<Track[]> => {
+    async (playlist: SpotifyPlaylist): Promise<SpotifyTrack[]> => {
       return client.spotifyActivity.getPlaylistTracks(playlist.id);
     },
     [client],
   );
 
   const { getCachedTracks, loadItemTracks, loadingItemId, playItem } =
-    usePlayableTrackCollection<SpotifyPlaylist>({
+    usePlayableTrackCollection<SpotifyPlaylist, SpotifyTrack>({
       emptyMessage: "That playlist does not have any playable tracks.",
       fallbackErrorMessage: "Could not load playlist tracks.",
       loadTracks,

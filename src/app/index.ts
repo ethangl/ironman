@@ -8,5 +8,9 @@ export type { SpotifyStatus } from "./app-runtime";
 export { AppShell } from "./app-shell";
 export { AuthPendingState } from "./auth-pending-state";
 export { AuthedLayout } from "./authed-layout";
-export { RequireAuthenticatedSession } from "./require-authenticated-session";
+export {
+  AuthenticatedSessionProvider,
+  RequireAuthenticatedSession,
+  useAuthenticatedSession,
+} from "./require-authenticated-session";
 export { router } from "./router";

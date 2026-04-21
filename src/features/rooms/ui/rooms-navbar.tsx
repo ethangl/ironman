@@ -7,18 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { LoginButton } from "@/features/auth";
 import { useRooms } from "@/features/rooms";
-import { useAppAuth, useAppCapabilities } from "../../../app/app-runtime";
+import { useAppCapabilities, useAuthenticatedSession } from "@/app";
 import { ClearSpotifyCacheButton } from "../../../app/clear-spotify-cache-button";
 import { RoomLink } from "./room-link";
 
 export function RoomsNavbar() {
-  const { session } = useAppAuth();
+  const session = useAuthenticatedSession();
   const { canBrowsePersonalSpotify, spotifyStatus } = useAppCapabilities();
   const { activeRoom } = useRooms();
-
-  if (!session) {
-    return null;
-  }
 
   if (canBrowsePersonalSpotify) {
     return (

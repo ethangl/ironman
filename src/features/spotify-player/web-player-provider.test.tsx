@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AppRuntimeProvider } from "@/app";
+import { AppRuntimeProvider, AuthenticatedSessionProvider } from "@/app";
 import { clearCachedSpotifyAccessToken } from "@/app/lib/spotify-access-token";
 import { clearCachedSpotifyAccountLink } from "@/app/lib/spotify-account-link";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
@@ -211,9 +211,13 @@ function renderProvider(
 
   return render(
     <AppRuntimeProvider>
-      <SpotifyActivityProvider>
-        <WebPlayerProvider>{children ?? <PlayerProbe />}</WebPlayerProvider>
-      </SpotifyActivityProvider>
+      <AuthenticatedSessionProvider
+        session={{ user: { id: "user-1" } } as never}
+      >
+        <SpotifyActivityProvider>
+          <WebPlayerProvider>{children ?? <PlayerProbe />}</WebPlayerProvider>
+        </SpotifyActivityProvider>
+      </AuthenticatedSessionProvider>
     </AppRuntimeProvider>,
   );
 }
@@ -421,11 +425,15 @@ describe("WebPlayerProvider", () => {
     await act(async () => {
       rerender(
         <AppRuntimeProvider>
-          <SpotifyActivityProvider>
-            <WebPlayerProvider>
-              <PlayerProbe />
-            </WebPlayerProvider>
-          </SpotifyActivityProvider>
+          <AuthenticatedSessionProvider
+            session={{ user: { id: "user-2" } } as never}
+          >
+            <SpotifyActivityProvider>
+              <WebPlayerProvider>
+                <PlayerProbe />
+              </WebPlayerProvider>
+            </SpotifyActivityProvider>
+          </AuthenticatedSessionProvider>
         </AppRuntimeProvider>,
       );
       await Promise.resolve();

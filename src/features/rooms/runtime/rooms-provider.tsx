@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from "react";
 
-import { useAppAuth } from "@/app";
+import { useAuthenticatedSession } from "@/app";
 import { RoomsContext, type RoomsContextValue } from "./rooms-context";
 import { useRoomMembershipActions } from "./use-room-membership-actions";
 import { useRoomPlaybackActions } from "./use-room-playback-actions";
@@ -9,8 +9,8 @@ import { useRoomRuntimeState } from "./use-room-runtime-state";
 import { useRoomSyncController } from "./use-room-sync-controller";
 
 export function RoomsProvider({ children }: { children: ReactNode }) {
-  const { session } = useAppAuth();
-  const runtime = useRoomRuntimeState(session?.user.id ?? null);
+  const session = useAuthenticatedSession();
+  const runtime = useRoomRuntimeState(session.user.id);
   const sync = useRoomSyncController({
     activeRoom: runtime.activeRoom,
     resolvedPlayback: runtime.resolvedPlayback,

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import type { Track } from "@/types";
+import type { Track } from "@/features/spotify-client/types";
 import { useWebPlayerState } from "./use-web-player";
 
 export interface PlayerQueueListingItem {

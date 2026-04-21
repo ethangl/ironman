@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 
-import type { SpotifyTrack } from "@/types";
+import type { SpotifyTrack } from "@/features/spotify-client/types";
 import type {
   RoomDetails,
   RoomId,

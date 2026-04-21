@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useAppAuth, useAppCapabilities } from "@/app";
 import { useSpotifyRecentlyPlayed } from "@/features/spotify-library";
-import type { SpotifyTrack, Track } from "@/types";
+import type {
+  SpotifyTrack,
+  Track,
+} from "@/features/spotify-client/types";
 import { cn } from "@/lib/utils";
 import { useSpotify } from "../spotify-sdk/use-spotify";
 import { MiniPlayer } from "./mini-player";

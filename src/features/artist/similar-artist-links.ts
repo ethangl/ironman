@@ -1,4 +1,4 @@
-import type { LastFmSimilarArtist } from "@/types";
+import type { LastFmSimilarArtist } from "./types";
 
 const SIMILAR_ARTIST_SPOTIFY_ID_CACHE_PREFIX = "artist-spotify-id-by-mbid:";
 

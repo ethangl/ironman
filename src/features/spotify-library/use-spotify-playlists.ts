@@ -9,7 +9,7 @@ import {
 } from "react";
 
 import { PLAYLIST_PAGE_SIZE } from "@/features/spotify-client";
-import type { Playlist } from "@/types/spotify-activity";
+import type { Playlist } from "@/features/spotify-client/types";
 import { api } from "@api";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 

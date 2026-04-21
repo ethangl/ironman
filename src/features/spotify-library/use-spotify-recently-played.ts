@@ -9,8 +9,10 @@ import {
 } from "react";
 
 import { RECENTLY_PLAYED_LIMIT } from "@/features/spotify-client";
-import type { SpotifyTrack } from "@/types";
-import type { RecentTrack } from "@/types/spotify-activity";
+import type {
+  RecentTrack,
+  SpotifyTrack,
+} from "@/features/spotify-client/types";
 import { api } from "@api";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 

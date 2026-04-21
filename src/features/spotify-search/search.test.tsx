@@ -8,7 +8,10 @@ import {
 import { MemoryRouter, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { SpotifySearchResults, SpotifyTrack } from "@/types";
+import type {
+  SpotifySearchResults,
+  SpotifyTrack,
+} from "@/features/spotify-client/types";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 import { getFunctionName } from "convex/server";
 import { SearchInput } from "./search-input";

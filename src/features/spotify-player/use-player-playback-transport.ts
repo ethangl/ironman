@@ -1,7 +1,10 @@
 import { useCallback, useRef, useState } from "react";
 
-import type { Track } from "@/types";
-import type { PlayResult, SdkPlaybackState } from "@/types/spotify-playback";
+import type { Track } from "@/features/spotify-client/types";
+import type {
+  PlayResult,
+  SdkPlaybackState,
+} from "@/features/spotify-client/playback-types";
 import { toast } from "sonner";
 
 function getPlaybackFailureMessage(status: number) {

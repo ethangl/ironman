@@ -1,7 +1,10 @@
 import { useCallback, type MutableRefObject } from "react";
 
 import { spotifyPlaybackClient } from "@/features/spotify-client";
-import type { PlayResult, SpotifyPlayback } from "@/types/spotify-playback";
+import type {
+  PlayResult,
+  SpotifyPlayback,
+} from "@/features/spotify-client/playback-types";
 
 import type { SpotifyPlayer } from "./spotify-sdk-types";
 

@@ -1,7 +1,10 @@
 import { createContext, useContext } from "react";
 
-import { Track } from "@/types";
-import type { PlayResult, SdkPlaybackState } from "@/types/spotify-playback";
+import type { Track } from "@/features/spotify-client/types";
+import type {
+  PlayResult,
+  SdkPlaybackState,
+} from "@/features/spotify-client/playback-types";
 
 /** Stable actions/state that rarely change — safe to consume without causing frequent re-renders. */
 interface WebPlayerActionsValue {

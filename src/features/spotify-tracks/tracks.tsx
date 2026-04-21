@@ -7,7 +7,7 @@ import {
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
-import { SpotifyTrack } from "@/types";
+import type { SpotifyTrack } from "@/features/spotify-client/types";
 import { TrackCell } from "./track-cell";
 
 export type TracksProps = {

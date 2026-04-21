@@ -13,7 +13,10 @@ import { Button } from "@/components/ui/button";
 import { useOptionalRooms } from "@/features/rooms";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 import { useWebPlayerActions } from "@/features/spotify-player";
-import type { SpotifyPlaylist, SpotifyTrack } from "@/types";
+import type {
+  SpotifyPlaylist,
+  SpotifyTrack,
+} from "@/features/spotify-client/types";
 import { api } from "@api";
 import { PlaylistCell } from "./playlist-cell";
 

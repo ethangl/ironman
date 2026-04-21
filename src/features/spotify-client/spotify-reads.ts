@@ -1,4 +1,4 @@
-import type { Playlist, RecentTrack } from "@/types/spotify-activity";
+import type { Playlist, RecentTrack } from "./types";
 
 const PLAYLIST_PAGE_SIZE = 50;
 const RECENTLY_PLAYED_LIMIT = 30;

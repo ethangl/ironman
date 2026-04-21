@@ -13,7 +13,7 @@ import {
   useSpotifyPlaylists,
   useSpotifyRecentlyPlayed,
 } from "@/features/spotify-library";
-import type { SpotifyTrack } from "@/types";
+import type { SpotifyTrack } from "@/features/spotify-client/types";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 import { getFunctionName } from "convex/server";
 import { SpotifyActivityProvider } from "./spotify-activity-provider";

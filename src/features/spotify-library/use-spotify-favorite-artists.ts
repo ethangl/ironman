@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 
-import type { SpotifyArtist } from "@/types";
+import type { SpotifyArtist } from "@/features/spotify-client/types";
 import { api } from "@api";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 

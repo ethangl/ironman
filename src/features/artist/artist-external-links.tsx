@@ -1,6 +1,6 @@
 import { AtSignIcon, AudioLinesIcon, GlobeIcon, PlayIcon } from "lucide-react";
 
-import type { MusicBrainzArtistLinks } from "@/types";
+import type { MusicBrainzArtistLinks } from "./types";
 
 export function ArtistExternalLinks({
   links,

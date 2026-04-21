@@ -1,8 +1,11 @@
 import { renderHook, act } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-import type { Track } from "@/types";
-import type { PlayResult, SdkPlaybackState } from "@/types/spotify-playback";
+import type { Track } from "@/features/spotify-client/types";
+import type {
+  PlayResult,
+  SdkPlaybackState,
+} from "@/features/spotify-client/playback-types";
 
 import { usePlayerPlayback } from "./use-player-playback";
 

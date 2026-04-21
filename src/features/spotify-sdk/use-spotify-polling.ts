@@ -6,7 +6,7 @@ import {
   type MutableRefObject,
 } from "react";
 
-import type { SdkPlaybackState } from "@/types/spotify-playback";
+import type { SdkPlaybackState } from "@/features/spotify-client/playback-types";
 
 import type {
   SpotifyPlaybackState,

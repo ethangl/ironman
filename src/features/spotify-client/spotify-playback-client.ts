@@ -1,4 +1,4 @@
-import type { PlayResult, SpotifyPlayback } from "@/types/spotify-playback";
+import type { PlayResult, SpotifyPlayback } from "./playback-types";
 import { api } from "@api";
 import { getAuthenticatedSpotifyConvexClient } from "./spotify-convex-client";
 

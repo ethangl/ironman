@@ -1,5 +1,5 @@
-import type { Track } from "@/types";
-import type { SdkPlaybackState } from "@/types/spotify-playback";
+import type { Track } from "@/features/spotify-client/types";
+import type { SdkPlaybackState } from "@/features/spotify-client/playback-types";
 
 export interface PlayerQueueState {
   queue: Track[];

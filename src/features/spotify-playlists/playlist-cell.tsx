@@ -2,7 +2,7 @@ import { FC, PropsWithChildren, ReactNode, useContext } from "react";
 
 import { AlbumArt } from "@/components/album-art";
 import { PlayButton } from "@/components/play-button";
-import type { Track } from "@/types";
+import type { Track } from "@/features/spotify-client/types";
 import { WebPlayerActionsContext } from "../spotify-player/use-web-player";
 
 export type PlaylistCellProps = PropsWithChildren & {

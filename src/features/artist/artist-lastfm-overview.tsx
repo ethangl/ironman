@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import type { LastFmArtistMatch } from "@/types";
+import type { LastFmArtistMatch } from "./types";
 import { getSimilarArtistLink } from "./similar-artist-links";
 
 const compactNumberFormatter = new Intl.NumberFormat(undefined, {

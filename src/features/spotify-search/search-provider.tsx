@@ -10,9 +10,9 @@ import {
 import { useLocation } from "react-router-dom";
 
 import { useDebounce } from "@/hooks/use-debounce";
-import { SpotifySearchResults } from "@/types";
 import { api } from "@api";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
+import type { SpotifySearchResults } from "@/features/spotify-client/types";
 
 const EMPTY_RESULTS: SpotifySearchResults = {
   tracks: [],

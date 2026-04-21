@@ -5,7 +5,10 @@ import { List, ListItem } from "@/components/list";
 import { Section, SectionContent, SectionHeader } from "@/components/section";
 import { getSpotifyAlbumTracks } from "@/features/artist/spotify-artist-client";
 import { useWebPlayerActions } from "@/features/spotify-player";
-import type { SpotifyAlbumRelease, Track } from "@/types";
+import type {
+  SpotifyAlbumRelease,
+  Track,
+} from "@/features/spotify-client/types";
 import { PlaylistCell } from "@/features/spotify-playlists/playlist-cell";
 
 function formatReleaseDate(value: string | null) {

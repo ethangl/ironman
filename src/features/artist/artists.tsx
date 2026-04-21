@@ -8,7 +8,7 @@ import {
   SectionTitle,
 } from "@/components/section";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SpotifyArtist } from "@/types";
+import type { SpotifyArtist } from "@/features/spotify-client/types";
 import { Thumbnail } from "./artist-thumbnail";
 
 export type ArtistsProps = {

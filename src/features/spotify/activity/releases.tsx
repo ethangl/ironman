@@ -1,11 +1,12 @@
-import { FC, useCallback } from "react";
+import { FC, useCallback, useState } from "react";
+import { toast } from "sonner";
 
 import { List, ListItem } from "@/components/list";
 import { Section, SectionContent, SectionHeader } from "@/components/section";
 import { getSpotifyAlbumTracks } from "@/features/artist/spotify-artist-client";
+import { useWebPlayerActions } from "@/features/spotify/player";
 import type { SpotifyAlbumRelease, Track } from "@/types";
 import { PlaylistCell } from "./playlist-cell";
-import { usePlayableTrackCollection } from "./use-playable-track-collection";
 
 function formatReleaseDate(value: string | null) {
   if (!value) return "Unknown release date";
@@ -31,19 +32,43 @@ export type ReleasesProps = {
 };
 
 export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
-  const loadTracks = useCallback(
+  const { playTracks } = useWebPlayerActions();
+  const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
+
+  const loadReleaseTracks = useCallback(
     async (release: SpotifyAlbumRelease): Promise<Track[]> => {
-      return getSpotifyAlbumTracks(release.id);
+      setLoadingItemId(release.id);
+
+      try {
+        return await getSpotifyAlbumTracks(release.id);
+      } finally {
+        setLoadingItemId((current) => (current === release.id ? null : current));
+      }
     },
     [],
   );
-  const { loadingItemId, playItem } = usePlayableTrackCollection<
-    SpotifyAlbumRelease
-  >({
-    emptyMessage: "That release does not have any playable tracks.",
-    fallbackErrorMessage: "Could not load that release right now.",
-    loadTracks,
-  });
+
+  const playRelease = useCallback(
+    async (release: SpotifyAlbumRelease) => {
+      try {
+        const tracks = await loadReleaseTracks(release);
+
+        if (tracks.length === 0) {
+          toast.error("That release does not have any playable tracks.");
+          return;
+        }
+
+        await playTracks(tracks);
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Could not load that release right now.",
+        );
+      }
+    },
+    [loadReleaseTracks, playTracks],
+  );
 
   if (releases.length === 0) {
     return null;
@@ -63,7 +88,7 @@ export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
                 name={release.name}
                 subtitle={formatReleaseMeta(release)}
                 tracks={[]}
-                onPlay={() => void playItem(release)}
+                onPlay={() => void playRelease(release)}
               />
             </ListItem>
           ))}

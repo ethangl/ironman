@@ -2,7 +2,6 @@ import { ComponentProps, FC } from "react";
 
 import { cn } from "@/lib/utils";
 import { AppLink } from "./app-link";
-import { BackgroundOverlay } from "./background-overlay";
 import { Spinner } from "./ui/spinner";
 
 export type ListProps = ComponentProps<"section"> & {
@@ -13,7 +12,7 @@ export type ListProps = ComponentProps<"section"> & {
 };
 
 const listItemClassName =
-  "group gap-3 grid grid-cols-[max-content_minmax(0,1fr)_max-content] items-center px-3 py-2.5 relative rounded-xl";
+  "group/list bg-section-color/5 gap-3 grid grid-cols-[max-content_minmax(0,1fr)_max-content] items-center px-3 py-2.5 relative rounded-xl";
 
 const List: FC<ListProps> = ({
   children,
@@ -41,23 +40,14 @@ const List: FC<ListProps> = ({
 };
 
 const ListItem: FC<ComponentProps<"li">> = ({ children, className }) => (
-  <li className={cn(listItemClassName, className)}>
-    <BackgroundOverlay />
-    {children}
-  </li>
+  <li className={cn(listItemClassName, className)}>{children}</li>
 );
 
 export type ListLinkProps = ComponentProps<typeof AppLink>;
 
-const listLinkClassName = "hover:bg-accent/30 transition-colors";
-
 const ListLink: FC<ListLinkProps> = ({ children, className, ...props }) => (
   <li>
-    <AppLink
-      className={cn(listItemClassName, listLinkClassName, className)}
-      {...props}
-    >
-      <BackgroundOverlay />
+    <AppLink className={cn(listItemClassName, className)} {...props}>
       {children}
     </AppLink>
   </li>

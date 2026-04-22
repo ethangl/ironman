@@ -21,7 +21,9 @@ export const ArtistCell: FC<ArtistCellProps> = ({ count, artist }) => {
         <AlbumArt src={artist.image} className="size-10" />
       </div>
       <h3 className="font-medium text-lg truncate">{artist.name}</h3>
-      <ArrowRightIcon />
+      <div className="duration-888 group-hover/list:duration-222 flex items-center justify-center opacity-0 group-hover/list:opacity-100 size-10 transition-opacity">
+        <ArrowRightIcon />
+      </div>
     </>
   );
 };

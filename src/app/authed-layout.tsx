@@ -1,4 +1,4 @@
-import { BackgroundOverlay } from "@/components/background-overlay";
+import { Main, MainContent, MainHeader } from "@/components/main";
 import { Chat } from "@/features/chat/chat";
 import { useRoomPageState } from "@/features/rooms/runtime/use-room-page-state";
 import { RoomCreateForm } from "@/features/rooms/ui/room-create-form";
@@ -11,13 +11,14 @@ export function AuthedLayout() {
   return (
     <div className="absolute gap-3 grid grid-cols-[auto_1fr_auto] inset-0 items-stretch p-3 overflow-x-auto scrollbar-none">
       <Spotify />
-      <main className="flex flex-col gap-px max-h-full min-w-md overflow-hidden relative rounded-3xl text-red-300">
-        <BackgroundOverlay className="dark:bg-red-400/50 backdrop-brightness-600 backdrop-contrast-600 mix-blend-exclusion" />
-        <RoomsNavbar />
-        <div className="flex-auto overflow-y-auto scrollbar-none space-y-px">
+      <Main style={{ "--section-color": "var(--color-red-400)" }}>
+        <MainHeader>
+          <RoomsNavbar />
+        </MainHeader>
+        <MainContent>
           <RoomsSurface />
-        </div>
-      </main>
+        </MainContent>
+      </Main>
       {roomId ? <Chat roomId={roomId} /> : <RoomCreateForm />}
     </div>
   );

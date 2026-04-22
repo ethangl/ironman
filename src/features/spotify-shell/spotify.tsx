@@ -12,7 +12,7 @@ import { LibraryIcon, PanelLeftCloseIcon } from "lucide-react";
 
 export function Spotify() {
   return (
-    <Sidebar bgClassName="dark:bg-emerald-400/50" className="text-emerald-300">
+    <Sidebar style={{ "--section-color": "var(--color-emerald-400)" }}>
       <SidebarHeader>
         <SearchInput />
         <span />

@@ -21,13 +21,13 @@ export function RoomNowPlaying({
 
   return (
     <div className="flex gap-4 items-center rounded-2xl bg-white/5 p-3">
-      <AlbumArt src={currentTrack?.albumImage || null} className="size-16" />
-      <div className="flex-1 space-y-1">
-        <h2 className="text-2xl font-semibold">
+      <AlbumArt src={currentTrack?.albumImage || null} className="size-20" />
+      <div className="flex-1 min-w-0 space-y-1">
+        <h2 className="text-3xl truncate">
           {currentTrack?.name ?? "Queue is empty"}
         </h2>
         {currentTrack && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-lg text-muted-foreground">
             {currentTrack.artist} •{" "}
             {formatRoomDuration(resolvedPlayback?.currentOffsetMs ?? 0)}
           </p>
@@ -35,7 +35,11 @@ export function RoomNowPlaying({
       </div>
 
       {canControlPlayback && currentQueueItem && (
-        <Button variant="ghost" onClick={() => void skipRoom(room.room._id)}>
+        <Button
+          variant="ghost"
+          size="icon-xl"
+          onClick={() => void skipRoom(room.room._id)}
+        >
           <SkipForwardIcon />
         </Button>
       )}

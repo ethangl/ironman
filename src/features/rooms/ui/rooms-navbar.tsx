@@ -1,7 +1,6 @@
 import { HomeIcon, RadioTowerIcon } from "lucide-react";
 
 import { useAuthenticatedSession } from "@/app/require-authenticated-session";
-import { Section } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { useRooms } from "@/features/rooms";
 import { RoomLink } from "./room-link";
@@ -9,9 +8,8 @@ import { RoomLink } from "./room-link";
 export function RoomsNavbar() {
   useAuthenticatedSession();
   const { activeRoom } = useRooms();
-
   return (
-    <Section className="flex flex-none gap-2 h-16 items-center p-4">
+    <>
       <Button
         variant="ghost"
         size="icon-sm"
@@ -32,6 +30,6 @@ export function RoomsNavbar() {
           {activeRoom.room.name}
         </RoomLink>
       )}
-    </Section>
+    </>
   );
 }

@@ -1,5 +1,6 @@
 import {
   createContext,
+  CSSProperties,
   FC,
   PropsWithChildren,
   ReactNode,
@@ -12,12 +13,6 @@ import {
 import { BackgroundOverlay } from "@/components/background-overlay";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
-
-export type SidebarProps = PropsWithChildren & {
-  bgClassName: string;
-  className: string;
-  defaultExpanded?: boolean;
-};
 
 export type SidebarState = [boolean, Dispatch<SetStateAction<boolean>>];
 
@@ -32,29 +27,26 @@ export function useSidebarState() {
   return sidebarState;
 }
 
-export const Sidebar: FC<SidebarProps> = ({
-  bgClassName,
-  children,
-  className,
-  defaultExpanded = true,
-}) => {
-  const [expanded, setExpanded] = useState(defaultExpanded);
+type StyleWithCssVariables = CSSProperties & {
+  [key: `--${string}`]: string | number | undefined;
+};
 
+export type SidebarProps = PropsWithChildren & {
+  style?: StyleWithCssVariables;
+};
+
+export const Sidebar: FC<SidebarProps> = ({ children, style }) => {
+  const [expanded, setExpanded] = useState(true);
   return (
     <SidebarStateContext.Provider value={[expanded, setExpanded]}>
       <aside
         className={cn(
-          "group/sidebar duration-222 ease-out flex flex-col max-h-full overflow-hidden relative rounded-3xl text-cyan-300 transition-all",
+          "group/sidebar duration-111 ease-out flex flex-col max-h-full overflow-hidden relative rounded-3xl text-section-color transition-all",
           expanded ? "w-md" : "w-16",
-          className,
         )}
+        style={style}
       >
-        <BackgroundOverlay
-          className={cn(
-            "backdrop-brightness-600 backdrop-contrast-600 mix-blend-exclusion",
-            bgClassName,
-          )}
-        />
+        <BackgroundOverlay className="backdrop-brightness-600 backdrop-contrast-600 bg-section-color/50 mix-blend-exclusion" />
         {children}
       </aside>
     </SidebarStateContext.Provider>
@@ -112,8 +104,8 @@ export const SidebarContent: FC<PropsWithChildren> = ({ ...props }) => {
         className={cn(
           "flex-1 overflow-y-auto scrollbar-none transition-margin w-md",
           expanded
-            ? "duration-222 ease-out"
-            : "duration-222 ease-out ml-16 pointer-events-none",
+            ? "duration-111 ease-out"
+            : "duration-111 ease-out ml-16 pointer-events-none",
         )}
         {...props}
       />

@@ -79,7 +79,7 @@ export function RoomQueue({
           <SectionDescription>{room.room.description}</SectionDescription>
         )}
       </SectionHeader>
-      <SectionContent className="space-y-2">
+      <SectionContent className="px-3 pb-3 space-y-1">
         <RoomNowPlaying resolvedPlayback={resolvedPlayback} room={room} />
         <RoomQueueList
           roomId={room.room._id}

@@ -3,7 +3,6 @@ import { ArrowDownIcon, ArrowUpIcon, Trash2Icon } from "lucide-react";
 import { AlbumArt } from "@/components/album-art";
 import { BackgroundOverlay } from "@/components/background-overlay";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import type {
   RoomId,
   RoomQueueItem,
@@ -13,7 +12,6 @@ import type {
 export function RoomQueueList({
   canManageQueue,
   canRemoveQueueItem,
-  compact = false,
   currentQueueItemId,
   limit,
   onMove,
@@ -23,7 +21,6 @@ export function RoomQueueList({
 }: {
   canManageQueue: boolean;
   canRemoveQueueItem: (queueItem: RoomQueueItem) => boolean;
-  compact?: boolean;
   currentQueueItemId: RoomQueueItemId | null;
   emptyLabel?: string;
   limit?: number;
@@ -43,7 +40,7 @@ export function RoomQueueList({
   }
 
   return (
-    <ol className="space-y-2">
+    <ol className="space-y-1">
       {visibleQueue.map((queueItem, index) => {
         const isCurrentQueueItem = currentQueueItemId === queueItem._id;
         const canMoveUp = canManageQueue && !isCurrentQueueItem && index > 0;
@@ -56,20 +53,14 @@ export function RoomQueueList({
         return (
           <li
             key={queueItem._id}
-            className={cn(
-              "group relative flex items-center gap-3 overflow-hidden rounded-3xl px-3 py-2.5",
-              compact ? "min-h-14" : "min-h-16",
-            )}
+            className="group relative flex items-center gap-3 min-h-16 overflow-hidden rounded-3xl px-3 py-2.5"
           >
-            <BackgroundOverlay className="rounded-3xl" />
+            <BackgroundOverlay />
             <div className="relative z-10 flex flex-auto items-center gap-3 min-w-0">
               <div className="flex items-center justify-center text-[11px] font-semibold tabular-nums text-muted-foreground w-5">
                 {isCurrentQueueItem ? "Now" : index + 1}
               </div>
-              <AlbumArt
-                src={queueItem.trackImageUrl}
-                className={compact ? "size-10" : "size-12"}
-              />
+              <AlbumArt src={queueItem.trackImageUrl} className="size-12" />
               <div className="min-w-0 space-y-0.5">
                 <p className="truncate text-sm font-medium">
                   {queueItem.trackName}
@@ -80,7 +71,7 @@ export function RoomQueueList({
               </div>
             </div>
             <div className="relative z-10 flex items-center gap-1">
-              {canMoveUp ? (
+              {canMoveUp && (
                 <Button
                   variant="ghost"
                   size="icon-xs"
@@ -90,8 +81,8 @@ export function RoomQueueList({
                 >
                   <ArrowUpIcon />
                 </Button>
-              ) : null}
-              {canMoveDown ? (
+              )}
+              {canMoveDown && (
                 <Button
                   variant="ghost"
                   size="icon-xs"
@@ -101,8 +92,8 @@ export function RoomQueueList({
                 >
                   <ArrowDownIcon />
                 </Button>
-              ) : null}
-              {canRemove ? (
+              )}
+              {canRemove && (
                 <Button
                   variant="ghost"
                   size="icon-xs"
@@ -110,7 +101,7 @@ export function RoomQueueList({
                 >
                   <Trash2Icon />
                 </Button>
-              ) : null}
+              )}
             </div>
           </li>
         );

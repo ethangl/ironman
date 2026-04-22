@@ -56,11 +56,11 @@ export function AppShell() {
             />
             <SimplexNoise
               scale={8.0}
-              speed={5}
+              speed={0}
               blendMode="overlay"
-              opacity={0.4}
+              opacity={0.5}
             />
-            <FilmGrain strength={0.02} />
+            <FilmGrain strength={0} />
           </Shader>
           <Outlet />
           <Toaster />

@@ -12,11 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { useOptionalRooms } from "@/features/rooms";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
-import { useWebPlayerActions } from "@/features/spotify-player";
 import type {
   SpotifyPlaylist,
   SpotifyTrack,
 } from "@/features/spotify-client/types";
+import { useWebPlayerActions } from "@/features/spotify-player";
 import { api } from "@api";
 import { PlaylistCell } from "./playlist-cell";
 
@@ -110,7 +110,7 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => {
           {action}
         </SectionTitle>
       </SectionHeader>
-      <SectionContent>
+      <SectionContent className="px-3 pb-3">
         <List count={playlists.length}>
           {playlists.map((playlist) => (
             <ListItem key={playlist.id}>

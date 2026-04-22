@@ -20,7 +20,7 @@ export function RoomNowPlaying({
   const canControlPlayback = room.playback.canControlPlayback;
 
   return (
-    <div className="flex gap-4 items-center rounded-2xl bg-white/5 p-4">
+    <div className="flex gap-4 items-center rounded-2xl bg-white/5 p-3">
       <AlbumArt src={currentTrack?.albumImage || null} className="size-16" />
       <div className="flex-1 space-y-1">
         <h2 className="text-2xl font-semibold">
@@ -28,8 +28,8 @@ export function RoomNowPlaying({
         </h2>
         {currentTrack && (
           <p className="text-sm text-muted-foreground">
-            {currentTrack.artist} •
-            {formatRoomDuration(resolvedPlayback?.currentOffsetMs ?? 0)}`
+            {currentTrack.artist} •{" "}
+            {formatRoomDuration(resolvedPlayback?.currentOffsetMs ?? 0)}
           </p>
         )}
       </div>

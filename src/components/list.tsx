@@ -37,7 +37,7 @@ const List: FC<ListProps> = ({
     );
   }
 
-  return <ol className="space-y-2">{children}</ol>;
+  return <ol className="space-y-1">{children}</ol>;
 };
 
 const ListItem: FC<ComponentProps<"li">> = ({ children, className }) => (

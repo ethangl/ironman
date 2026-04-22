@@ -2,7 +2,7 @@ import { RotateCcwIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { clearSpotifyDevCache } from "@/features/spotify-client";
 
 export function ClearSpotifyCacheButton() {
@@ -13,11 +13,7 @@ export function ClearSpotifyCacheButton() {
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      aria-label="Clear Spotify server cache"
-      title="Clear Spotify server cache"
+    <DropdownMenuItem
       disabled={isClearing}
       onClick={async () => {
         setIsClearing(true);
@@ -37,7 +33,8 @@ export function ClearSpotifyCacheButton() {
         }
       }}
     >
-      <RotateCcwIcon className={isClearing ? "animate-spin" : undefined} />
-    </Button>
+      <RotateCcwIcon className={isClearing ? "animate-spin" : undefined} />{" "}
+      Clear Spotify Cache
+    </DropdownMenuItem>
   );
 }

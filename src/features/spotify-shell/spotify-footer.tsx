@@ -17,7 +17,7 @@ export function SpotifyFooter() {
 
   return (
     <SidebarFooter>
-      <ClearSpotifyCacheButton />
+      <span />
       <DropdownMenu>
         <DropdownMenuTrigger>
           <Avatar
@@ -28,6 +28,7 @@ export function SpotifyFooter() {
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent>
+          <ClearSpotifyCacheButton />
           <DropdownMenuItem onClick={() => signOut()}>
             <LogOutIcon /> Sign Out
           </DropdownMenuItem>

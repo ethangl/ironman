@@ -7,12 +7,7 @@ export const Section: FC<ComponentProps<"section">> = ({
   className,
 }) => {
   return (
-    <section
-      className={cn(
-        "relative select-none shadow-[0_1px_0_--alpha(var(--color-background)/33%)]",
-        className,
-      )}
-    >
+    <section className={cn("relative select-none", className)}>
       {children}
     </section>
   );

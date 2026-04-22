@@ -1,3 +1,4 @@
+import { List, ListItem } from "@/components/list";
 import {
   Section,
   SectionContent,
@@ -18,25 +19,20 @@ export function RoomActivityFeed({ room }: { room: RoomDetails }) {
       <SectionHeader>
         <SectionTitle>Room Activity</SectionTitle>
       </SectionHeader>
-      <SectionContent>
-        <ol className="space-y-2">
+      <SectionContent className="px-3 pb-3">
+        <List count={entries.length}>
           {entries.map((entry) => (
-            <li
-              key={entry.id}
-              className="rounded-3xl bg-white/5 px-4 py-3 text-sm"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-medium">{entry.title}</p>
-                <span className="text-xs text-muted-foreground">
-                  {formatRoomTimestamp(entry.at)}
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {entry.detail}
+            <ListItem key={entry.id}>
+              <p className="col-span-2 font-medium text-xs">
+                <span className="text-muted-foreground">{entry.title} </span>
+                <span>{entry.detail}</span>
               </p>
-            </li>
+              <div className="text-right text-muted-foreground text-xs w-14">
+                {formatRoomTimestamp(entry.at)}
+              </div>
+            </ListItem>
           ))}
-        </ol>
+        </List>
       </SectionContent>
     </Section>
   );

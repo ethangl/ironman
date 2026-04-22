@@ -2,7 +2,12 @@ import { FC, useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { List, ListItem } from "@/components/list";
-import { Section, SectionContent, SectionHeader } from "@/components/section";
+import {
+  Section,
+  SectionContent,
+  SectionHeader,
+  SectionTitle,
+} from "@/components/section";
 import { getSpotifyAlbumTracks } from "@/features/artist/spotify-artist-client";
 import type {
   SpotifyAlbumRelease,
@@ -81,8 +86,10 @@ export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
 
   return (
     <Section>
-      <SectionHeader>{title}</SectionHeader>
-      <SectionContent>
+      <SectionHeader>
+        <SectionTitle>{title}</SectionTitle>
+      </SectionHeader>
+      <SectionContent className="px-3 pb-3">
         <List count={releases.length}>
           {releases.map((release) => (
             <ListItem key={release.id}>

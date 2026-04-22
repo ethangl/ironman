@@ -1,11 +1,13 @@
 import { AtSignIcon, AudioLinesIcon, GlobeIcon, PlayIcon } from "lucide-react";
 
+import { AppLink } from "@/components/app-link";
 import {
   Section,
   SectionContent,
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
+import { Button } from "@/components/ui/button";
 import type { MusicBrainzArtistLinks } from "./types";
 
 export function ArtistExternalLinks({
@@ -48,18 +50,19 @@ export function ArtistExternalLinks({
       <SectionHeader>
         <SectionTitle>Links</SectionTitle>
       </SectionHeader>
-      <SectionContent className="flex flex-wrap gap-2 px-3 pb-3">
+      <SectionContent className="flex flex-wrap gap-2">
         {items.map(({ href, icon: Icon, label }) => (
-          <a
+          <Button
             key={label}
-            href={href}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-3 py-2 text-sm font-medium text-white/95 backdrop-blur-sm transition hover:bg-black/55"
-          >
-            <Icon className="h-4 w-4" />
-            <span>{label}</span>
-          </a>
+            size="xs"
+            nativeButton={false}
+            render={
+              <AppLink href={href} target="_blank" rel="noreferrer">
+                <Icon className="h-4 w-4" />
+                {label}
+              </AppLink>
+            }
+          />
         ))}
       </SectionContent>
     </Section>

@@ -34,10 +34,10 @@ export function MiniPlayer() {
   const roomPaused = resolvedPlayback?.paused ?? false;
   const canToggleListening = hasRoomTrack;
   const displayImage = activeRoom
-    ? roomTrack?.albumImage ?? null
+    ? (roomTrack?.albumImage ?? null)
     : nowPlaying.displayImage;
   const displayName = activeRoom
-    ? roomTrack?.name ?? activeRoom.room.name
+    ? (roomTrack?.name ?? activeRoom.room.name)
     : nowPlaying.displayName;
   const displayArtist = isRoomMode
     ? activeRoom
@@ -113,16 +113,13 @@ export function MiniPlayer() {
             <>
               <PlayButton
                 size="icon-sm"
-                className="bg-white/10 hover:bg-white/5"
                 disabled={!canToggleListening}
                 playing={canToggleListening && !roomPaused}
                 onClick={handleRoomToggle}
               />
               {canControlPlayback ? (
                 <Button
-                  variant="ghost"
                   size="icon-sm"
-                  className="bg-white/10 hover:bg-white/5"
                   disabled={!hasRoomTrack}
                   onClick={() =>
                     activeRoom && skipRoom

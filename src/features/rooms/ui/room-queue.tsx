@@ -49,7 +49,7 @@ export function RoomQueue({
             </Button>
             {!room.viewerMembership && (
               <Button
-                variant={room.viewerFollowsRoom ? "secondary" : "ghost"}
+                variant="ghost"
                 size="icon-sm"
                 onClick={() =>
                   room.viewerFollowsRoom

@@ -128,8 +128,7 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => {
               >
                 {canEnqueueToActiveRoom ? (
                   <Button
-                    variant="ghost"
-                    size="icon-xs"
+                    size="icon-sm"
                     disabled={loadingItemId === playlist.id}
                     onClick={() => void enqueuePlaylist(playlist)}
                     aria-label={`Queue ${playlist.name}`}

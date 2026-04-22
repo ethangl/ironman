@@ -1,8 +1,6 @@
-import { Main, MainContent, MainHeader } from "@/components/main";
 import { Chat } from "@/features/chat/chat";
 import { useRoomPageState } from "@/features/rooms/runtime/use-room-page-state";
 import { RoomCreateForm } from "@/features/rooms/ui/room-create-form";
-import { RoomsNavbar } from "@/features/rooms/ui/rooms-navbar";
 import { RoomsSurface } from "@/features/rooms/ui/rooms-surface";
 import { Spotify } from "@/features/spotify-shell/spotify";
 
@@ -11,14 +9,7 @@ export function AuthedLayout() {
   return (
     <div className="absolute gap-3 grid grid-cols-[auto_1fr_auto] inset-0 items-stretch p-3 overflow-x-auto scrollbar-none">
       <Spotify />
-      <Main style={{ "--section-color": "var(--color-red-400)" }}>
-        <MainHeader>
-          <RoomsNavbar />
-        </MainHeader>
-        <MainContent>
-          <RoomsSurface />
-        </MainContent>
-      </Main>
+      <RoomsSurface />
       {roomId ? <Chat roomId={roomId} /> : <RoomCreateForm />}
     </div>
   );

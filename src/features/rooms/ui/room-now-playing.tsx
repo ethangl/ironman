@@ -20,29 +20,26 @@ export function RoomNowPlaying({
   const canControlPlayback = room.playback.canControlPlayback;
 
   return (
-    <div className="flex gap-4 items-center rounded-2xl bg-white/5 p-3">
-      <AlbumArt src={currentTrack?.albumImage || null} className="size-20" />
+    <div className="bg-section-color/5 flex gap-4 items-center pr-3 rounded-2xl">
+      <AlbumArt src={currentTrack?.albumImage || null} className="size-24" />
       <div className="flex-1 min-w-0 space-y-1">
-        <h2 className="text-3xl truncate">
-          {currentTrack?.name ?? "Queue is empty"}
+        <h2 className="flex gap-3 items-center justify-between leading-none text-2xl">
+          <span className="flex-1 min-w-0 truncate">
+            {currentTrack?.name ?? "Queue is empty"}
+          </span>
+          {canControlPlayback && currentQueueItem && (
+            <Button size="icon" onClick={() => void skipRoom(room.room._id)}>
+              <SkipForwardIcon />
+            </Button>
+          )}
         </h2>
         {currentTrack && (
-          <p className="text-lg text-muted-foreground">
+          <p className="leading-none text-lg text-muted-foreground">
             {currentTrack.artist} •{" "}
             {formatRoomDuration(resolvedPlayback?.currentOffsetMs ?? 0)}
           </p>
         )}
       </div>
-
-      {canControlPlayback && currentQueueItem && (
-        <Button
-          variant="ghost"
-          size="icon-xl"
-          onClick={() => void skipRoom(room.room._id)}
-        >
-          <SkipForwardIcon />
-        </Button>
-      )}
     </div>
   );
 }

@@ -47,7 +47,7 @@ export function RoomCreateForm() {
   };
 
   return (
-    <Sidebar bgClassName="dark:bg-cyan-400/50" className="text-cyan-300">
+    <Sidebar style={{ "--section-color": "var(--color-cyan-400)" }}>
       <SidebarHeader>
         <SidebarToggle
           collapseIcon={<PanelRightCloseIcon />}

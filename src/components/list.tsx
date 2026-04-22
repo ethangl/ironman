@@ -12,7 +12,7 @@ export type ListProps = ComponentProps<"section"> & {
 };
 
 const listItemClassName =
-  "group/list bg-section-color/5 gap-3 grid grid-cols-[max-content_minmax(0,1fr)_max-content] items-center px-3 py-2.5 relative rounded-xl";
+  "group/list bg-section-color/5 hover:bg-section-color/10 duration-888 hover:duration-222 gap-3 grid grid-cols-[max-content_minmax(0,1fr)_max-content] inset-ring-section-color/0 hover:inset-ring-section-color inset-ring-1 items-center px-3 py-2.5 rounded-xl transition-colors";
 
 const List: FC<ListProps> = ({
   children,

@@ -1,7 +1,7 @@
 import { RefreshCwIcon } from "lucide-react";
 
-import { Artists } from "@/features/artist";
 import { Button } from "@/components/ui/button";
+import { Artists } from "@/features/artist";
 import {
   useSpotifyFavoriteArtists,
   useSpotifyPlaylists,
@@ -12,16 +12,9 @@ import { Tracks } from "@/features/spotify-tracks";
 
 export function SpotifyActivity() {
   const { recentTracks } = useSpotifyRecentlyPlayed();
-  const {
-    favoriteArtists,
-    favoriteArtistsLoading,
-    loadFavoriteArtists,
-  } = useSpotifyFavoriteArtists();
-  const {
-    playlists,
-    playlistsLoading,
-    loadPlaylists,
-  } = useSpotifyPlaylists();
+  const { favoriteArtists, favoriteArtistsLoading, loadFavoriteArtists } =
+    useSpotifyFavoriteArtists();
+  const { playlists, playlistsLoading, loadPlaylists } = useSpotifyPlaylists();
 
   const hasPlaylists = playlists.length > 0;
   const hasFavoriteArtists = favoriteArtists.length > 0;
@@ -37,7 +30,7 @@ export function SpotifyActivity() {
         playlists={playlists}
         action={
           <Button
-            variant="ghost"
+            variant="overlay"
             size="icon"
             disabled={playlistsLoading}
             onClick={() => void loadPlaylists(hasPlaylists)}
@@ -53,7 +46,7 @@ export function SpotifyActivity() {
         artists={favoriteArtists}
         action={
           <Button
-            variant="ghost"
+            variant="overlay"
             size="icon"
             disabled={favoriteArtistsLoading}
             onClick={() => void loadFavoriteArtists(hasFavoriteArtists)}

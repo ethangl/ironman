@@ -7,12 +7,7 @@ import { useNowPlaying } from "./use-now-playing";
 export const PrevTrackButton: FC<ButtonProps> = ({ ...props }) => {
   const { prevTrack } = useNowPlaying();
   return (
-    <Button
-      size="icon-lg"
-      className="bg-white/10 hover:bg-white/5"
-      onClick={prevTrack}
-      {...props}
-    >
+    <Button size="icon-sm" onClick={prevTrack} {...props}>
       <SkipBackIcon />
     </Button>
   );

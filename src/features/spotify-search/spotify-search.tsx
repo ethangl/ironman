@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -23,12 +23,25 @@ import { useSearch } from "./search-provider";
 
 export function SpotifySearch() {
   const navigate = useNavigate();
-  const { playTrack, playTracks } = useWebPlayerActions();
-  const { error, loading, query, results, setQuery } = useSearch();
   const [open, setOpen] = useState(false);
   const [loadingPlaylistId, setLoadingPlaylistId] = useState<string | null>(
     null,
   );
+  const { playTrack, playTracks } = useWebPlayerActions();
+  const { error, loading, query, results, setQuery } = useSearch();
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen((open) => !open);
+      }
+    };
+
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
+
   const trimmedQuery = query.trim();
 
   const hasResults =

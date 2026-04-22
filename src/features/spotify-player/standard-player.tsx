@@ -13,11 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { toRoomTrack, useOptionalRooms } from "@/features/rooms";
 import { RoomPlayerPanel } from "@/features/rooms/ui/room-player-panel";
-import { AlbumButton } from "./album-button";
 import { NextTrackButton } from "./next-track-button";
 import { PlayerWrapper } from "./player-wrapper";
 import { PrevTrackButton } from "./prev-track-button";
-import { QueueButton } from "./queue-button";
+import { RepairSyncButton } from "./repair-sync-button";
 import { RepeatButton } from "./repeat-button";
 import { ShuffleButton } from "./shuffle-button";
 import { TogglePlayButton } from "./toggle-play-button";
@@ -148,6 +147,7 @@ export function StandardPlayer() {
           </div>
           {isRoomMode ? (
             <Button
+              variant="overlay"
               size="icon-2xl"
               disabled={!canToggleListening}
               onClick={handleRoomToggle}
@@ -165,6 +165,7 @@ export function StandardPlayer() {
             {isRoomMode ? (
               canControlPlayback && hasRoomTrack ? (
                 <Button
+                  variant="overlay"
                   size="icon-lg"
                   onClick={() =>
                     skipRoom ? void skipRoom(activeRoom.room._id) : undefined
@@ -210,18 +211,7 @@ export function StandardPlayer() {
           >
             <ChevronsDownIcon />
           </Button>
-          <div className="flex gap-1 items-center justify-end">
-            {isRoomMode ? (
-              <Button variant="overlay" size="sm" onClick={repairSync}>
-                Sync
-              </Button>
-            ) : (
-              <>
-                <AlbumButton />
-                <QueueButton />
-              </>
-            )}
-          </div>
+          <RepairSyncButton />
         </footer>
         <div className="hidden">{isRoomMode && <RoomPlayerPanel />}</div>
       </div>

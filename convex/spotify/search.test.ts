@@ -9,7 +9,7 @@ vi.mock("./client", () => ({
 }));
 
 import { loadAlbumTracks } from "./albums";
-import { loadArtistPage } from "./artists";
+import { loadArtistPage, loadArtistReleasesPage } from "./artists";
 import { spotifyFetch } from "./client";
 import { SpotifyApiError } from "./errors";
 import { loadSearchResults } from "./search";
@@ -37,8 +37,22 @@ function createArtistPage() {
       genres: ["post-metal"],
     },
     topTracks: [],
-    albums: [],
-    singles: [],
+    albums: {
+      items: [],
+      offset: 0,
+      limit: 10,
+      total: 0,
+      nextOffset: null,
+      hasMore: false,
+    },
+    singles: {
+      items: [],
+      offset: 0,
+      limit: 10,
+      total: 0,
+      nextOffset: null,
+      hasMore: false,
+    },
   };
 }
 
@@ -65,9 +79,17 @@ describe("spotify search loaders", () => {
       })
       .mockResolvedValueOnce({
         items: [],
+        total: 0,
+        limit: 10,
+        offset: 0,
+        next: null,
       })
       .mockResolvedValueOnce({
         items: [],
+        total: 0,
+        limit: 10,
+        offset: 0,
+        next: null,
       });
 
     await expect(
@@ -95,6 +117,22 @@ describe("spotify search loaders", () => {
         },
       ),
     ).resolves.toBeNull();
+  });
+
+  it("maps artist release rate limits to a user-facing release error", async () => {
+    mockedSpotifyFetch
+      .mockResolvedValueOnce({ country: "US" })
+      .mockRejectedValueOnce(new SpotifyApiError(429, "rate limited"));
+
+    await expect(
+      runAction(loadArtistReleasesPage as unknown as RegisteredAction, {
+        artistId: "artist-1",
+        includeGroups: "album" as const,
+        limit: 10,
+        offset: 10,
+        cacheScope: "user-1",
+      }),
+    ).rejects.toThrow("Spotify is rate limiting artist requests right now.");
   });
 
   it("maps spotify search rate limits to a user-facing search error", async () => {

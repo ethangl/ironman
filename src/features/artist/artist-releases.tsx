@@ -8,9 +8,12 @@ import {
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { getSpotifyAlbumTracks } from "@/features/artist/spotify-artist-client";
 import type {
   SpotifyAlbumRelease,
+  SpotifyPage,
   Track,
 } from "@/features/spotify-client/types";
 import { useWebPlayerActions } from "@/features/spotify-player";
@@ -35,13 +38,21 @@ function formatReleaseMeta(release: SpotifyAlbumRelease) {
 }
 
 export type ReleasesProps = {
-  releases: SpotifyAlbumRelease[];
+  page: SpotifyPage<SpotifyAlbumRelease>;
   title: string;
+  loadingMore?: boolean;
+  onLoadMore?: () => Promise<void>;
 };
 
-export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
+export const Releases: FC<ReleasesProps> = ({
+  page,
+  title,
+  loadingMore = false,
+  onLoadMore,
+}) => {
   const { playTracks } = useWebPlayerActions();
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
+  const releases = page.items;
 
   const loadReleaseTracks = useCallback(
     async (release: SpotifyAlbumRelease): Promise<Track[]> => {
@@ -80,6 +91,22 @@ export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
     [loadReleaseTracks, playTracks],
   );
 
+  const loadMore = useCallback(async () => {
+    if (!onLoadMore) {
+      return;
+    }
+
+    try {
+      await onLoadMore();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not load more releases right now.",
+      );
+    }
+  }, [onLoadMore]);
+
   if (releases.length === 0) {
     return null;
   }
@@ -87,7 +114,9 @@ export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
   return (
     <Section>
       <SectionHeader>
-        <SectionTitle>{title}</SectionTitle>
+        <SectionTitle>
+          <span>{title}</span>
+        </SectionTitle>
       </SectionHeader>
       <SectionContent>
         <List count={releases.length}>
@@ -103,6 +132,21 @@ export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
               />
             </ListItem>
           ))}
+          {page.hasMore && onLoadMore && (
+            <Button
+              variant="overlay"
+              size="sm"
+              disabled={loadingMore}
+              onClick={() => void loadMore()}
+              className="w-full rounded-2xl"
+            >
+              {loadingMore ? (
+                <Spinner className="size-3" />
+              ) : (
+                `Load more ${title}`
+              )}
+            </Button>
+          )}
         </List>
       </SectionContent>
     </Section>

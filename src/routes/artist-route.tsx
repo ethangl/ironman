@@ -11,7 +11,14 @@ import { CircleQuestionMarkIcon } from "lucide-react";
 
 export function ArtistRoute() {
   const { artistId = "" } = useParams();
-  const { data, loading, error, notFound } = useArtistPageData(artistId);
+  const {
+    data,
+    loading,
+    loadingReleaseGroups,
+    error,
+    notFound,
+    loadMoreReleases,
+  } = useArtistPageData(artistId);
 
   if (loading) {
     return (
@@ -42,7 +49,11 @@ export function ArtistRoute() {
   return (
     <>
       <ArtistHeader href="/home" title={data.artist.name} />
-      <Artist artistData={data} />
+      <Artist
+        artistData={data}
+        loadMoreReleases={loadMoreReleases}
+        loadingReleaseGroups={loadingReleaseGroups}
+      />
     </>
   );
 }

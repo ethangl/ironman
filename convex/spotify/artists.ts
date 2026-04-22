@@ -6,7 +6,7 @@ import { components } from "../_generated/api";
 import { type ActionCtx, internalAction } from "../_generated/server";
 import { requireSpotifyAccessToken } from "../spotifySession";
 import { spotifyFetch } from "./client";
-import { DAY_IN_MS } from "./constants";
+import { DAY_IN_MS, DEFAULT_LIMIT, DEFAULT_OFFSET } from "./constants";
 import { SpotifyApiError } from "./errors";
 import {
   isSpotifyAlbum,
@@ -19,11 +19,15 @@ import {
   type SpotifyApiTrack,
 } from "./mappers";
 import type {
+  SpotifyAlbumRelease,
   SpotifyArtist,
   SpotifyArtistPageData,
+  SpotifyArtistReleaseGroup,
+  SpotifyPage,
   SpotifyTrack,
 } from "./types";
 import {
+  spotifyAlbumReleasePageValidator,
   spotifyArtistPageDataValidator,
   spotifyArtistValidator,
 } from "./validators";
@@ -36,9 +40,16 @@ interface SearchResponse {
 
 type ArtistResponse = SpotifyApiArtist;
 
-interface ArtistAlbumsResponse {
-  items?: Array<SpotifyAlbum | null>;
+interface SpotifyPagingResponse<TItem> {
+  items?: Array<TItem | null>;
+  limit?: number;
+  next?: string | null;
+  offset?: number;
+  previous?: string | null;
+  total?: number;
 }
+
+type ArtistAlbumsResponse = SpotifyPagingResponse<SpotifyAlbum>;
 
 interface TopArtistsResponse {
   items?: SpotifyApiArtist[];
@@ -66,6 +77,20 @@ const loadArtistPageRef = anyApi["spotify/artists"]
   SpotifyArtistPageData | null
 >;
 
+const loadArtistReleasesPageRef = anyApi["spotify/artists"]
+  .loadArtistReleasesPage as FunctionReference<
+  "action",
+  "internal",
+  {
+    artistId: string;
+    includeGroups: SpotifyArtistReleaseGroup;
+    limit: number;
+    offset: number;
+    cacheScope: string;
+  },
+  SpotifyPage<SpotifyAlbumRelease>
+>;
+
 const loadTopArtistsRef = anyApi["spotify/artists"]
   .loadTopArtists as FunctionReference<
   "action",
@@ -88,20 +113,78 @@ const loadFavoriteArtistsRef = anyApi["spotify/artists"]
   SpotifyArtist[]
 >;
 
-function toArtistError(error: unknown) {
+function toArtistRequestError(error: unknown, fallback: string) {
   if (!(error instanceof SpotifyApiError)) {
-    return new Error("Could not search Spotify right now.");
+    return new Error(fallback);
   }
 
   if (error.status === 401 || error.status === 403) {
-    return new Error("Reconnect Spotify to search.");
+    return new Error("Reconnect Spotify to load artists.");
   }
 
   if (error.status === 429) {
-    return new Error("Spotify is rate limiting search right now.");
+    return new Error("Spotify is rate limiting artist requests right now.");
   }
 
-  return new Error("Could not search Spotify right now.");
+  return new Error(fallback);
+}
+
+function getSpotifyNextOffset(next: string | null | undefined) {
+  if (!next) {
+    return null;
+  }
+
+  try {
+    const value = new URL(next).searchParams.get("offset");
+    if (value === null) {
+      return null;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function createSpotifyPage<TItem>(
+  response: SpotifyPagingResponse<unknown> | null | undefined,
+  items: TItem[],
+  limit = DEFAULT_LIMIT,
+  offset = DEFAULT_OFFSET,
+): SpotifyPage<TItem> {
+  const normalizedLimit = response?.limit ?? limit;
+  const normalizedOffset = response?.offset ?? offset;
+  const total = response?.total ?? normalizedOffset + items.length;
+  const nextOffset =
+    getSpotifyNextOffset(response?.next) ??
+    (response?.next ? normalizedOffset + items.length : null);
+  const hasMore =
+    nextOffset !== null || total > normalizedOffset + items.length;
+
+  return {
+    items,
+    offset: normalizedOffset,
+    limit: normalizedLimit,
+    total,
+    nextOffset:
+      nextOffset ?? (hasMore ? normalizedOffset + items.length : null),
+    hasMore,
+  };
+}
+
+function createEmptySpotifyPage<TItem>(
+  limit = DEFAULT_LIMIT,
+  offset = DEFAULT_OFFSET,
+): SpotifyPage<TItem> {
+  return {
+    items: [],
+    offset,
+    limit,
+    total: 0,
+    nextOffset: null,
+    hasMore: false,
+  };
 }
 
 async function searchArtistTracks(
@@ -193,29 +276,49 @@ export async function getFavoriteArtists(
   return artists;
 }
 
+export async function getArtistReleasesPage(
+  token: string,
+  artistId: string,
+  includeGroups: SpotifyArtistReleaseGroup,
+  options: {
+    limit?: number;
+    offset?: number;
+    market?: string | null;
+  } = {},
+): Promise<SpotifyPage<SpotifyAlbumRelease>> {
+  const limit = options.limit ?? DEFAULT_LIMIT;
+  const offset = options.offset ?? DEFAULT_OFFSET;
+  const releasesQuery = new URLSearchParams({
+    include_groups: includeGroups,
+    limit: String(limit),
+    offset: String(offset),
+    ...(options.market ? { market: options.market } : {}),
+  }).toString();
+
+  const data = await spotifyFetch<ArtistAlbumsResponse>(
+    `/artists/${artistId}/albums?${releasesQuery}`,
+    token,
+  );
+
+  const items = (data?.items ?? [])
+    .filter(isSpotifyAlbum)
+    .map(mapAlbumRelease)
+    .filter((album) => album.id !== "");
+
+  return createSpotifyPage(data, items, limit, offset);
+}
+
 async function getArtistReleasesResult(
   token: string,
   artistId: string,
-  includeGroups: "album" | "single",
+  includeGroups: SpotifyArtistReleaseGroup,
   market?: string | null,
 ) {
-  const releasesQuery = new URLSearchParams({
-    include_groups: includeGroups,
-    limit: "10",
-    ...(market ? { market } : {}),
-  }).toString();
-
   try {
-    const data = await spotifyFetch<ArtistAlbumsResponse>(
-      `/artists/${artistId}/albums?${releasesQuery}`,
-      token,
-    );
-
     return {
-      releases: (data?.items ?? [])
-        .filter(isSpotifyAlbum)
-        .map(mapAlbumRelease)
-        .filter((album) => album.id !== ""),
+      page: await getArtistReleasesPage(token, artistId, includeGroups, {
+        market,
+      }),
       usedFallback: false,
     };
   } catch (error) {
@@ -225,7 +328,7 @@ async function getArtistReleasesResult(
       error.status !== 403
     ) {
       return {
-        releases: [],
+        page: createEmptySpotifyPage<SpotifyAlbumRelease>(),
         usedFallback: true,
       };
     }
@@ -269,8 +372,8 @@ export async function getArtistPageDataResult(
     page: {
       artist: mapArtist(artistData),
       topTracks: topTracksData,
-      albums: albumsResult.releases,
-      singles: singlesResult.releases,
+      albums: albumsResult.page,
+      singles: singlesResult.page,
     },
     usedReleaseFallback:
       albumsResult.usedFallback || singlesResult.usedFallback,
@@ -323,7 +426,40 @@ export const loadArtistPage = internalAction({
       if (error instanceof SpotifyApiError && error.status === 404) {
         return null;
       }
-      throw toArtistError(error);
+      throw toArtistRequestError(error, "Could not load artist right now.");
+    }
+  },
+});
+
+export const loadArtistReleasesPage = internalAction({
+  args: {
+    artistId: v.string(),
+    includeGroups: v.union(v.literal("album"), v.literal("single")),
+    limit: v.number(),
+    offset: v.number(),
+    cacheScope: v.string(),
+  },
+  returns: spotifyAlbumReleasePageValidator,
+  handler: async (ctx, args) => {
+    const accessToken = await requireSpotifyAccessToken(ctx);
+
+    try {
+      const market = await getArtistPageMarket(accessToken);
+      return await getArtistReleasesPage(
+        accessToken,
+        args.artistId,
+        args.includeGroups,
+        {
+          market,
+          limit: args.limit,
+          offset: args.offset,
+        },
+      );
+    } catch (error) {
+      throw toArtistRequestError(
+        error,
+        "Could not load artist releases right now.",
+      );
     }
   },
 });
@@ -364,9 +500,18 @@ export const loadFavoriteArtists = internalAction({
 
 export const spotifyArtistPageCache = new ActionCache(components.actionCache, {
   action: loadArtistPageRef,
-  name: "spotify-artist-page-v1",
+  name: "spotify-artist-page-v2",
   ttl: DAY_IN_MS,
 });
+
+export const spotifyArtistReleasesPageCache = new ActionCache(
+  components.actionCache,
+  {
+    action: loadArtistReleasesPageRef,
+    name: "spotify-artist-releases-page-v1",
+    ttl: DAY_IN_MS,
+  },
+);
 
 export const spotifyTopArtistsCache = new ActionCache(components.actionCache, {
   action: loadTopArtistsRef,
@@ -386,6 +531,7 @@ export const spotifyFavoriteArtistsCache = new ActionCache(
 export async function clearArtistsCaches(ctx: ActionCtx) {
   await Promise.all([
     spotifyArtistPageCache.removeAllForName(ctx),
+    spotifyArtistReleasesPageCache.removeAllForName(ctx),
     spotifyTopArtistsCache.removeAllForName(ctx),
     spotifyFavoriteArtistsCache.removeAllForName(ctx),
   ]);

@@ -6,7 +6,7 @@ import { SidebarHeader } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { SpotfiySidebarToggle } from "../spotify-shell/spotify-sidebar-toggle";
 
-export type ArtistHeaderProps = { href: string; title: ReactNode };
+export type ArtistHeaderProps = { href: string; title?: ReactNode };
 
 export const ArtistHeader: FC<ArtistHeaderProps> = ({ href, title }) => (
   <SidebarHeader title={title}>

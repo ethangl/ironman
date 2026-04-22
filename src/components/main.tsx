@@ -1,4 +1,4 @@
-import { CSSProperties, FC, PropsWithChildren } from "react";
+import { CSSProperties, FC, PropsWithChildren, ReactNode } from "react";
 
 import { BackgroundOverlay } from "@/components/background-overlay";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ export const Main: FC<MainProps> = ({ children, style }) => {
   return (
     <main
       className={cn(
-        "group/main flex flex-col max-h-full min-w-md overflow-hidden relative rounded-3xl text-section-color",
+        "group/main flex flex-col max-h-full min-w-sm overflow-hidden relative rounded-3xl text-section-color",
       )}
       style={style}
     >
@@ -25,11 +25,21 @@ export const Main: FC<MainProps> = ({ children, style }) => {
   );
 };
 
-export const MainHeader: FC<PropsWithChildren> = ({ ...props }) => (
-  <header
-    className="flex flex-none gap-2 h-16 items-center justify-between px-4 shadow-[0_1px_0_--alpha(var(--color-background)/33%)] text-white"
-    {...props}
-  />
+export type MainhHeaderProps = PropsWithChildren & { title?: ReactNode };
+
+export const MainHeader: FC<MainhHeaderProps> = ({ children, title }) => (
+  <header className="flex flex-none gap-2 h-16 items-center justify-between px-4 relative shadow-[0_1px_0_--alpha(var(--color-background)/33%)] text-white">
+    {title && (
+      <span
+        className={cn(
+          "absolute flex inset-0 items-center justify-center m-auto pointer-events-none transition-opacity truncate",
+        )}
+      >
+        {title}
+      </span>
+    )}
+    {children}
+  </header>
 );
 
 export const MainFooter: FC<PropsWithChildren> = ({ ...props }) => (

@@ -1,4 +1,5 @@
 import { List } from "@/components/list";
+import { MainContent } from "@/components/main";
 import {
   Section,
   SectionContent,
@@ -8,7 +9,7 @@ import {
 import { useRooms } from "../runtime/rooms-provider";
 import { RoomCard } from "./room-card";
 
-export function RoomsHome() {
+export function Rooms() {
   const { rooms, roomsLoading } = useRooms();
 
   const joinedRooms = rooms.filter(
@@ -26,12 +27,12 @@ export function RoomsHome() {
     });
 
   return (
-    <>
+    <MainContent>
       <Section>
         <SectionHeader>
           <SectionTitle>Your Rooms</SectionTitle>
         </SectionHeader>
-        <SectionContent className="space-y-2">
+        <SectionContent>
           <List count={joinedRooms.length} loading={roomsLoading}>
             {joinedRooms.map((roomSummary) => (
               <RoomCard key={roomSummary.room._id} roomSummary={roomSummary} />
@@ -51,6 +52,6 @@ export function RoomsHome() {
           </List>
         </SectionContent>
       </Section>
-    </>
+    </MainContent>
   );
 }

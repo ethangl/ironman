@@ -25,7 +25,7 @@ export const Artists: FC<ArtistsProps> = ({ action, artists, title }) => {
           {action}
         </SectionTitle>
       </SectionHeader>
-      <SectionContent className="px-3 pb-3">
+      <SectionContent>
         <List count={artists.length}>
           {artists.map((artist) => (
             <ListLink key={artist.id} href={`/artist/${artist.id}`}>

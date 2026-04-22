@@ -1,11 +1,11 @@
 import { createBrowserRouter } from "react-router-dom";
 
+import { SpotifyActivity } from "@/features/spotify-shell";
 import {
   ArtistResolveRoute,
   ArtistRoute,
   HomeRoute,
   NotFoundRoute,
-  SpotifyHomeRoute,
 } from "@/routes";
 import { AppShell } from "./app-shell";
 import { AuthedLayout } from "./authed-layout";
@@ -22,7 +22,7 @@ export const router = createBrowserRouter([
           {
             element: <AuthedLayout />,
             children: [
-              { path: "home", element: <SpotifyHomeRoute /> },
+              { path: "home", element: <SpotifyActivity /> },
               {
                 path: "artist/resolve/:musicBrainzArtistId",
                 element: <ArtistResolveRoute />,

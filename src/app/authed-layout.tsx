@@ -1,16 +1,49 @@
+import { FC } from "react";
+import { Outlet } from "react-router-dom";
+
+import { Main } from "@/components/main";
+import { Sidebar } from "@/components/sidebar";
 import { Chat } from "@/features/chat/chat";
 import { useRoomPageState } from "@/features/rooms/runtime/use-room-page-state";
 import { RoomCreateForm } from "@/features/rooms/ui/room-create-form";
-import { RoomsSurface } from "@/features/rooms/ui/rooms-surface";
-import { Spotify } from "@/features/spotify-shell/spotify";
+import { RoomDetail } from "@/features/rooms/ui/room-detail";
+import { RoomHeader } from "@/features/rooms/ui/room-header";
+import { Rooms } from "@/features/rooms/ui/rooms";
+import { RoomsHeader } from "@/features/rooms/ui/rooms-header";
+import { SpotifyFooter } from "@/features/spotify-shell";
 
-export function AuthedLayout() {
+export const AuthedLayout: FC = () => (
+  <div className="absolute gap-3 grid grid-cols-[auto_1fr_auto] inset-0 items-stretch p-3 overflow-x-auto scrollbar-none">
+    <Sidebar style={{ "--section-color": "var(--color-emerald-400)" }}>
+      <Outlet />
+      <SpotifyFooter />
+    </Sidebar>
+    <RoomsLayout />
+  </div>
+);
+
+function RoomsLayout() {
   const { roomId } = useRoomPageState();
+
+  if (roomId) {
+    return (
+      <>
+        <Main style={{ "--section-color": "var(--color-red-400)" }}>
+          <RoomHeader roomId={roomId} />
+          <RoomDetail roomId={roomId} />
+        </Main>
+        <Chat roomId={roomId} />
+      </>
+    );
+  }
+
   return (
-    <div className="absolute gap-3 grid grid-cols-[auto_1fr_auto] inset-0 items-stretch p-3 overflow-x-auto scrollbar-none">
-      <Spotify />
-      <RoomsSurface />
-      {roomId ? <Chat roomId={roomId} /> : <RoomCreateForm />}
-    </div>
+    <>
+      <Main style={{ "--section-color": "var(--color-red-400)" }}>
+        <RoomsHeader />
+        <Rooms />
+      </Main>
+      <RoomCreateForm />
+    </>
   );
 }

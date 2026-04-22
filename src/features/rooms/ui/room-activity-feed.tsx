@@ -19,7 +19,7 @@ export function RoomActivityFeed({ room }: { room: RoomDetails }) {
       <SectionHeader>
         <SectionTitle>Room Activity</SectionTitle>
       </SectionHeader>
-      <SectionContent className="px-3 pb-3">
+      <SectionContent>
         <List count={entries.length}>
           {entries.map((entry) => (
             <ListItem key={entry.id}>

@@ -110,7 +110,7 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => {
           {action}
         </SectionTitle>
       </SectionHeader>
-      <SectionContent className="px-3 pb-3">
+      <SectionContent>
         <List count={playlists.length}>
           {playlists.map((playlist) => (
             <ListItem key={playlist.id}>

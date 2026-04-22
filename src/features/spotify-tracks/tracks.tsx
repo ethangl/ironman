@@ -30,7 +30,7 @@ export const Tracks: FC<TracksProps> = ({
       <SectionHeader>
         <SectionTitle>{title}</SectionTitle>
       </SectionHeader>
-      <SectionContent className="px-3 pb-3">
+      <SectionContent>
         <List count={tracks.length}>
           {tracks.map((song) => (
             <ListItem key={song.id}>

@@ -1,5 +1,11 @@
 import { AtSignIcon, AudioLinesIcon, GlobeIcon, PlayIcon } from "lucide-react";
 
+import {
+  Section,
+  SectionContent,
+  SectionHeader,
+  SectionTitle,
+} from "@/components/section";
 import type { MusicBrainzArtistLinks } from "./types";
 
 export function ArtistExternalLinks({
@@ -38,19 +44,24 @@ export function ArtistExternalLinks({
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {items.map(({ href, icon: Icon, label }) => (
-        <a
-          key={label}
-          href={href}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-3 py-2 text-sm font-medium text-white/95 backdrop-blur-sm transition hover:bg-black/55"
-        >
-          <Icon className="h-4 w-4" />
-          <span>{label}</span>
-        </a>
-      ))}
-    </div>
+    <Section>
+      <SectionHeader>
+        <SectionTitle>Links</SectionTitle>
+      </SectionHeader>
+      <SectionContent className="flex flex-wrap gap-2 px-3 pb-3">
+        {items.map(({ href, icon: Icon, label }) => (
+          <a
+            key={label}
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-3 py-2 text-sm font-medium text-white/95 backdrop-blur-sm transition hover:bg-black/55"
+          >
+            <Icon className="h-4 w-4" />
+            <span>{label}</span>
+          </a>
+        ))}
+      </SectionContent>
+    </Section>
   );
 }

@@ -1,19 +1,17 @@
-import { HeartIcon, SpeakerIcon } from "lucide-react";
+import { SpeakerIcon } from "lucide-react";
 
 import { ListItem } from "@/components/list";
-import { Button } from "@/components/ui/button";
 import type { RoomSummary } from "../client/room-types";
-import { useRooms } from "../runtime/rooms-provider";
+import { FollowRoomButton } from "./follow-room-button";
 import { RoomLink } from "./room-link";
 
 export function RoomCard({ roomSummary }: { roomSummary: RoomSummary }) {
-  const { followRoom, unfollowRoom } = useRooms();
   const hasRoomRole = !!roomSummary.viewerMembership;
-  const isFollowed = roomSummary.viewerFollowsRoom;
-
   return (
     <ListItem>
-      <SpeakerIcon />
+      <div className="flex items-center justify-center size-8">
+        <SpeakerIcon />
+      </div>
       <RoomLink roomId={roomSummary.room._id}>
         <h3 className="font-semibold text-2xl truncate">
           {roomSummary.room.name}
@@ -24,18 +22,7 @@ export function RoomCard({ roomSummary }: { roomSummary: RoomSummary }) {
           {roomSummary.viewerMembership?.role}
         </span>
       ) : (
-        <Button
-          size="icon"
-          onClick={() =>
-            isFollowed
-              ? void unfollowRoom(roomSummary.room._id)
-              : void followRoom(roomSummary.room._id)
-          }
-        >
-          <HeartIcon
-            className={isFollowed ? "fill-current text-red-400" : undefined}
-          />
-        </Button>
+        <FollowRoomButton room={roomSummary} />
       )}
     </ListItem>
   );

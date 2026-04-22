@@ -20,7 +20,7 @@ export function RoomNowPlaying({
   const canControlPlayback = room.playback.canControlPlayback;
 
   return (
-    <div className="bg-section-color/5 flex gap-4 items-center pr-3 rounded-2xl">
+    <div className="bg-section-color/5 flex gap-4 items-center -mx-3 pr-3 rounded-2xl">
       <AlbumArt src={currentTrack?.albumImage || null} className="size-24" />
       <div className="flex-1 min-w-0 space-y-1">
         <h2 className="flex gap-3 items-center justify-between leading-none text-2xl">

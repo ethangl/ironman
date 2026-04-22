@@ -24,7 +24,7 @@ export const SectionTitle: FC<ComponentProps<"h2">> = ({
 }) => (
   <h2
     className={cn(
-      "flex gap-3 font-medium items-center justify-between text-2xl tracking-[0.015em]",
+      "flex gap-3 font-medium items-center justify-between text-2xl leading-8 tracking-[0.015em]",
       className,
     )}
     {...props}

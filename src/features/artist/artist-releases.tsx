@@ -89,7 +89,7 @@ export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
       <SectionHeader>
         <SectionTitle>{title}</SectionTitle>
       </SectionHeader>
-      <SectionContent className="px-3 pb-3">
+      <SectionContent>
         <List count={releases.length}>
           {releases.map((release) => (
             <ListItem key={release.id}>

@@ -1,10 +1,4 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -14,47 +8,25 @@ import type {
 } from "@/features/spotify-client/types";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 import { getFunctionName } from "convex/server";
-import { SearchInput } from "./search-input";
 import { SearchProvider } from "./search-provider";
-import { SearchResults } from "./search-results";
+import { SpotifySearch } from "./spotify-search";
 
 const mockPlayTrack = vi.fn();
 const mockPlayTracks = vi.fn();
 const mockToastError = vi.fn();
 const mockScrollTo = vi.fn();
 
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
 vi.mock("@/features/spotify-client/spotify-convex-client", () => ({
   getAuthenticatedSpotifyConvexClient: vi.fn(),
 }));
 
 vi.mock("@/features/spotify-player", () => ({
-  PlaylistCell: ({
-    name,
-    onPlay,
-    tracks,
-  }: {
-    name: string;
-    onPlay?: (tracks: unknown[]) => void;
-    tracks: unknown[];
-  }) => (
-    <div>
-      <span>{name}</span>
-      <button onClick={() => onPlay?.(tracks)}>Play</button>
-    </div>
-  ),
-  TrackCell: ({
-    track,
-  }: {
-    track: {
-      name: string;
-      artist: string;
-    };
-  }) => (
-    <div>
-      <span>{track.name}</span>
-      <span>{track.artist}</span>
-    </div>
-  ),
   useWebPlayerActions: () => ({
     playTrack: (...args: unknown[]) => mockPlayTrack(...args),
     playTracks: (...args: unknown[]) => mockPlayTracks(...args),
@@ -92,12 +64,6 @@ vi.mock("@/features/spotify-player", () => ({
 
 vi.mock("@/hooks/use-debounce", () => ({
   useDebounce: (value: string) => value,
-}));
-
-vi.mock("@/components/play-button", () => ({
-  PlayButton: ({ onClick }: { onClick?: () => void }) => (
-    <button onClick={onClick}>Play track</button>
-  ),
 }));
 
 vi.mock("sonner", () => ({
@@ -153,9 +119,8 @@ function renderSearch(
   return render(
     <MemoryRouter initialEntries={["/home"]}>
       <SearchProvider>
+        <SpotifySearch />
         {options?.extraUi}
-        <SearchInput />
-        <SearchResults />
       </SearchProvider>
     </MemoryRouter>,
   );
@@ -169,25 +134,34 @@ function NavigateButton() {
   );
 }
 
-async function searchFor(query: string) {
-  fireEvent.change(
-    screen.getByPlaceholderText(
-      "Search Spotify for songs, artists, or playlists...",
-    ),
-    { target: { value: query } },
+function getSearchInput() {
+  return screen.getByPlaceholderText(
+    "Search Spotify for songs, artists, or playlists...",
   );
-  await act(async () => {
-    await Promise.resolve();
-  });
+}
+
+function getCommandItem(label: string) {
+  const item = screen.getByText(label).closest('[data-slot="command-item"]');
+  if (!item) {
+    throw new Error(`Could not find command item for ${label}`);
+  }
+  return item;
+}
+
+async function searchFor(query: string) {
+  fireEvent.click(screen.getByRole("button", { name: "Search Spotify" }));
+  fireEvent.change(getSearchInput(), { target: { value: query } });
 }
 
 describe("search", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", MockResizeObserver);
     window.scrollTo = mockScrollTo;
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -231,14 +205,59 @@ describe("search", () => {
     await searchFor("isis");
 
     await waitFor(() => {
-      expect(screen.getByText('Songs matching "isis"')).toBeInTheDocument();
-      expect(screen.getByText('Playlists matching "isis"')).toBeInTheDocument();
-      expect(screen.getByText('Artists matching "isis"')).toBeInTheDocument();
+      expect(screen.getByText("Songs")).toBeInTheDocument();
+      expect(screen.getByText("Playlists")).toBeInTheDocument();
+      expect(screen.getByText("Artists")).toBeInTheDocument();
     });
 
     expect(screen.getByText("Panopticon")).toBeInTheDocument();
     expect(screen.getByText("Heavy Rotation")).toBeInTheDocument();
     expect(screen.getAllByText("ISIS")).toHaveLength(2);
+  });
+
+  it("plays a selected track from spotify search", async () => {
+    renderSearch({
+      search: {
+        searchResults: vi.fn().mockResolvedValue({
+          tracks: [
+            {
+              id: "track-1",
+              name: "Panopticon",
+              artist: "ISIS",
+              albumName: "Oceanic",
+              albumImage: "track.jpg",
+              durationMs: 320000,
+            },
+          ],
+          playlists: [],
+          artists: [],
+        }),
+      },
+    });
+    await searchFor("isis");
+
+    await waitFor(() => {
+      expect(screen.getByText("Panopticon")).toBeInTheDocument();
+    });
+
+    fireEvent.click(getCommandItem("Panopticon"));
+
+    expect(mockPlayTrack).toHaveBeenCalledWith({
+      id: "track-1",
+      name: "Panopticon",
+      artist: "ISIS",
+      albumName: "Oceanic",
+      albumImage: "track.jpg",
+      durationMs: 320000,
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByPlaceholderText(
+          "Search Spotify for songs, artists, or playlists...",
+        ),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it("shows a friendly error message when search fails", async () => {
@@ -295,7 +314,7 @@ describe("search", () => {
       expect(screen.getByText("Heavy Rotation")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Play track" }));
+    fireEvent.click(getCommandItem("Heavy Rotation"));
 
     await waitFor(() => {
       expect(mockPlayTracks).toHaveBeenCalledWith([
@@ -312,7 +331,7 @@ describe("search", () => {
     expect(mockToastError).not.toHaveBeenCalled();
   });
 
-  it("clears the search panel when navigation changes the url", async () => {
+  it("clears the search query when navigation changes the url", async () => {
     renderSearch(
       {
         search: {
@@ -337,22 +356,16 @@ describe("search", () => {
     await searchFor("isis");
 
     await waitFor(() => {
-      expect(screen.getByText('Artists matching "isis"')).toBeInTheDocument();
+      expect(screen.getByText("ISIS")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Go to artist" }));
+    fireEvent.click(screen.getByText("Go to artist"));
 
     await waitFor(() => {
-      expect(
-        screen.queryByText('Artists matching "isis"'),
-      ).not.toBeInTheDocument();
+      expect(getSearchInput()).toHaveValue("");
     });
 
-    expect(
-      screen.getByPlaceholderText(
-        "Search Spotify for songs, artists, or playlists...",
-      ),
-    ).toHaveValue("");
+    expect(screen.queryByText("ISIS")).not.toBeInTheDocument();
     expect(mockScrollTo).toHaveBeenCalledWith(0, 0);
   });
 });

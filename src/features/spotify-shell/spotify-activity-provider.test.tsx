@@ -7,13 +7,19 @@ import {
 } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { PLAYLIST_PAGE_SIZE, RECENTLY_PLAYED_LIMIT } from "@/features/spotify-client";
+import {
+  PLAYLIST_PAGE_SIZE,
+  RECENTLY_PLAYED_LIMIT,
+} from "@/features/spotify-client";
 import {
   useSpotifyFavoriteArtists,
   useSpotifyPlaylists,
   useSpotifyRecentlyPlayed,
 } from "@/features/spotify-library";
-import type { SpotifyTrack } from "@/features/spotify-client/types";
+import type {
+  RecentlyPlayedPageResult,
+  SpotifyTrack,
+} from "@/features/spotify-client/types";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 import { getFunctionName } from "convex/server";
 import { SpotifyActivityProvider } from "./spotify-activity-provider";
@@ -45,8 +51,44 @@ function playlist(id: string) {
   };
 }
 
+function recentTrack(id: string) {
+  return {
+    playedAt: `2026-04-22T12:${id.padStart(2, "0")}:00.000Z`,
+    track: {
+      id: `track-${id}`,
+      name: `Track ${id}`,
+      artist: `Artist ${id}`,
+      albumImage: null,
+      durationMs: 120000,
+      albumName: `Album ${id}`,
+    },
+  };
+}
+
+function recentlyPlayedPage(
+  ids: string[],
+  nextCursor: number | null = null,
+  total = ids.length,
+): RecentlyPlayedPageResult {
+  return {
+    page: {
+      items: ids.map(recentTrack),
+      limit: RECENTLY_PLAYED_LIMIT,
+      total,
+      nextCursor,
+      hasMore: nextCursor !== null,
+    },
+    rateLimited: false,
+  };
+}
+
 function ActivityConsumer() {
-  const { appendRecentTrack, recentTracks } = useSpotifyRecentlyPlayed();
+  const {
+    appendRecentTrack,
+    loadMoreRecentTracks,
+    recentTracks,
+    recentTracksHasMore,
+  } = useSpotifyRecentlyPlayed();
   const {
     favoriteArtists,
     favoriteArtistsLoading,
@@ -71,6 +113,7 @@ function ActivityConsumer() {
     <div>
       <div data-testid="playlist-count">{playlists.length}</div>
       <div data-testid="recent-count">{recentTracks.length}</div>
+      <div data-testid="recent-has-more">{String(recentTracksHasMore)}</div>
       <div data-testid="favorite-artists-count">{favoriteArtists.length}</div>
       <div data-testid="playlists-loading">{String(playlistsLoading)}</div>
       <div data-testid="favorite-artists-loading">
@@ -84,6 +127,9 @@ function ActivityConsumer() {
       <button onClick={() => void loadPlaylists()}>Load playlists</button>
       <button onClick={() => void loadPlaylists(true)}>Refresh playlists</button>
       <button onClick={() => void loadMorePlaylists()}>Load more</button>
+      <button onClick={() => void loadMoreRecentTracks()}>
+        Load more recent tracks
+      </button>
       <button onClick={() => appendRecentTrack(sampleTrack)}>Append recent</button>
       <button onClick={() => void loadFavoriteArtists()}>Load favorite artists</button>
       <button onClick={() => void loadFavoriteArtists(true)}>
@@ -103,7 +149,11 @@ interface SpotifyActivityOverrides {
       genres: string[];
     }>
   >;
-  getRecentlyPlayed?: () => Promise<{ items: unknown[]; rateLimited: boolean }>;
+  getRecentlyPlayed?: (
+    limit?: number,
+    before?: number,
+    forceRefresh?: boolean,
+  ) => Promise<RecentlyPlayedPageResult>;
   getPlaylistsPage?: (
     limit?: number,
     offset?: number,
@@ -117,7 +167,7 @@ function renderProvider(overrides: SpotifyActivityOverrides = {}) {
     overrides.getFavoriteArtists ?? vi.fn().mockResolvedValue([]);
   const getRecentlyPlayed =
     overrides.getRecentlyPlayed ??
-    vi.fn().mockResolvedValue({ items: [], rateLimited: false });
+    vi.fn().mockResolvedValue(recentlyPlayedPage([]));
   const getPlaylistsPage =
     overrides.getPlaylistsPage ??
     vi.fn().mockResolvedValue({ items: [], total: 0 });
@@ -136,7 +186,12 @@ function renderProvider(overrides: SpotifyActivityOverrides = {}) {
     }
 
     if (functionName === "spotify:recentlyPlayed") {
-      return getRecentlyPlayed();
+      const { before, forceRefresh, limit } = args as {
+        before?: number;
+        forceRefresh?: boolean;
+        limit: number;
+      };
+      return getRecentlyPlayed(limit, before, forceRefresh);
     }
 
     if (functionName === "spotify:playlistsPage") {
@@ -242,9 +297,7 @@ describe("SpotifyActivityProvider", () => {
   });
 
   it("appends recents locally without refetching Spotify", async () => {
-    const getRecentlyPlayed = vi
-      .fn()
-      .mockResolvedValue({ items: [], rateLimited: false });
+    const getRecentlyPlayed = vi.fn().mockResolvedValue(recentlyPlayedPage([]));
     renderProvider({
       getRecentlyPlayed,
     });
@@ -260,6 +313,74 @@ describe("SpotifyActivityProvider", () => {
     });
 
     expect(getRecentlyPlayed).toHaveBeenCalledTimes(1);
+  });
+
+  it("applies a shared recent tracks page only once", async () => {
+    const nextPage = createDeferred<RecentlyPlayedPageResult>();
+    const getRecentlyPlayed = vi.fn(
+      (limit = RECENTLY_PLAYED_LIMIT, before?: number, forceRefresh = false) => {
+        if (limit !== RECENTLY_PLAYED_LIMIT) {
+          throw new Error(`Unexpected recent tracks page size: ${limit}`);
+        }
+
+        if (forceRefresh) {
+          throw new Error("Recent tracks load more should not force refresh.");
+        }
+
+        if (before === undefined) {
+          return Promise.resolve(recentlyPlayedPage(["1"], 111, 2));
+        }
+
+        if (before === 111) {
+          return nextPage.promise;
+        }
+
+        throw new Error(`Unexpected recent tracks cursor: ${before}`);
+      },
+    );
+
+    renderProvider({
+      getRecentlyPlayed,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("recent-count")).toHaveTextContent("1");
+    });
+
+    expect(screen.getByTestId("recent-has-more")).toHaveTextContent("true");
+
+    const loadMoreRecentTracks = screen.getByRole("button", {
+      name: "Load more recent tracks",
+    });
+    fireEvent.click(loadMoreRecentTracks);
+    fireEvent.click(loadMoreRecentTracks);
+
+    await waitFor(() => {
+      expect(getRecentlyPlayed).toHaveBeenCalledTimes(2);
+    });
+    expect(getRecentlyPlayed).toHaveBeenNthCalledWith(
+      1,
+      RECENTLY_PLAYED_LIMIT,
+      undefined,
+      false,
+    );
+    expect(getRecentlyPlayed).toHaveBeenNthCalledWith(
+      2,
+      RECENTLY_PLAYED_LIMIT,
+      111,
+      false,
+    );
+
+    await act(async () => {
+      nextPage.resolve(recentlyPlayedPage(["2"], null, 2));
+      await nextPage.promise;
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("recent-count")).toHaveTextContent("2");
+    });
+
+    expect(screen.getByTestId("recent-has-more")).toHaveTextContent("false");
   });
 
   it("loads playlists on mount", async () => {
@@ -388,7 +509,7 @@ describe("SpotifyActivityProvider", () => {
     expect(getFavoriteArtists).toHaveBeenNthCalledWith(2, 50, true);
   });
 
-  it("dedupes and caps locally appended recents at 30 items", async () => {
+  it("dedupes and caps locally appended recents at the configured limit", async () => {
     function LimitConsumer() {
       const { appendRecentTrack, recentTracks } = useSpotifyRecentlyPlayed();
 
@@ -432,10 +553,7 @@ describe("SpotifyActivityProvider", () => {
         }
 
         if (functionName === "spotify:recentlyPlayed") {
-          return Promise.resolve({
-            items: [],
-            rateLimited: false,
-          });
+          return Promise.resolve(recentlyPlayedPage([]));
         }
 
         if (functionName === "spotify:playlistsPage") {

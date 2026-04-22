@@ -39,15 +39,108 @@ describe("spotify activity loaders", () => {
 
     await expect(
       runAction<
-        { limit: number; cacheScope: string },
-        { items: unknown[]; rateLimited: boolean }
+        { before: number | null; limit: number; cacheScope: string },
+        {
+          page: {
+            hasMore: boolean;
+            items: unknown[];
+            limit: number;
+            nextCursor: number | null;
+            total: number;
+          };
+          rateLimited: boolean;
+        }
       >(loadRecentlyPlayed as unknown as RegisteredAction, {
+        before: null,
         limit: 25,
         cacheScope: "user-1",
       }),
     ).resolves.toEqual({
-      items: [],
+      page: {
+        hasMore: false,
+        items: [],
+        limit: 25,
+        nextCursor: null,
+        total: 0,
+      },
       rateLimited: true,
+    });
+  });
+
+  it("maps recently played paging metadata", async () => {
+    mockedSpotifyFetch.mockResolvedValueOnce({
+      cursors: {
+        before: "1713807300000",
+      },
+      items: [
+        {
+          played_at: "2026-04-22T18:15:00.000Z",
+          track: {
+            id: "track-1",
+            name: "Track 1",
+            artists: [{ name: "Artist 1" }],
+            album: {
+              name: "Album 1",
+              images: [{ url: "https://example.com/album-1.jpg" }],
+            },
+            duration_ms: 123000,
+          },
+        },
+      ],
+      limit: 2,
+      next: "https://api.spotify.com/v1/me/player/recently-played?limit=2&before=1713807300000",
+      total: 10,
+    });
+
+    await expect(
+      runAction<
+        { before: number | null; limit: number; cacheScope: string },
+        {
+          page: {
+            hasMore: boolean;
+            items: Array<{
+              playedAt: string;
+              track: {
+                albumImage: string | null;
+                albumName: string;
+                artist: string;
+                durationMs: number;
+                id: string;
+                name: string;
+              };
+            }>;
+            limit: number;
+            nextCursor: number | null;
+            total: number;
+          };
+          rateLimited: boolean;
+        }
+      >(loadRecentlyPlayed as unknown as RegisteredAction, {
+        before: null,
+        limit: 2,
+        cacheScope: "user-1",
+      }),
+    ).resolves.toEqual({
+      page: {
+        hasMore: true,
+        items: [
+          {
+            playedAt: "2026-04-22T18:15:00.000Z",
+            track: {
+              albumImage: "https://example.com/album-1.jpg",
+              albumName: "Album 1",
+              artist: "Artist 1",
+              durationMs: 123000,
+              id: "track-1",
+              name: "Track 1",
+            },
+          },
+        ],
+        limit: 2,
+        nextCursor: 1713807300000,
+        total: 10,
+      },
+      rateLimited: false,
     });
   });
 

@@ -11,12 +11,16 @@ import type { SpotifyTrack } from "@/features/spotify-client/types";
 import { TrackCell } from "./track-cell";
 
 export type TracksProps = {
+  action?: ReactNode;
+  paginate?: ReactNode;
   renderTrackAction?: (track: SpotifyTrack) => ReactNode;
   tracks: SpotifyTrack[];
   title: string;
 };
 
 export const Tracks: FC<TracksProps> = ({
+  action,
+  paginate,
   renderTrackAction,
   title,
   tracks,
@@ -28,7 +32,10 @@ export const Tracks: FC<TracksProps> = ({
   return (
     <Section>
       <SectionHeader>
-        <SectionTitle>{title}</SectionTitle>
+        <SectionTitle>
+          {title}
+          {action}
+        </SectionTitle>
       </SectionHeader>
       <SectionContent>
         <List count={tracks.length}>
@@ -37,6 +44,7 @@ export const Tracks: FC<TracksProps> = ({
               <TrackCell track={song}>{renderTrackAction?.(song)}</TrackCell>
             </ListItem>
           ))}
+          {paginate}
         </List>
       </SectionContent>
     </Section>

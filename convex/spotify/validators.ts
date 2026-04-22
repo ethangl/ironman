@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 
-type SpotifyPageItemValidator = Parameters<typeof v.array>[0];
+type SpotifyValueValidator = Parameters<typeof v.array>[0];
 
 export const spotifyTrackValidator = v.object({
   id: v.string(),
@@ -34,11 +34,6 @@ export const spotifyRecentlyPlayedItemValidator = v.object({
   track: spotifyTrackValidator,
 });
 
-export const spotifyRecentlyPlayedResultValidator = v.object({
-  items: v.array(spotifyRecentlyPlayedItemValidator),
-  rateLimited: v.boolean(),
-});
-
 export const spotifyPlaylistsPageValidator = v.object({
   items: v.array(spotifyPlaylistValidator),
   total: v.number(),
@@ -61,7 +56,7 @@ export const spotifyPageInfoValidator = v.object({
   hasMore: v.boolean(),
 });
 
-export function createSpotifyPageValidator<T extends SpotifyPageItemValidator>(
+export function createSpotifyPageValidator<T extends SpotifyValueValidator>(
   itemValidator: T,
 ) {
   return v.object({
@@ -74,8 +69,32 @@ export function createSpotifyPageValidator<T extends SpotifyPageItemValidator>(
   });
 }
 
+export function createSpotifyCursorPageValidator<
+  TItem extends SpotifyValueValidator,
+  TCursor extends SpotifyValueValidator,
+>(itemValidator: TItem, cursorValidator: TCursor) {
+  return v.object({
+    items: v.array(itemValidator),
+    limit: v.number(),
+    total: v.number(),
+    nextCursor: v.union(cursorValidator, v.null()),
+    hasMore: v.boolean(),
+  });
+}
+
 export const spotifyAlbumReleasePageValidator =
   createSpotifyPageValidator(spotifyAlbumReleaseValidator);
+
+export const spotifyRecentlyPlayedPageValidator =
+  createSpotifyCursorPageValidator(
+    spotifyRecentlyPlayedItemValidator,
+    v.number(),
+  );
+
+export const spotifyRecentlyPlayedPageResultValidator = v.object({
+  page: spotifyRecentlyPlayedPageValidator,
+  rateLimited: v.boolean(),
+});
 
 export const spotifySearchResultsValidator = v.object({
   tracks: v.array(spotifyTrackValidator),

@@ -11,7 +11,10 @@ import type {
   SpotifyArtistReleaseGroup,
   SpotifyPage,
 } from "@/features/spotify-client/types";
-import { useStablePaginatedAction } from "@/hooks/use-stable-paginated-action";
+import {
+  appendSpotifyPage,
+  useStablePaginatedAction,
+} from "@/hooks/use-stable-paginated-action";
 import { getSpotifyArtistReleasesPage } from "./spotify-artist-client";
 
 export type ArtistReleaseLoadingState = Record<
@@ -61,13 +64,13 @@ export function useArtistReleases({
     async (
       includeGroups: SpotifyArtistReleaseGroup,
       requestedOffset: number,
-      limit: number,
+      currentPage: SpotifyPage<SpotifyAlbumRelease>,
     ) => {
       return await getSpotifyArtistReleasesPage(
         artistId,
         includeGroups,
         requestedOffset,
-        limit,
+        currentPage.limit,
       );
     },
     [artistId],
@@ -80,12 +83,15 @@ export function useArtistReleases({
   } = useStablePaginatedAction<
     SpotifyArtistReleaseGroup,
     SpotifyArtistPageData,
-    SpotifyAlbumRelease
+    SpotifyPage<SpotifyAlbumRelease>,
+    number
   >({
     dataRef,
     getCurrentPage: getReleasePage,
+    getNextPageParam: (page) => page.nextOffset,
     keys: ARTIST_RELEASE_GROUPS,
     loadPage,
+    mergePages: appendSpotifyPage,
     requestVersionRef,
     setCurrentPage: setReleasePage,
     setData,

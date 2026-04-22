@@ -7,12 +7,7 @@ import { useNowPlaying } from "./use-now-playing";
 export const NextTrackButton: FC<ButtonProps> = ({ ...props }) => {
   const { nextTrack } = useNowPlaying();
   return (
-    <Button
-      size="icon-lg"
-      className="bg-white/10 hover:bg-white/5"
-      onClick={nextTrack}
-      {...props}
-    >
+    <Button size="icon-sm" onClick={nextTrack} {...props}>
       <SkipForwardIcon />
     </Button>
   );

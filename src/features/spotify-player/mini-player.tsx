@@ -3,14 +3,10 @@ import { ChevronsUpIcon, SkipForwardIcon } from "lucide-react";
 import { AlbumArt } from "@/components/album-art";
 import { PlayButton } from "@/components/play-button";
 import { Button } from "@/components/ui/button";
-import {
-  formatRoomSyncLabel,
-  toRoomTrack,
-  useOptionalRooms,
-} from "@/features/rooms";
-import { RoomStatusBadge } from "@/features/rooms/ui/room-status-badge";
+import { toRoomTrack, useOptionalRooms } from "@/features/rooms";
 import { NextTrackButton } from "./next-track-button";
 import { PlayerWrapper } from "./player-wrapper";
+import { RepairSyncButton } from "./repair-sync-button";
 import { TogglePlayButton } from "./toggle-play-button";
 import { useNowPlaying } from "./use-now-playing";
 
@@ -22,11 +18,6 @@ export function MiniPlayer() {
   const repairSync = rooms?.repairSync;
   const resolvedPlayback = rooms?.resolvedPlayback ?? null;
   const skipRoom = rooms?.skipRoom;
-  const syncState = rooms?.syncState ?? {
-    code: "idle",
-    label: "Not listening to a room",
-    driftMs: null,
-  };
   const roomTrack = toRoomTrack(resolvedPlayback?.currentQueueItem ?? null);
   const isRoomMode = activeRoom !== null;
   const canControlPlayback = !!activeRoom?.playback.canControlPlayback;
@@ -34,15 +25,13 @@ export function MiniPlayer() {
   const roomPaused = resolvedPlayback?.paused ?? false;
   const canToggleListening = hasRoomTrack;
   const displayImage = activeRoom
-    ? roomTrack?.albumImage ?? null
+    ? (roomTrack?.albumImage ?? null)
     : nowPlaying.displayImage;
   const displayName = activeRoom
-    ? roomTrack?.name ?? activeRoom.room.name
+    ? (roomTrack?.name ?? activeRoom.room.name)
     : nowPlaying.displayName;
   const displayArtist = isRoomMode
-    ? activeRoom
-      ? `${activeRoom.room.name} • ${formatRoomSyncLabel(syncState)}`
-      : ""
+    ? activeRoom.room.name
     : nowPlaying.displayArtist;
 
   const handleRoomToggle = () => {
@@ -91,16 +80,9 @@ export function MiniPlayer() {
           <div className="min-w-0 mix-blend-plus-lighter space-y-1.5 text-left truncate">
             <h6 className="leading-none text-xs truncate">{displayName}</h6>
             {isRoomMode ? (
-              <div className="flex items-center gap-2">
-                <p className="font-medium text-[9px] leading-none opacity-50 truncate">
-                  {displayArtist}
-                </p>
-                <RoomStatusBadge
-                  syncState={syncState}
-                  label={formatRoomSyncLabel(syncState)}
-                  className="px-1.5 py-0.5 text-[8px]"
-                />
-              </div>
+              <p className="font-medium text-[9px] leading-none opacity-50 truncate">
+                {displayArtist}
+              </p>
             ) : (
               <p className="font-medium text-[9px] leading-none opacity-50 truncate">
                 {displayArtist}
@@ -109,20 +91,18 @@ export function MiniPlayer() {
           </div>
         </button>
         <nav className="flex flex-none items-center gap-1 mix-blend-plus-lighter">
+          <RepairSyncButton />
           {isRoomMode ? (
             <>
               <PlayButton
                 size="icon-sm"
-                className="bg-white/10 hover:bg-white/5"
                 disabled={!canToggleListening}
                 playing={canToggleListening && !roomPaused}
                 onClick={handleRoomToggle}
               />
-              {canControlPlayback ? (
+              {canControlPlayback && (
                 <Button
-                  variant="ghost"
                   size="icon-sm"
-                  className="bg-white/10 hover:bg-white/5"
                   disabled={!hasRoomTrack}
                   onClick={() =>
                     activeRoom && skipRoom
@@ -132,7 +112,7 @@ export function MiniPlayer() {
                 >
                   <SkipForwardIcon />
                 </Button>
-              ) : null}
+              )}
             </>
           ) : (
             <>

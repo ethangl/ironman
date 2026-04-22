@@ -14,12 +14,7 @@ export function EnqueueTrackButton({ track }: { track: SpotifyTrack }) {
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="icon-xs"
-      onClick={() => void enqueueTrack(track)}
-      aria-label={`Queue ${track.name}`}
-    >
+    <Button size="sm" onClick={() => void enqueueTrack(track)}>
       <PlusIcon />
     </Button>
   );

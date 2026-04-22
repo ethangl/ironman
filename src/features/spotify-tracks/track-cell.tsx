@@ -3,8 +3,8 @@ import { FC, PropsWithChildren, useContext } from "react";
 import { AlbumArt } from "@/components/album-art";
 import { PlayButton } from "@/components/play-button";
 import type { Track } from "@/features/spotify-client/types";
-import type { TrackSnapshot } from "./types";
 import { WebPlayerActionsContext } from "../spotify-player/use-web-player";
+import type { TrackSnapshot } from "./types";
 
 function isTrackSnapshot(track: Track | TrackSnapshot): track is TrackSnapshot {
   return "trackId" in track;
@@ -52,7 +52,7 @@ export const TrackCell: FC<TrackCellProps> = ({
     <>
       <div className="flex gap-3 items-center">
         {count && (
-          <div className="bg-black/25 font-bold flex items-center justify-center rounded-3xl text-xs text-white size-8">
+          <div className="bg-black/25 font-bold flex items-center justify-center rounded-3xl text-xs size-8">
             {count}
           </div>
         )}
@@ -66,7 +66,7 @@ export const TrackCell: FC<TrackCellProps> = ({
           {normalizedTrack.artist}
         </h5>
       </div>
-      <div className="flex gap-2 items-center">
+      <div className="duration-888 group-hover/list:duration-222 flex gap-2 items-center opacity-0 group-hover/list:opacity-100 transition-opacity">
         {children}
         {handlePlay && (
           <PlayButton

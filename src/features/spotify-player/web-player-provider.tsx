@@ -2,15 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useAppAuth, useAppCapabilities } from "@/app/app-runtime";
 import { useAuthenticatedSession } from "@/app/require-authenticated-session";
+import type { SpotifyTrack, Track } from "@/features/spotify-client/types";
 import { useSpotifyRecentlyPlayed } from "@/features/spotify-library";
-import type {
-  SpotifyTrack,
-  Track,
-} from "@/features/spotify-client/types";
-import { cn } from "@/lib/utils";
 import { useSpotify } from "../spotify-sdk/use-spotify";
-import { MiniPlayer } from "./mini-player";
-import { StandardPlayer } from "./standard-player";
 import { usePlayerPalette } from "./use-player-palette";
 import { usePlayerPlayback } from "./use-player-playback";
 import {
@@ -126,7 +120,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const confirmedTrackId = !sdkState?.paused
-      ? sdkState?.trackId ?? null
+      ? (sdkState?.trackId ?? null)
       : null;
 
     if (!confirmedTrackId) {
@@ -212,15 +206,6 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
     <WebPlayerActionsContext.Provider value={actions}>
       <WebPlayerStateContext.Provider value={state}>
         {children}
-        <div
-          className={cn(
-            "fixed inset-0 pointer-events-none transition-all z-45",
-            expanded && "backdrop-blur-xs pointer-events-auto",
-          )}
-          onClick={() => setExpanded(false)}
-        />
-        <MiniPlayer />
-        <StandardPlayer />
       </WebPlayerStateContext.Provider>
     </WebPlayerActionsContext.Provider>
   );

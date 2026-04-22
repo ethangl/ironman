@@ -60,21 +60,24 @@ export function StandardPlayer() {
       : activeRoom.room.name
     : nowPlaying.displayArtist;
   const displayDuration = activeRoom
-    ? roomTrack?.durationMs ?? 0
+    ? (roomTrack?.durationMs ?? 0)
     : nowPlaying.displayDuration;
   const displayImage = activeRoom
-    ? roomTrack?.albumImage ?? null
+    ? (roomTrack?.albumImage ?? null)
     : nowPlaying.displayImage;
   const displayName = activeRoom
-    ? roomTrack?.name ?? activeRoom.room.name
+    ? (roomTrack?.name ?? activeRoom.room.name)
     : nowPlaying.displayName;
   const displayProgress = activeRoom
-    ? resolvedPlayback?.currentOffsetMs ?? 0
+    ? (resolvedPlayback?.currentOffsetMs ?? 0)
     : nowPlaying.displayProgress;
   const expanded = nowPlaying.expanded;
-  const hasQueue = isRoomMode ? activeRoom.queue.length > 1 : nowPlaying.hasQueue;
+  const hasQueue = isRoomMode
+    ? activeRoom.queue.length > 1
+    : nowPlaying.hasQueue;
   const palette = nowPlaying.palette;
-  const pct = displayDuration > 0 ? (displayProgress / displayDuration) * 100 : 0;
+  const pct =
+    displayDuration > 0 ? (displayProgress / displayDuration) * 100 : 0;
   const volume = nowPlaying.volume;
   const setExpanded = nowPlaying.setExpanded;
   const setVolume = nowPlaying.setVolume;
@@ -164,7 +167,6 @@ export function StandardPlayer() {
           {isRoomMode ? (
             <Button
               size="icon-2xl"
-              className="bg-white/10 hover:bg-white/5"
               disabled={!canToggleListening}
               onClick={handleRoomToggle}
             >
@@ -182,7 +184,6 @@ export function StandardPlayer() {
               canControlPlayback && hasRoomTrack ? (
                 <Button
                   size="icon-lg"
-                  className="bg-white/10 hover:bg-white/5"
                   onClick={() =>
                     skipRoom ? void skipRoom(activeRoom.room._id) : undefined
                   }
@@ -240,7 +241,7 @@ export function StandardPlayer() {
             )}
           </div>
         </footer>
-        {isRoomMode ? <RoomPlayerPanel /> : null}
+        <div className="hidden">{isRoomMode && <RoomPlayerPanel />}</div>
       </div>
     </PlayerWrapper>
   );

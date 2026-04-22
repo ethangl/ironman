@@ -7,12 +7,7 @@ export const Section: FC<ComponentProps<"section">> = ({
   className,
 }) => {
   return (
-    <section
-      className={cn(
-        "relative select-none shadow-[0_1px_0_--alpha(var(--color-background)/33%)]",
-        className,
-      )}
-    >
+    <section className={cn("relative select-none", className)}>
       {children}
     </section>
   );
@@ -29,7 +24,7 @@ export const SectionTitle: FC<ComponentProps<"h2">> = ({
 }) => (
   <h2
     className={cn(
-      "flex gap-3 font-medium items-center justify-between text-2xl tracking-[0.015em]",
+      "flex gap-3 font-medium items-center justify-between text-2xl leading-8 text-section-color/88 tracking-[0.015em]",
       className,
     )}
     {...props}

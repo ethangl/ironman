@@ -2,13 +2,18 @@ import { FC, useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { List, ListItem } from "@/components/list";
-import { Section, SectionContent, SectionHeader } from "@/components/section";
+import {
+  Section,
+  SectionContent,
+  SectionHeader,
+  SectionTitle,
+} from "@/components/section";
 import { getSpotifyAlbumTracks } from "@/features/artist/spotify-artist-client";
-import { useWebPlayerActions } from "@/features/spotify-player";
 import type {
   SpotifyAlbumRelease,
   Track,
 } from "@/features/spotify-client/types";
+import { useWebPlayerActions } from "@/features/spotify-player";
 import { PlaylistCell } from "@/features/spotify-playlists/playlist-cell";
 
 function formatReleaseDate(value: string | null) {
@@ -45,7 +50,9 @@ export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
       try {
         return await getSpotifyAlbumTracks(release.id);
       } finally {
-        setLoadingItemId((current) => (current === release.id ? null : current));
+        setLoadingItemId((current) =>
+          current === release.id ? null : current,
+        );
       }
     },
     [],
@@ -79,13 +86,14 @@ export const Releases: FC<ReleasesProps> = ({ releases, title }) => {
 
   return (
     <Section>
-      <SectionHeader>{title}</SectionHeader>
+      <SectionHeader>
+        <SectionTitle>{title}</SectionTitle>
+      </SectionHeader>
       <SectionContent>
         <List count={releases.length}>
-          {releases.map((release, i) => (
+          {releases.map((release) => (
             <ListItem key={release.id}>
               <PlaylistCell
-                count={i + 1}
                 disabled={loadingItemId === release.id}
                 image={release.image}
                 name={release.name}

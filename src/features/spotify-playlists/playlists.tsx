@@ -12,11 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { useOptionalRooms } from "@/features/rooms";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
-import { useWebPlayerActions } from "@/features/spotify-player";
 import type {
   SpotifyPlaylist,
   SpotifyTrack,
 } from "@/features/spotify-client/types";
+import { useWebPlayerActions } from "@/features/spotify-player";
 import { api } from "@api";
 import { PlaylistCell } from "./playlist-cell";
 
@@ -128,8 +128,7 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => {
               >
                 {canEnqueueToActiveRoom ? (
                   <Button
-                    variant="ghost"
-                    size="icon-xs"
+                    size="icon-sm"
                     disabled={loadingItemId === playlist.id}
                     onClick={() => void enqueuePlaylist(playlist)}
                     aria-label={`Queue ${playlist.name}`}

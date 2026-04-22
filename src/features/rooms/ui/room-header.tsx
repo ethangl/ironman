@@ -5,6 +5,7 @@ import { FC } from "react";
 import { MainHeader } from "@/components/main";
 import { Button } from "@/components/ui/button";
 import { RoomId, useRoomDetails } from "@/features/rooms";
+import { RoomHeaderMenu } from "./room-header-menu";
 import { RoomLink } from "./room-link";
 
 export const RoomHeader: FC<{ roomId: RoomId }> = ({ roomId }) => {
@@ -28,7 +29,7 @@ export const RoomHeader: FC<{ roomId: RoomId }> = ({ roomId }) => {
           </RoomLink>
         }
       />
-      <span />
+      <RoomHeaderMenu roomDetails={data} />
     </MainHeader>
   );
 };

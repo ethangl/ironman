@@ -41,7 +41,7 @@ export const Sidebar: FC<SidebarProps> = ({ children, style }) => {
     <SidebarStateContext.Provider value={[expanded, setExpanded]}>
       <aside
         className={cn(
-          "group/sidebar duration-111 ease-out flex flex-col max-h-full overflow-hidden relative rounded-3xl text-section-color transition-all",
+          "group/sidebar duration-111 ease-out flex flex-col max-h-full overflow-hidden relative rounded-3xl transition-all",
           expanded ? "w-sm" : "w-16",
         )}
         style={style}
@@ -59,7 +59,7 @@ export const SidebarHeader: FC<SidebarHeaderProps> = ({ children, title }) => {
   const [expanded] = useSidebarState();
   return (
     <header className="flex flex-none group-first/sidebar:justify-end overflow-hidden shadow-[0_1px_0_--alpha(var(--color-background)/33%)] w-full">
-      <div className="flex flex-1 gap-2 h-16 items-center justify-between px-3.5 relative text-white w-sm">
+      <div className="flex flex-1 gap-2 h-16 items-center justify-between px-3.5 relative w-sm">
         {title && (
           <span
             className={cn(
@@ -80,7 +80,7 @@ export const SidebarFooter: FC<PropsWithChildren> = ({ ...props }) => {
   return (
     <footer className="flex flex-none group-first/sidebar:justify-end overflow-hidden shadow-[0_-1px_0_--alpha(var(--color-background)/33%)] w-full">
       <div
-        className="flex gap-2 h-16 items-center justify-between px-4 text-white w-sm"
+        className="flex gap-2 h-16 items-center justify-between px-4 w-sm"
         {...props}
       />
     </footer>

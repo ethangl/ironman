@@ -69,11 +69,7 @@ export function RoomPlayerPanel() {
         <Button variant="ghost" size="sm" onClick={repairSync}>
           Sync to room
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => void closeRoom()}
-        >
+        <Button variant="ghost" size="sm" onClick={() => void closeRoom()}>
           Stop listening
         </Button>
       </div>
@@ -82,7 +78,6 @@ export function RoomPlayerPanel() {
         <RoomQueueList
           roomId={activeRoom.room._id}
           queue={activeRoom.queue}
-          compact={true}
           limit={4}
           currentQueueItemId={resolvedPlayback?.currentQueueItemId ?? null}
           canManageQueue={activeRoom.playback.canManageQueue}

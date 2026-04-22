@@ -5,8 +5,8 @@ import { Main } from "@/components/main";
 import { Sidebar } from "@/components/sidebar";
 import { Chat } from "@/features/chat/chat";
 import { useRoomPageState } from "@/features/rooms/runtime/use-room-page-state";
+import { Room } from "@/features/rooms/ui/room";
 import { RoomCreateForm } from "@/features/rooms/ui/room-create-form";
-import { RoomDetail } from "@/features/rooms/ui/room-detail";
 import { RoomHeader } from "@/features/rooms/ui/room-header";
 import { Rooms } from "@/features/rooms/ui/rooms";
 import { RoomsHeader } from "@/features/rooms/ui/rooms-header";
@@ -30,7 +30,7 @@ function RoomsLayout() {
       <>
         <Main style={{ "--section-color": "var(--color-red-400)" }}>
           <RoomHeader roomId={roomId} />
-          <RoomDetail roomId={roomId} />
+          <Room roomId={roomId} />
         </Main>
         <Chat roomId={roomId} />
       </>

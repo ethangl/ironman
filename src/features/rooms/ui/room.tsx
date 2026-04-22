@@ -1,25 +1,18 @@
-import { MetronomeIcon, Trash2Icon } from "lucide-react";
-
 import { MainContent } from "@/components/main";
-import { MoreMenu } from "@/components/more-menu";
 import {
   Section,
   SectionDescription,
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
-import { Button } from "@/components/ui/button";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
-import { useRoomDetails, useRooms, type RoomId } from "@/features/rooms";
-import { FollowRoomButton } from "./follow-room-button";
+import { useRoomDetails, type RoomId } from "@/features/rooms";
 import { RoomActivityFeed } from "./room-activity-feed";
 import { RoomPeople } from "./room-people";
 import { RoomQueue } from "./room-queue";
 
-export function RoomDetail({ roomId }: { roomId: RoomId }) {
+export function Room({ roomId }: { roomId: RoomId }) {
   const roomQuery = useRoomDetails(roomId);
-  const { clearQueue, repairSync } = useRooms();
 
   if (roomQuery.loading) {
     return (
@@ -39,11 +32,9 @@ export function RoomDetail({ roomId }: { roomId: RoomId }) {
 
   const {
     data,
-    data: { roleHolders, room, viewerMembership },
+    data: { roleHolders, room },
     resolvedPlayback,
   } = roomQuery;
-
-  const canControlPlayback = data.playback.canControlPlayback;
 
   return (
     <MainContent>
@@ -51,20 +42,7 @@ export function RoomDetail({ roomId }: { roomId: RoomId }) {
         <SectionHeader>
           <SectionTitle className="items-start">
             {room.name}
-            <nav className="flex gap-2 items-center">
-              <RoomPeople people={roleHolders} />
-              <Button variant="overlay" size="icon-sm" onClick={repairSync}>
-                <MetronomeIcon />
-              </Button>
-              {!viewerMembership && <FollowRoomButton room={data} />}
-              {canControlPlayback && (
-                <MoreMenu>
-                  <DropdownMenuItem onClick={() => void clearQueue(room._id)}>
-                    <Trash2Icon /> Clear Queue
-                  </DropdownMenuItem>
-                </MoreMenu>
-              )}
-            </nav>
+            <RoomPeople people={roleHolders} />
           </SectionTitle>
           {room.description && (
             <SectionDescription>{room.description}</SectionDescription>

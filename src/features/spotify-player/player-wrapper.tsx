@@ -24,7 +24,7 @@ export const PlayerWrapper: FC<PlayerWrapperProps> = ({
   return (
     <section
       className={cn(
-        "fixed backdrop-blur-md backdrop-brightness-200 backdrop-saturate-150 duration-888 inset-3 max-w-sm mx-auto overflow-auto p-1 rounded-4xl select-none shadow-2xl text-black dark:text-white transition top-auto z-50",
+        "fixed backdrop-blur-md backdrop-brightness-200 backdrop-saturate-150 duration-888 inset-3 max-w-sm mx-auto overflow-auto p-1 rounded-4xl select-none shadow-2xl text-white transition top-auto z-50",
         toggled && isPlaying
           ? "duration-888 ease-elastic opacity-100 scale-100 translate-y-0"
           : "duration-333 ease-out opacity-0 pointer-events-none scale-90 translate-y-[125%]",

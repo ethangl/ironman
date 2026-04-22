@@ -241,7 +241,7 @@ export function StandardPlayer() {
             )}
           </div>
         </footer>
-        {isRoomMode ? <RoomPlayerPanel /> : null}
+        <div className="hidden">{isRoomMode && <RoomPlayerPanel />}</div>
       </div>
     </PlayerWrapper>
   );

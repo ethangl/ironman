@@ -52,7 +52,7 @@ export const TrackCell: FC<TrackCellProps> = ({
     <>
       <div className="flex gap-3 items-center">
         {count && (
-          <div className="bg-black/25 font-bold flex items-center justify-center rounded-3xl text-xs text-white size-8">
+          <div className="bg-black/25 font-bold flex items-center justify-center rounded-3xl text-xs size-8">
             {count}
           </div>
         )}

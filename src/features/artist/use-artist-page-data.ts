@@ -5,6 +5,7 @@ import type {
   SpotifyArtistReleaseGroup,
   SpotifyPage,
 } from "@/features/spotify-client/types";
+import { useStableAction } from "@/hooks/use-stable-action";
 import {
   getSpotifyArtistPageData,
   getSpotifyArtistReleasesPage,
@@ -55,86 +56,53 @@ function appendSpotifyPage<TItem>(
 }
 
 export function useArtistPageData(artistId: string) {
-  const [data, setData] = useState<SpotifyArtistPageData | null>(null);
-  const [loading, setLoading] = useState(Boolean(artistId));
-  const [refreshing, setRefreshing] = useState(false);
   const [loadingReleaseGroups, setLoadingReleaseGroups] =
     useState<ReleaseLoadingState>(initialReleaseLoadingState);
-  const [error, setError] = useState<string | null>(null);
-  const requestVersionRef = useRef(0);
-  const dataRef = useRef<SpotifyArtistPageData | null>(null);
   const loadingReleaseGroupsRef = useRef<Set<SpotifyArtistReleaseGroup>>(
     new Set(),
   );
 
-  const load = useCallback(
-    async (mode: "load" | "refresh") => {
+  const resetReleaseLoadingState = useCallback(() => {
+    loadingReleaseGroupsRef.current.clear();
+    setLoadingReleaseGroups(initialReleaseLoadingState);
+  }, []);
+
+  const {
+    data,
+    dataRef,
+    error,
+    loading,
+    refreshing,
+    refresh: refreshArtistPage,
+    requestVersionRef,
+    setData,
+  } = useStableAction<SpotifyArtistPageData>({
+    enabled: Boolean(artistId),
+    keepDataOnLoad: false,
+    load: useCallback(async () => {
       if (!artistId) {
-        return;
+        return null;
       }
 
-      const requestVersion = ++requestVersionRef.current;
-      setError(null);
-      loadingReleaseGroupsRef.current.clear();
-      setLoadingReleaseGroups(initialReleaseLoadingState);
-      if (mode === "refresh") {
-        setRefreshing(true);
-      } else {
-        setData(null);
-        dataRef.current = null;
-        setLoading(true);
-        setRefreshing(false);
-      }
-
-      try {
-        const nextData = await getSpotifyArtistPageData(artistId);
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
-        setData(nextData ?? null);
-        dataRef.current = nextData ?? null;
-      } catch (nextError) {
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
-        setData(null);
-        dataRef.current = null;
-        setError(
-          nextError instanceof Error
-            ? nextError.message
-            : "Could not load artist right now.",
-        );
-      }
-
-      if (requestVersionRef.current !== requestVersion) {
-        return;
-      }
-      setLoading(false);
-      setRefreshing(false);
-    },
-    [artistId],
-  );
+      return await getSpotifyArtistPageData(artistId);
+    }, [artistId]),
+    mapError: useCallback(
+      (nextError: unknown) =>
+        nextError instanceof Error
+          ? nextError.message
+          : "Could not load artist right now.",
+      [],
+    ),
+  });
 
   useEffect(() => {
-    requestVersionRef.current += 1;
-
-    if (!artistId) {
-      setData(null);
-      dataRef.current = null;
-      setLoading(false);
-      setRefreshing(false);
-      loadingReleaseGroupsRef.current.clear();
-      setLoadingReleaseGroups(initialReleaseLoadingState);
-      setError(null);
-      return;
-    }
-
-    void load("load");
-  }, [artistId, load]);
+    resetReleaseLoadingState();
+  }, [artistId, resetReleaseLoadingState]);
 
   const refresh = useCallback(async () => {
-    await load("refresh");
-  }, [load]);
+    resetReleaseLoadingState();
+    await refreshArtistPage();
+  }, [refreshArtistPage, resetReleaseLoadingState]);
 
   const loadMoreReleases = useCallback(
     async (includeGroups: SpotifyArtistReleaseGroup) => {
@@ -186,27 +154,23 @@ export function useArtistPageData(artistId: string) {
             return previous;
           }
 
-          const nextData = setReleasePage(
+          return setReleasePage(
             previous,
             includeGroups,
             appendSpotifyPage(previousPage, nextPage),
           );
-          dataRef.current = nextData;
-          return nextData;
         });
       } finally {
         loadingReleaseGroupsRef.current.delete(includeGroups);
-        if (requestVersionRef.current !== requestVersion) {
-          return;
+        if (requestVersionRef.current === requestVersion) {
+          setLoadingReleaseGroups((current) => ({
+            ...current,
+            [includeGroups]: false,
+          }));
         }
-
-        setLoadingReleaseGroups((current) => ({
-          ...current,
-          [includeGroups]: false,
-        }));
       }
     },
-    [artistId],
+    [artistId, dataRef, requestVersionRef, setData],
   );
 
   if (!artistId) {

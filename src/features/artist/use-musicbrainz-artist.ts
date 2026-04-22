@@ -1,36 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 
-import type { MusicBrainzArtistMatch } from "./types";
+import { useStableAction } from "@/hooks/use-stable-action";
 import { getMusicBrainzArtist } from "./musicbrainz-client";
+import type { MusicBrainzArtistMatch } from "./types";
 
 export function useMusicBrainzArtist(artistId: string) {
-  const [data, setData] = useState<MusicBrainzArtistMatch | null>(null);
-  const requestVersionRef = useRef(0);
-
-  useEffect(() => {
-    const requestVersion = ++requestVersionRef.current;
-
-    if (!artistId) {
-      setData(null);
-      return;
-    }
-
-    void getMusicBrainzArtist(artistId)
-      .then((nextData) => {
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
-
-        setData(nextData ?? null);
-      })
-      .catch(() => {
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
-
-        setData(null);
-      });
-  }, [artistId]);
+  const { data } = useStableAction<MusicBrainzArtistMatch>({
+    enabled: artistId !== "",
+    load: useCallback(async () => {
+      return await getMusicBrainzArtist(artistId);
+    }, [artistId]),
+  });
 
   return data;
 }

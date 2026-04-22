@@ -27,6 +27,20 @@ export interface SpotifyAlbumRelease {
   albumType: string | null;
 }
 
+export type SpotifyArtistReleaseGroup = "album" | "single";
+
+export interface SpotifyPageInfo {
+  offset: number;
+  limit: number;
+  total: number;
+  nextOffset: number | null;
+  hasMore: boolean;
+}
+
+export interface SpotifyPage<T> extends SpotifyPageInfo {
+  items: T[];
+}
+
 export interface SpotifyPlaylist {
   id: string;
   name: string;
@@ -46,8 +60,8 @@ export interface SpotifySearchResults {
 export interface SpotifyArtistPageData {
   artist: SpotifyArtist;
   topTracks: SpotifyTrack[];
-  albums: SpotifyAlbumRelease[];
-  singles: SpotifyAlbumRelease[];
+  albums: SpotifyPage<SpotifyAlbumRelease>;
+  singles: SpotifyPage<SpotifyAlbumRelease>;
 }
 
 export interface RecentTrack {

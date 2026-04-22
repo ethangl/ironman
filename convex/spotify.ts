@@ -7,6 +7,7 @@ import { clearAlbumsCaches, spotifyAlbumTracksCache } from "./spotify/albums";
 import {
   clearArtistsCaches,
   spotifyArtistPageCache,
+  spotifyArtistReleasesPageCache,
   spotifyFavoriteArtistsCache,
   spotifyTopArtistsCache,
 } from "./spotify/artists";
@@ -34,6 +35,7 @@ import {
   spotifyRecentlyPlayedCache,
 } from "./spotify/tracks";
 import {
+  spotifyAlbumReleasePageValidator,
   spotifyArtistPageDataValidator,
   spotifyArtistValidator,
   spotifyPlaybackCurrentlyPlayingResultValidator,
@@ -79,6 +81,27 @@ export const artistPage = action({
 
     return spotifyArtistPageCache.fetch(ctx, {
       artistId: args.artistId,
+      cacheScope: String(user._id),
+    });
+  },
+});
+
+export const artistReleasesPage = action({
+  args: {
+    artistId: v.string(),
+    includeGroups: v.union(v.literal("album"), v.literal("single")),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  returns: spotifyAlbumReleasePageValidator,
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+
+    return spotifyArtistReleasesPageCache.fetch(ctx, {
+      artistId: args.artistId,
+      includeGroups: args.includeGroups,
+      limit: args.limit ?? DEFAULT_LIMIT,
+      offset: args.offset ?? DEFAULT_OFFSET,
       cacheScope: String(user._id),
     });
   },

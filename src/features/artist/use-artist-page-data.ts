@@ -1,83 +1,70 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect } from "react";
 
-import type { SpotifyArtistPageData } from "@/features/spotify-client/types";
+import type {
+  SpotifyArtistPageData,
+} from "@/features/spotify-client/types";
+import { useStableAction } from "@/hooks/use-stable-action";
 import { getSpotifyArtistPageData } from "./spotify-artist-client";
+import { useArtistReleases } from "./use-artist-releases";
 
 export function useArtistPageData(artistId: string) {
-  const [data, setData] = useState<SpotifyArtistPageData | null>(null);
-  const [loading, setLoading] = useState(Boolean(artistId));
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const requestVersionRef = useRef(0);
-
-  const load = useCallback(
-    async (mode: "load" | "refresh") => {
+  const {
+    data,
+    dataRef,
+    error,
+    loading,
+    refreshing,
+    refresh: refreshArtistPage,
+    requestVersionRef,
+    setData,
+  } = useStableAction<SpotifyArtistPageData>({
+    enabled: Boolean(artistId),
+    keepDataOnLoad: false,
+    load: useCallback(async () => {
       if (!artistId) {
-        return;
+        return null;
       }
 
-      const requestVersion = ++requestVersionRef.current;
-      setError(null);
-      if (mode === "refresh") {
-        setRefreshing(true);
-      } else {
-        setData(null);
-        setLoading(true);
-        setRefreshing(false);
-      }
+      return await getSpotifyArtistPageData(artistId);
+    }, [artistId]),
+    mapError: useCallback(
+      (nextError: unknown) =>
+        nextError instanceof Error
+          ? nextError.message
+          : "Could not load artist right now.",
+      [],
+    ),
+  });
 
-      try {
-        const nextData = await getSpotifyArtistPageData(artistId);
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
-        setData(nextData ?? null);
-      } catch (nextError) {
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
-        setData(null);
-        setError(
-          nextError instanceof Error
-            ? nextError.message
-            : "Could not load artist right now.",
-        );
-      }
-
-      if (requestVersionRef.current !== requestVersion) {
-        return;
-      }
-      setLoading(false);
-      setRefreshing(false);
-    },
-    [artistId],
-  );
+  const {
+    loadMoreReleases,
+    loadingReleaseGroups,
+    resetReleaseLoadingState,
+  } = useArtistReleases({
+    artistId,
+    dataRef,
+    requestVersionRef,
+    setData,
+  });
 
   useEffect(() => {
-    requestVersionRef.current += 1;
-
-    if (!artistId) {
-      setData(null);
-      setLoading(false);
-      setRefreshing(false);
-      setError(null);
-      return;
-    }
-
-    void load("load");
-  }, [artistId, load]);
+    resetReleaseLoadingState();
+  }, [artistId, resetReleaseLoadingState]);
 
   const refresh = useCallback(async () => {
-    await load("refresh");
-  }, [load]);
+    resetReleaseLoadingState();
+    await refreshArtistPage();
+  }, [refreshArtistPage, resetReleaseLoadingState]);
 
   if (!artistId) {
     return {
       data: null,
       loading: false,
       refreshing: false,
+      loadingReleaseGroups,
       error: null,
       notFound: true,
+      loadMoreReleases,
       refresh,
     };
   }
@@ -86,8 +73,10 @@ export function useArtistPageData(artistId: string) {
     data: data ?? null,
     loading,
     refreshing,
+    loadingReleaseGroups,
     error,
     notFound: !loading && !refreshing && !error && data === null,
+    loadMoreReleases,
     refresh,
   };
 }

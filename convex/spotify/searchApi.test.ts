@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { getAlbumTracks } from "./albums";
-import { getArtistPageData, getArtistPageDataResult } from "./artists";
+import {
+  getArtistPageData,
+  getArtistPageDataResult,
+  getArtistReleasesPage,
+} from "./artists";
 import { searchSpotify } from "./search";
 
 describe("searchSpotify", () => {
@@ -179,6 +183,10 @@ describe("getArtistPageData", () => {
                 total_tracks: 8,
               },
             ],
+            total: 12,
+            limit: 10,
+            offset: 0,
+            next: "https://api.spotify.com/v1/artists/artist-1/albums?include_groups=album&limit=10&offset=10&market=US",
           }),
           { status: 200 },
         ),
@@ -197,6 +205,10 @@ describe("getArtistPageData", () => {
                 total_tracks: 2,
               },
             ],
+            total: 1,
+            limit: 10,
+            offset: 0,
+            next: null,
           }),
           { status: 200 },
         ),
@@ -238,34 +250,50 @@ describe("getArtistPageData", () => {
           durationMs: 420000,
         },
       ],
-      albums: [
-        {
-          id: "album-1",
-          name: "Oceanic",
-          image: "album.jpg",
-          releaseDate: "2002-09-28",
-          totalTracks: 8,
-          albumType: "album",
-        },
-      ],
-      singles: [
-        {
-          id: "single-1",
-          name: "Holy Tears",
-          image: "single.jpg",
-          releaseDate: "2007-10-08",
-          totalTracks: 2,
-          albumType: "single",
-        },
-      ],
+      albums: {
+        items: [
+          {
+            id: "album-1",
+            name: "Oceanic",
+            image: "album.jpg",
+            releaseDate: "2002-09-28",
+            totalTracks: 8,
+            albumType: "album",
+          },
+        ],
+        offset: 0,
+        limit: 10,
+        total: 12,
+        nextOffset: 10,
+        hasMore: true,
+      },
+      singles: {
+        items: [
+          {
+            id: "single-1",
+            name: "Holy Tears",
+            image: "single.jpg",
+            releaseDate: "2007-10-08",
+            totalTracks: 2,
+            albumType: "single",
+          },
+        ],
+        offset: 0,
+        limit: 10,
+        total: 1,
+        nextOffset: null,
+        hasMore: false,
+      },
     });
     expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(fetchMock.mock.calls[1]?.[0]).toContain("market=US");
     expect(fetchMock.mock.calls[1]?.[0]).toContain("limit=10");
     expect(fetchMock.mock.calls[2]?.[0]).toContain("include_groups=album");
     expect(fetchMock.mock.calls[2]?.[0]).toContain("market=US");
+    expect(fetchMock.mock.calls[2]?.[0]).toContain("offset=0");
     expect(fetchMock.mock.calls[3]?.[0]).toContain("include_groups=single");
     expect(fetchMock.mock.calls[3]?.[0]).toContain("market=US");
+    expect(fetchMock.mock.calls[3]?.[0]).toContain("offset=0");
   });
 
   it("marks artist page releases as fallback when the singles query fails", async () => {
@@ -316,6 +344,10 @@ describe("getArtistPageData", () => {
                 total_tracks: 8,
               },
             ],
+            total: 1,
+            limit: 10,
+            offset: 0,
+            next: null,
           }),
           { status: 200 },
         ),
@@ -355,20 +387,89 @@ describe("getArtistPageData", () => {
             durationMs: 640000,
           },
         ],
-        albums: [
-          {
-            id: "album-1",
-            name: "Oceanic",
-            image: "album.jpg",
-            releaseDate: "2002-09-28",
-            totalTracks: 8,
-            albumType: "album",
-          },
-        ],
-        singles: [],
+        albums: {
+          items: [
+            {
+              id: "album-1",
+              name: "Oceanic",
+              image: "album.jpg",
+              releaseDate: "2002-09-28",
+              totalTracks: 8,
+              albumType: "album",
+            },
+          ],
+          offset: 0,
+          limit: 10,
+          total: 1,
+          nextOffset: null,
+          hasMore: false,
+        },
+        singles: {
+          items: [],
+          offset: 0,
+          limit: 10,
+          total: 0,
+          nextOffset: null,
+          hasMore: false,
+        },
       },
       usedReleaseFallback: true,
     });
+  });
+
+  it("maps artist release pagination metadata for follow-up pages", async () => {
+    const fetchMock = vi.spyOn(global, "fetch");
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: "album-11",
+              name: "In the Absence of Truth",
+              album_type: "album",
+              artists: [{ id: "artist-1", name: "ISIS" }],
+              images: [{ url: "absence.jpg" }],
+              release_date: "2006-10-31",
+              total_tracks: 11,
+            },
+          ],
+          total: 23,
+          limit: 10,
+          offset: 10,
+          next: "https://api.spotify.com/v1/artists/artist-1/albums?include_groups=album&limit=10&offset=20&market=US",
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await getArtistReleasesPage("spotify-token", "artist-1", "album", {
+      market: "US",
+      limit: 10,
+      offset: 10,
+    });
+
+    expect(result).toEqual({
+      items: [
+        {
+          id: "album-11",
+          name: "In the Absence of Truth",
+          image: "absence.jpg",
+          releaseDate: "2006-10-31",
+          totalTracks: 11,
+          albumType: "album",
+        },
+      ],
+      offset: 10,
+      limit: 10,
+      total: 23,
+      nextOffset: 20,
+      hasMore: true,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("include_groups=album");
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("limit=10");
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("offset=10");
+    expect(fetchMock.mock.calls[0]?.[0]).toContain("market=US");
   });
 });
 

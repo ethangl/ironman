@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 
-import type { LastFmArtistMatch } from "./types";
+import { useStableAction } from "@/hooks/use-stable-action";
 import { getLastFmArtist } from "./lastfm-client";
+import type { LastFmArtistMatch } from "./types";
 
 export function useLastFmArtist({
   artistName,
@@ -10,34 +11,14 @@ export function useLastFmArtist({
   artistName: string;
   musicBrainzId: string | null;
 }) {
-  const [data, setData] = useState<LastFmArtistMatch | null>(null);
-  const requestVersionRef = useRef(0);
+  const normalizedArtistName = artistName.trim();
 
-  useEffect(() => {
-    const requestVersion = ++requestVersionRef.current;
-    const normalizedArtistName = artistName.trim();
-
-    if (!normalizedArtistName) {
-      setData(null);
-      return;
-    }
-
-    void getLastFmArtist(normalizedArtistName, musicBrainzId)
-      .then((nextData) => {
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
-
-        setData(nextData ?? null);
-      })
-      .catch(() => {
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
-
-        setData(null);
-      });
-  }, [artistName, musicBrainzId]);
+  const { data } = useStableAction<LastFmArtistMatch>({
+    enabled: normalizedArtistName !== "",
+    load: useCallback(async () => {
+      return await getLastFmArtist(normalizedArtistName, musicBrainzId);
+    }, [musicBrainzId, normalizedArtistName]),
+  });
 
   return data;
 }

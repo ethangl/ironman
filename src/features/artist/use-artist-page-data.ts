@@ -1,72 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect } from "react";
 
 import type {
   SpotifyArtistPageData,
-  SpotifyArtistReleaseGroup,
-  SpotifyPage,
 } from "@/features/spotify-client/types";
 import { useStableAction } from "@/hooks/use-stable-action";
-import {
-  getSpotifyArtistPageData,
-  getSpotifyArtistReleasesPage,
-} from "./spotify-artist-client";
-
-type ReleaseLoadingState = Record<SpotifyArtistReleaseGroup, boolean>;
-
-const initialReleaseLoadingState: ReleaseLoadingState = {
-  album: false,
-  single: false,
-};
-
-function getReleasePage(
-  data: SpotifyArtistPageData,
-  includeGroups: SpotifyArtistReleaseGroup,
-) {
-  return includeGroups === "album" ? data.albums : data.singles;
-}
-
-function setReleasePage<TItem>(
-  data: SpotifyArtistPageData,
-  includeGroups: SpotifyArtistReleaseGroup,
-  page: SpotifyPage<TItem>,
-) {
-  if (includeGroups === "album") {
-    return {
-      ...data,
-      albums: page,
-    };
-  }
-
-  return {
-    ...data,
-    singles: page,
-  };
-}
-
-function appendSpotifyPage<TItem>(
-  currentPage: SpotifyPage<TItem>,
-  nextPage: SpotifyPage<TItem>,
-): SpotifyPage<TItem> {
-  return {
-    ...nextPage,
-    items: [...currentPage.items, ...nextPage.items],
-    offset: currentPage.offset,
-    limit: currentPage.limit,
-  };
-}
+import { getSpotifyArtistPageData } from "./spotify-artist-client";
+import { useArtistReleases } from "./use-artist-releases";
 
 export function useArtistPageData(artistId: string) {
-  const [loadingReleaseGroups, setLoadingReleaseGroups] =
-    useState<ReleaseLoadingState>(initialReleaseLoadingState);
-  const loadingReleaseGroupsRef = useRef<Set<SpotifyArtistReleaseGroup>>(
-    new Set(),
-  );
-
-  const resetReleaseLoadingState = useCallback(() => {
-    loadingReleaseGroupsRef.current.clear();
-    setLoadingReleaseGroups(initialReleaseLoadingState);
-  }, []);
-
   const {
     data,
     dataRef,
@@ -95,6 +36,17 @@ export function useArtistPageData(artistId: string) {
     ),
   });
 
+  const {
+    loadMoreReleases,
+    loadingReleaseGroups,
+    resetReleaseLoadingState,
+  } = useArtistReleases({
+    artistId,
+    dataRef,
+    requestVersionRef,
+    setData,
+  });
+
   useEffect(() => {
     resetReleaseLoadingState();
   }, [artistId, resetReleaseLoadingState]);
@@ -104,81 +56,12 @@ export function useArtistPageData(artistId: string) {
     await refreshArtistPage();
   }, [refreshArtistPage, resetReleaseLoadingState]);
 
-  const loadMoreReleases = useCallback(
-    async (includeGroups: SpotifyArtistReleaseGroup) => {
-      if (!artistId) {
-        return;
-      }
-
-      const currentData = dataRef.current;
-      if (!currentData) {
-        return;
-      }
-
-      const currentPage = getReleasePage(currentData, includeGroups);
-      const requestedOffset = currentPage.nextOffset;
-      if (
-        !currentPage.hasMore ||
-        requestedOffset === null ||
-        loadingReleaseGroupsRef.current.has(includeGroups)
-      ) {
-        return;
-      }
-
-      const requestVersion = requestVersionRef.current;
-      loadingReleaseGroupsRef.current.add(includeGroups);
-      setLoadingReleaseGroups((current) => ({
-        ...current,
-        [includeGroups]: true,
-      }));
-
-      try {
-        const nextPage = await getSpotifyArtistReleasesPage(
-          artistId,
-          includeGroups,
-          requestedOffset,
-          currentPage.limit,
-        );
-
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
-
-        setData((previous) => {
-          if (!previous) {
-            return previous;
-          }
-
-          const previousPage = getReleasePage(previous, includeGroups);
-          if (previousPage.nextOffset !== requestedOffset) {
-            return previous;
-          }
-
-          return setReleasePage(
-            previous,
-            includeGroups,
-            appendSpotifyPage(previousPage, nextPage),
-          );
-        });
-      } finally {
-        loadingReleaseGroupsRef.current.delete(includeGroups);
-        if (requestVersionRef.current === requestVersion) {
-          setLoadingReleaseGroups((current) => ({
-            ...current,
-            [includeGroups]: false,
-          }));
-        }
-      }
-    },
-    [artistId, dataRef, requestVersionRef, setData],
-  );
-
   if (!artistId) {
     return {
       data: null,
       loading: false,
       refreshing: false,
-      loadingReleaseGroups: initialReleaseLoadingState,
+      loadingReleaseGroups,
       error: null,
       notFound: true,
       loadMoreReleases,

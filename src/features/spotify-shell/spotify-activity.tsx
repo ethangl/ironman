@@ -14,7 +14,7 @@ import {
 } from "@/features/spotify-library";
 import { Playlists } from "@/features/spotify-playlists";
 import { Tracks } from "@/features/spotify-tracks";
-import { SearchInput, SearchResults } from "../spotify-search";
+import { SpotifySearch } from "../spotify-search/spotify-search";
 
 export function SpotifyActivity() {
   const { recentTracks } = useSpotifyRecentlyPlayed();
@@ -28,14 +28,13 @@ export function SpotifyActivity() {
   return (
     <>
       <SidebarHeader title="Spotify">
-        <SearchInput />
+        <SpotifySearch />
         <SidebarToggle
           collapseIcon={<PanelLeftCloseIcon />}
           expandIcon={<LibraryIcon />}
         />
       </SidebarHeader>
       <SidebarContent>
-        <SearchResults />
         <Tracks
           title="Recent Tracks"
           tracks={recentTracks.map(({ track }) => track)}

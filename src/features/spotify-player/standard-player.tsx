@@ -11,18 +11,12 @@ import { useEffect, useState } from "react";
 import { AlbumArt } from "@/components/album-art";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import {
-  formatRoomSyncLabel,
-  toRoomTrack,
-  useOptionalRooms,
-} from "@/features/rooms";
+import { toRoomTrack, useOptionalRooms } from "@/features/rooms";
 import { RoomPlayerPanel } from "@/features/rooms/ui/room-player-panel";
-import { RoomStatusBadge } from "@/features/rooms/ui/room-status-badge";
-import { AlbumButton } from "./album-button";
 import { NextTrackButton } from "./next-track-button";
 import { PlayerWrapper } from "./player-wrapper";
 import { PrevTrackButton } from "./prev-track-button";
-import { QueueButton } from "./queue-button";
+import { RepairSyncButton } from "./repair-sync-button";
 import { RepeatButton } from "./repeat-button";
 import { ShuffleButton } from "./shuffle-button";
 import { TogglePlayButton } from "./toggle-play-button";
@@ -43,11 +37,6 @@ export function StandardPlayer() {
   const repairSync = rooms?.repairSync;
   const resolvedPlayback = rooms?.resolvedPlayback ?? null;
   const skipRoom = rooms?.skipRoom;
-  const syncState = rooms?.syncState ?? {
-    code: "idle",
-    label: "Not listening to a room",
-    driftMs: null,
-  };
   const roomTrack = toRoomTrack(resolvedPlayback?.currentQueueItem ?? null);
   const isRoomMode = activeRoom !== null;
   const roomPaused = resolvedPlayback?.paused ?? false;
@@ -126,19 +115,11 @@ export function StandardPlayer() {
       <div className="p-7 pb-2 rounded-3xl">
         <AlbumArt src={displayImage} className="mb-9 mx-auto size-80" />
         <header className="mb-5 mix-blend-plus-darker dark:mix-blend-plus-lighter space-y-6">
-          <div className="flex gap-6 items-start">
-            <div className="flex-auto isolate min-w-0 space-y-0.5">
-              <h2 className="text-lg truncate">{displayName}</h2>
-              <h5 className="font-medium opacity-33 text-sm truncate">
-                {displayArtist}
-              </h5>
-            </div>
-            {activeRoom ? (
-              <RoomStatusBadge
-                syncState={syncState}
-                label={formatRoomSyncLabel(syncState)}
-              />
-            ) : null}
+          <div className="space-y-0.5">
+            <h2 className="text-lg truncate">{displayName}</h2>
+            <h5 className="font-medium opacity-33 text-sm truncate">
+              {displayArtist}
+            </h5>
           </div>
           <div className="space-y-2 ">
             <div className="h-1 relative">
@@ -166,6 +147,7 @@ export function StandardPlayer() {
           </div>
           {isRoomMode ? (
             <Button
+              variant="overlay"
               size="icon-2xl"
               disabled={!canToggleListening}
               onClick={handleRoomToggle}
@@ -183,6 +165,7 @@ export function StandardPlayer() {
             {isRoomMode ? (
               canControlPlayback && hasRoomTrack ? (
                 <Button
+                  variant="overlay"
                   size="icon-lg"
                   onClick={() =>
                     skipRoom ? void skipRoom(activeRoom.room._id) : undefined
@@ -228,18 +211,7 @@ export function StandardPlayer() {
           >
             <ChevronsDownIcon />
           </Button>
-          <div className="flex gap-1 items-center justify-end">
-            {isRoomMode ? (
-              <Button variant="overlay" size="sm" onClick={repairSync}>
-                Sync
-              </Button>
-            ) : (
-              <>
-                <AlbumButton />
-                <QueueButton />
-              </>
-            )}
-          </div>
+          <RepairSyncButton />
         </footer>
         <div className="hidden">{isRoomMode && <RoomPlayerPanel />}</div>
       </div>

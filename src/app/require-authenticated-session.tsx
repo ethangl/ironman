@@ -4,7 +4,8 @@ import { LoginButton } from "@/features/auth";
 import { RoomsProvider } from "@/features/rooms";
 import { WebPlayerProvider } from "@/features/spotify-player";
 import { Player } from "@/features/spotify-player/player";
-import { SearchProvider } from "@/features/spotify-search";
+
+import { SearchProvider } from "@/features/spotify-search/search-provider";
 import { SpotifyActivityProvider } from "@/features/spotify-shell";
 import { useAppAuth, useAppCapabilities } from "./app-runtime";
 import { AuthPendingState } from "./auth-pending-state";

@@ -66,7 +66,7 @@ export function MiniPlayer() {
       }}
       toggled={!nowPlaying.expanded}
     >
-      <div className="flex gap-2.5 items-center p-2.5">
+      <div className="flex gap-2.5 h-12 items-center px-2.5">
         <button
           className="group flex flex-auto gap-2.5 items-center min-w-0"
           onClick={() => nowPlaying.setExpanded(true)}
@@ -95,14 +95,16 @@ export function MiniPlayer() {
           {isRoomMode ? (
             <>
               <PlayButton
-                size="icon-sm"
+                variant="overlay"
+                size="icon"
                 disabled={!canToggleListening}
                 playing={canToggleListening && !roomPaused}
                 onClick={handleRoomToggle}
               />
               {canControlPlayback && (
                 <Button
-                  size="icon-sm"
+                  variant="overlay"
+                  size="icon"
                   disabled={!hasRoomTrack}
                   onClick={() =>
                     activeRoom && skipRoom

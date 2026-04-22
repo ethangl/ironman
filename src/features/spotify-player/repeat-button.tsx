@@ -7,7 +7,7 @@ import { useNowPlaying } from "./use-now-playing";
 export const RepeatButton: FC<ButtonProps> = ({ ...props }) => {
   const { toggleShuffle } = useNowPlaying();
   return (
-    <Button size="icon-sm" onClick={toggleShuffle} {...props}>
+    <Button variant="overlay" size="icon" onClick={toggleShuffle} {...props}>
       <RepeatIcon />
     </Button>
   );

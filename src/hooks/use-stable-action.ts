@@ -41,8 +41,13 @@ export function useStableAction<TData>({
   const [loading, setLoading] = useState(enabled);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const initialDataRef = useRef<TData | null>(initialData);
   const requestVersionRef = useRef(0);
   const dataRef = useRef<TData | null>(initialData);
+
+  useEffect(() => {
+    initialDataRef.current = initialData;
+  }, [initialData]);
 
   const setData = useCallback<Dispatch<SetStateAction<TData | null>>>(
     (value) => {
@@ -73,7 +78,7 @@ export function useStableAction<TData>({
         setLoading(true);
         setRefreshing(false);
         if (!keepDataOnLoad) {
-          setData(initialData);
+          setData(initialDataRef.current);
         }
       }
 
@@ -91,7 +96,7 @@ export function useStableAction<TData>({
         }
 
         if (mode === "load" && !keepDataOnLoad) {
-          setData(initialData);
+          setData(initialDataRef.current);
         }
 
         setError(
@@ -110,14 +115,14 @@ export function useStableAction<TData>({
         }
       }
     },
-    [enabled, initialData, keepDataOnLoad, load, mapError, setData],
+    [enabled, keepDataOnLoad, load, mapError, setData],
   );
 
   useEffect(() => {
     requestVersionRef.current += 1;
 
     if (!enabled) {
-      setData(initialData);
+      setData(initialDataRef.current);
       setLoading(false);
       setRefreshing(false);
       setError(null);
@@ -125,7 +130,7 @@ export function useStableAction<TData>({
     }
 
     void run("load");
-  }, [enabled, initialData, run, setData]);
+  }, [enabled, run, setData]);
 
   const refresh = useCallback(async () => {
     return await run("refresh");

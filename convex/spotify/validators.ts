@@ -99,7 +99,6 @@ export const spotifyRecentlyPlayedPageResultValidator = v.object({
 export const spotifySearchResultsValidator = v.object({
   tracks: v.array(spotifyTrackValidator),
   artists: v.array(spotifyArtistValidator),
-  playlists: v.array(spotifyPlaylistValidator),
 });
 
 export const spotifyArtistPageDataValidator = v.object({

@@ -10,13 +10,10 @@ import { DAY_IN_MS } from "./constants";
 import { SpotifyApiError } from "./errors";
 import {
   isSpotifyArtist,
-  isSpotifyPlaylist,
   isSpotifyTrack,
   mapArtist,
-  mapPlaylist,
   mapTrack,
   type SpotifyApiArtist,
-  type SpotifyApiPlaylist,
   type SpotifyApiTrack,
 } from "./mappers";
 import type { SpotifySearchResults, SpotifyTrack } from "./types";
@@ -31,9 +28,6 @@ interface SearchResponse {
   };
   artists?: {
     items?: Array<SpotifyApiArtist | null>;
-  };
-  playlists?: {
-    items?: Array<SpotifyApiPlaylist | null>;
   };
 }
 
@@ -90,7 +84,7 @@ export async function searchSpotify(
   token: string,
 ): Promise<SpotifySearchResults> {
   const data = await spotifyFetch<SearchResponse>(
-    `/search?q=${encodeURIComponent(query)}&type=track,artist,playlist&limit=6`,
+    `/search?q=${encodeURIComponent(query)}&type=track,artist&limit=6`,
     token,
   );
 
@@ -99,9 +93,6 @@ export async function searchSpotify(
     artists: (data?.artists?.items ?? [])
       .filter(isSpotifyArtist)
       .map(mapArtist),
-    playlists: (data?.playlists?.items ?? [])
-      .filter(isSpotifyPlaylist)
-      .map(mapPlaylist),
   };
 }
 
@@ -141,7 +132,7 @@ export const spotifySearchResultsCache = new ActionCache(
   components.actionCache,
   {
     action: loadSearchResultsRef,
-    name: "spotify-search-results-v1",
+    name: "spotify-search-results-v2",
     ttl: DAY_IN_MS,
   },
 );

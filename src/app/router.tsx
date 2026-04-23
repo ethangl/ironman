@@ -2,6 +2,7 @@ import { createBrowserRouter, Outlet } from "react-router-dom";
 
 import { ArtistProvider } from "@/features/artist";
 import { Artist } from "@/features/artist/artist";
+import { Playlist } from "@/features/spotify-playlists/playlist";
 import { SpotifyActivity } from "@/features/spotify-shell";
 import { ArtistResolveRoute, HomeRoute, NotFoundRoute } from "@/routes";
 import { AppShell } from "./app-shell";
@@ -40,7 +41,7 @@ export const router = createBrowserRouter([
               },
               {
                 path: "playlist/:playlistId",
-                element: <div>playlist</div>,
+                element: <Playlist />,
               },
             ],
           },

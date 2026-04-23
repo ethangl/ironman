@@ -17,12 +17,14 @@ function createDeferred<T>() {
 
 function StableActionConsumer({
   enabled = true,
+  initialData,
   keepDataOnLoad = true,
   mapError,
   load,
   value,
 }: {
   enabled?: boolean;
+  initialData?: string | string[] | null;
   keepDataOnLoad?: boolean;
   mapError?: (error: unknown) => string | null;
   load: (value: string) => Promise<string | null>;
@@ -35,6 +37,10 @@ function StableActionConsumer({
   const { data, error, loading, refreshing, refresh, reload } =
     useStableAction<string>({
       enabled,
+      initialData:
+        typeof initialData === "string" || initialData === null
+          ? initialData
+          : null,
       keepDataOnLoad,
       load: loadValue,
       mapError,
@@ -50,6 +56,26 @@ function StableActionConsumer({
       <button onClick={() => void reload()}>Reload</button>
     </div>
   );
+}
+
+function StableArrayActionConsumer({
+  load,
+  value,
+}: {
+  load: (value: string) => Promise<string[] | null>;
+  value: string;
+}) {
+  const loadValue = useCallback(async () => {
+    return await load(value);
+  }, [load, value]);
+
+  const { data } = useStableAction<string[]>({
+    initialData: [],
+    keepDataOnLoad: false,
+    load: loadValue,
+  });
+
+  return <div data-testid="array-data">{data?.join(",") ?? ""}</div>;
 }
 
 describe("useStableAction", () => {
@@ -141,5 +167,17 @@ describe("useStableAction", () => {
     });
     expect(screen.getByTestId("data")).toHaveTextContent("");
     expect(screen.getByTestId("loading")).toHaveTextContent("false");
+  });
+
+  it("does not loop when initialData is a new array literal each render", async () => {
+    const load = vi.fn().mockResolvedValue(["track-1"]);
+
+    render(<StableArrayActionConsumer load={load} value="playlist" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("array-data")).toHaveTextContent("track-1");
+    });
+
+    expect(load).toHaveBeenCalledTimes(1);
   });
 });

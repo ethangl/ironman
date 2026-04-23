@@ -2,18 +2,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type {
-  SpotifySearchResults,
-  SpotifyTrack,
-} from "@/features/spotify-client/types";
+import type { SpotifySearchResults } from "@/features/spotify-client/types";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 import { getFunctionName } from "convex/server";
 import { SearchProvider } from "./search-provider";
 import { SpotifySearch } from "./spotify-search";
 
 const mockPlayTrack = vi.fn();
-const mockPlayTracks = vi.fn();
-const mockToastError = vi.fn();
 const mockScrollTo = vi.fn();
 
 class MockResizeObserver {
@@ -29,11 +24,9 @@ vi.mock("@/features/spotify-client/spotify-convex-client", () => ({
 vi.mock("@/features/spotify-player", () => ({
   useWebPlayerActions: () => ({
     playTrack: (...args: unknown[]) => mockPlayTrack(...args),
-    playTracks: (...args: unknown[]) => mockPlayTracks(...args),
   }),
   useWebPlayer: () => ({
     playTrack: (...args: unknown[]) => mockPlayTrack(...args),
-    playTracks: (...args: unknown[]) => mockPlayTracks(...args),
     currentTrack: null,
     sdkState: null,
     paused: true,
@@ -66,24 +59,13 @@ vi.mock("@/hooks/use-debounce", () => ({
   useDebounce: (value: string) => value,
 }));
 
-vi.mock("sonner", () => ({
-  toast: {
-    error: (...args: unknown[]) => mockToastError(...args),
-  },
-}));
-
 interface SearchOverrides {
   searchResults?: (query: string) => Promise<SpotifySearchResults>;
-}
-
-interface SpotifyReadOverrides {
-  getPlaylistTracks?: (playlistId: string) => Promise<SpotifyTrack[]>;
 }
 
 function renderSearch(
   overrides: {
     search?: SearchOverrides;
-    spotifyReads?: SpotifyReadOverrides;
   } = {},
   options?: { extraUi?: React.ReactNode },
 ) {
@@ -91,22 +73,14 @@ function renderSearch(
     overrides.search?.searchResults ??
     vi.fn().mockResolvedValue({
       tracks: [],
-      playlists: [],
       artists: [],
     });
-  const getPlaylistTracks =
-    overrides.spotifyReads?.getPlaylistTracks ??
-    vi.fn().mockResolvedValue([]);
 
   const action = vi.fn((ref: unknown, args: unknown) => {
     const functionName = getFunctionName(ref as never);
 
     if (functionName === "spotify:search") {
       return searchResults((args as { query: string }).query);
-    }
-
-    if (functionName === "spotify:playlistTracks") {
-      return getPlaylistTracks((args as { playlistId: string }).playlistId);
     }
 
     throw new Error(`Unexpected Spotify action: ${functionName}`);
@@ -135,9 +109,7 @@ function NavigateButton() {
 }
 
 function getSearchInput() {
-  return screen.getByPlaceholderText(
-    "Search Spotify for songs, artists, or playlists...",
-  );
+  return screen.getByPlaceholderText("Search Spotify for songs or artists...");
 }
 
 function getCommandItem(label: string) {
@@ -165,7 +137,7 @@ describe("search", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders songs, playlists, and artists from one search response", async () => {
+  it("renders songs and artists from one search response", async () => {
     renderSearch({
       search: {
         searchResults: vi.fn().mockResolvedValue({
@@ -177,17 +149,6 @@ describe("search", () => {
               albumName: "Oceanic",
               albumImage: "track.jpg",
               durationMs: 320000,
-            },
-          ],
-          playlists: [
-            {
-              id: "playlist-1",
-              name: "Heavy Rotation",
-              description: null,
-              image: "playlist.jpg",
-              owner: "ethan",
-              public: true,
-              trackCount: 12,
             },
           ],
           artists: [
@@ -206,12 +167,10 @@ describe("search", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Songs")).toBeInTheDocument();
-      expect(screen.getByText("Playlists")).toBeInTheDocument();
       expect(screen.getByText("Artists")).toBeInTheDocument();
     });
 
     expect(screen.getByText("Panopticon")).toBeInTheDocument();
-    expect(screen.getByText("Heavy Rotation")).toBeInTheDocument();
     expect(screen.getAllByText("ISIS")).toHaveLength(2);
   });
 
@@ -229,7 +188,6 @@ describe("search", () => {
               durationMs: 320000,
             },
           ],
-          playlists: [],
           artists: [],
         }),
       },
@@ -253,9 +211,7 @@ describe("search", () => {
 
     await waitFor(() => {
       expect(
-        screen.queryByPlaceholderText(
-          "Search Spotify for songs, artists, or playlists...",
-        ),
+        screen.queryByPlaceholderText("Search Spotify for songs or artists..."),
       ).not.toBeInTheDocument();
     });
   });
@@ -277,67 +233,12 @@ describe("search", () => {
     });
   });
 
-  it("loads playlist tracks and starts playback from a playlist search result", async () => {
-    renderSearch({
-      search: {
-        searchResults: vi.fn().mockResolvedValue({
-          tracks: [],
-          playlists: [
-            {
-              id: "playlist-1",
-              name: "Heavy Rotation",
-              description: null,
-              image: "playlist.jpg",
-              owner: "ethan",
-              public: true,
-              trackCount: 12,
-            },
-          ],
-          artists: [],
-        }),
-      },
-      spotifyReads: {
-        getPlaylistTracks: vi.fn().mockResolvedValue([
-          {
-            id: "track-1",
-            name: "Weight",
-            artist: "ISIS",
-            albumImage: "track.jpg",
-            durationMs: 640000,
-          },
-        ]),
-      },
-    });
-    await searchFor("heavy");
-
-    await waitFor(() => {
-      expect(screen.getByText("Heavy Rotation")).toBeInTheDocument();
-    });
-
-    fireEvent.click(getCommandItem("Heavy Rotation"));
-
-    await waitFor(() => {
-      expect(mockPlayTracks).toHaveBeenCalledWith([
-        {
-          id: "track-1",
-          name: "Weight",
-          artist: "ISIS",
-          albumImage: "track.jpg",
-          durationMs: 640000,
-        },
-      ]);
-    });
-
-    expect(mockToastError).not.toHaveBeenCalled();
-  });
-
   it("clears the search query when navigation changes the url", async () => {
     renderSearch(
       {
         search: {
           searchResults: vi.fn().mockResolvedValue({
             tracks: [],
-            playlists: [],
             artists: [
               {
                 id: "artist-1",

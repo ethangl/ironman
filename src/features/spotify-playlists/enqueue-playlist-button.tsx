@@ -35,7 +35,7 @@ export const EnqueuePlaylistButton: FC<EnqueuePlaylistButtonProps> = ({
       }
 
       try {
-        const tracks = await loadPlaylistTracks(playlist);
+        const tracks = await loadPlaylistTracks(playlist.id);
         if (tracks.length === 0) {
           toast.error("That playlist does not have any playable tracks.");
           return;

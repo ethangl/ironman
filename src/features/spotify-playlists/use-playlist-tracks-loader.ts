@@ -1,9 +1,6 @@
 import { useCallback, useState } from "react";
 
-import type {
-  SpotifyPlaylist,
-  SpotifyTrack,
-} from "@/features/spotify-client/types";
+import type { SpotifyTrack } from "@/features/spotify-client/types";
 import { getSpotifyPlaylistTracks } from "./spotify-playlist-client";
 
 export function usePlaylistTracksLoader() {
@@ -12,14 +9,14 @@ export function usePlaylistTracksLoader() {
   );
 
   const loadPlaylistTracks = useCallback(
-    async (playlist: SpotifyPlaylist): Promise<SpotifyTrack[]> => {
-      setLoadingPlaylistId(playlist.id);
+    async (playlistId: string): Promise<SpotifyTrack[]> => {
+      setLoadingPlaylistId(playlistId);
 
       try {
-        return await getSpotifyPlaylistTracks(playlist.id);
+        return await getSpotifyPlaylistTracks(playlistId);
       } finally {
         setLoadingPlaylistId((current) =>
-          current === playlist.id ? null : current,
+          current === playlistId ? null : current,
         );
       }
     },

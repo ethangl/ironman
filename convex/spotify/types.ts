@@ -83,7 +83,6 @@ export interface SpotifyRecentlyPlayedPageResult {
 export interface SpotifySearchResults {
   tracks: SpotifyTrack[];
   artists: SpotifyArtist[];
-  playlists: SpotifyPlaylist[];
 }
 
 export interface SpotifyArtistPageData {

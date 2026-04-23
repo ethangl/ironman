@@ -13,7 +13,7 @@ describe("searchSpotify", () => {
     vi.restoreAllMocks();
   });
 
-  it("filters out null search items returned by Spotify", async () => {
+  it("filters out null search items returned by Spotify while ignoring playlists", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -62,6 +62,11 @@ describe("searchSpotify", () => {
 
     const results = await searchSpotify("isis", "spotify-token");
 
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://api.spotify.com/v1/search?q=isis&type=track,artist&limit=6",
+      expect.any(Object),
+    );
+
     expect(results).toEqual({
       tracks: [
         {
@@ -80,17 +85,6 @@ describe("searchSpotify", () => {
           image: "artist.jpg",
           followerCount: 1234,
           genres: ["metal"],
-        },
-      ],
-      playlists: [
-        {
-          id: "playlist-1",
-          name: "Playlist One",
-          description: null,
-          image: "playlist.jpg",
-          owner: "User One",
-          public: true,
-          trackCount: 20,
         },
       ],
     });

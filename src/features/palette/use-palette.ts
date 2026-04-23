@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { paletteClient } from "./palette-client";
+import { PALETTE_STOP_COUNT } from "./palette";
 
 export function usePalette(artworkUrl: string | null) {
   const [palette, setPalette] = useState<string[]>([]);
@@ -10,32 +11,42 @@ export function usePalette(artworkUrl: string | null) {
 
     if (!artworkUrl) {
       setPalette([]);
-      for (let i = 0; i < 5; i++) {
-        root.style.removeProperty(`--palette-${i}`);
-      }
+      clearPaletteVariables(root);
       return;
     }
 
     let cancelled = false;
 
-    paletteClient
+    void paletteClient
       .get(artworkUrl)
-      .then((colors: string[]) => {
+      .then((colors) => {
         if (cancelled) return;
         setPalette(colors);
-        colors.forEach((color, index) => {
-          root.style.setProperty(`--palette-${index}`, color);
-        });
+        applyPaletteVariables(root, colors);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (cancelled) return;
+        setPalette([]);
+        clearPaletteVariables(root);
+      });
 
     return () => {
       cancelled = true;
-      for (let i = 0; i < 5; i++) {
-        root.style.removeProperty(`--palette-${i}`);
-      }
+      clearPaletteVariables(root);
     };
   }, [artworkUrl]);
 
   return palette;
+}
+
+function applyPaletteVariables(root: HTMLElement, colors: string[]) {
+  colors.forEach((color, index) => {
+    root.style.setProperty(`--palette-${index}`, color);
+  });
+}
+
+function clearPaletteVariables(root: HTMLElement) {
+  for (let i = 0; i < PALETTE_STOP_COUNT; i++) {
+    root.style.removeProperty(`--palette-${i}`);
+  }
 }

@@ -1,10 +1,23 @@
 export const PALETTE_SAMPLE_SIZE = 64;
+export const PALETTE_STOP_COUNT = 5;
 
 type RGB = [number, number, number];
 type LCH = [number, number, number];
+type HeroBin = {
+  chromaTotal: number;
+  lightnessTotal: number;
+  score: number;
+  hueX: number;
+  hueY: number;
+};
 
 const PALETTE_BUCKET_COUNT = 8;
 const PALETTE_QUANTIZATION_STEP = 4;
+const PALETTE_LIGHTNESS_STOPS = [0.25, 0.375, 0.5, 0.625, 0.75] as const;
+const PALETTE_HERO_HUE_STEP = 24;
+const PALETTE_HERO_MIN_CHROMA = 0.05;
+const PALETTE_MIDDLE_LIGHTNESS = 0.72;
+const PALETTE_MIDDLE_CHROMA = 0.14;
 
 export function extractPaletteFromRawPixels(
   data: ArrayLike<number>,
@@ -28,31 +41,32 @@ export function extractPaletteFromRawPixels(
   return extractPaletteFromRgbPixels(pixels);
 }
 
-export function extractPaletteFromRgbPixels(pixels: RGB[]): string[] {
+function extractPaletteFromRgbPixels(pixels: RGB[]): string[] {
   if (pixels.length === 0) return [];
 
+  const pixelColors = pixels.map(rgbToOklch);
   const candidates = medianCut(pixels, PALETTE_BUCKET_COUNT).map(rgbToOklch);
   if (candidates.length === 0) return [];
 
-  let heroIdx = 0;
-  for (let i = 1; i < candidates.length; i++) {
-    if (candidates[i][1] > candidates[heroIdx][1]) heroIdx = i;
-  }
-
-  const hero = candidates.splice(heroIdx, 1)[0] ?? candidates[0] ?? [0, 0, 0];
+  const hero = pickHeroColor(pixelColors, candidates);
   candidates.sort((a, b) => a[0] - b[0]);
 
   const darkest = pickClosest(candidates, 0, hero);
   const lightest = pickClosest(candidates, 1, hero);
   const darkMid = pickClosest(candidates, 0.33, hero);
   const lightMid = pickClosest(candidates, 0.66, hero);
+  const middle = withLightnessAndChroma(
+    hero,
+    PALETTE_MIDDLE_LIGHTNESS,
+    hero[1] >= PALETTE_HERO_MIN_CHROMA ? PALETTE_MIDDLE_CHROMA : hero[1],
+  );
 
   return [
-    formatOklch(darkest, 0.25),
-    formatOklch(darkMid, 0.375),
-    formatOklch(hero, 0.5),
-    formatOklch(lightMid, 0.625),
-    formatOklch(lightest, 0.75),
+    formatOklch(darkest, PALETTE_LIGHTNESS_STOPS[0]),
+    formatOklch(darkMid, PALETTE_LIGHTNESS_STOPS[1]),
+    formatOklch(middle, middle[0]),
+    formatOklch(lightMid, PALETTE_LIGHTNESS_STOPS[3]),
+    formatOklch(lightest, PALETTE_LIGHTNESS_STOPS[4]),
   ];
 }
 
@@ -73,6 +87,62 @@ function pickClosest(arr: LCH[], target: number, fallback: LCH): LCH {
   }
 
   return arr.splice(best, 1)[0] ?? fallback;
+}
+
+function pickHeroColor(pixels: LCH[], fallback: LCH[]): LCH {
+  const binCount = Math.round(360 / PALETTE_HERO_HUE_STEP);
+  const bins = new Map<number, HeroBin>();
+
+  for (const [l, c, h] of pixels) {
+    if (c < PALETTE_HERO_MIN_CHROMA) continue;
+
+    const bin = Math.round(h / PALETTE_HERO_HUE_STEP) % binCount;
+    const current = bins.get(bin) ?? {
+      chromaTotal: 0,
+      lightnessTotal: 0,
+      score: 0,
+      hueX: 0,
+      hueY: 0,
+    };
+    const radians = (h * Math.PI) / 180;
+
+    current.chromaTotal += c * c;
+    current.lightnessTotal += l * c;
+    current.score += c;
+    current.hueX += Math.cos(radians) * c;
+    current.hueY += Math.sin(radians) * c;
+
+    bins.set(bin, current);
+  }
+
+  let best: HeroBin | null = null;
+
+  for (const candidate of bins.values()) {
+    if (!best || candidate.score > best.score) {
+      best = candidate;
+    }
+  }
+
+  if (!best) return pickMostChromatic(fallback);
+
+  let hue = (Math.atan2(best.hueY, best.hueX) * 180) / Math.PI;
+  if (hue < 0) hue += 360;
+
+  return [best.lightnessTotal / best.score, best.chromaTotal / best.score, hue];
+}
+
+function pickMostChromatic(colors: LCH[]): LCH {
+  let best = colors[0] ?? [0, 0, 0];
+
+  for (let i = 1; i < colors.length; i++) {
+    if (colors[i][1] > best[1]) best = colors[i];
+  }
+
+  return best;
+}
+
+function withLightnessAndChroma([, , h]: LCH, l: number, c: number): LCH {
+  return [l, c, h];
 }
 
 function formatOklch([, c, h]: LCH, l: number) {

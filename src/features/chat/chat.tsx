@@ -29,7 +29,7 @@ export function Chat({ roomId }: { roomId: RoomId }) {
   return (
     <Sidebar
       style={{
-        "--section-color": "var(--palette-3, var(--color-red-400))",
+        "--section-color": "var(--palette-2, var(--color-red-400))",
       }}
     >
       <SidebarHeader>

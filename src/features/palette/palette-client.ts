@@ -4,20 +4,23 @@ export interface PaletteClient {
   get: (url: string) => Promise<string[]>;
 }
 
-const paletteRequestsByUrl = new Map<string, Promise<string[]>>();
+type PaletteLoader = (imageUrl: string) => Promise<string[]>;
 
-export function createPaletteClient(): PaletteClient {
+export function createPaletteClient(
+  loadPalette: PaletteLoader = extractPaletteInBrowser,
+): PaletteClient {
+  const requestsByUrl = new Map<string, Promise<string[]>>();
+
   return {
     get: (imageUrl) => {
-      const cachedRequest = paletteRequestsByUrl.get(imageUrl);
+      const cachedRequest = requestsByUrl.get(imageUrl);
       if (cachedRequest) return cachedRequest;
 
-      const request = getClientPalette(imageUrl);
-      paletteRequestsByUrl.set(imageUrl, request);
-
-      request.catch(() => {
-        paletteRequestsByUrl.delete(imageUrl);
+      const request = loadAndLogPalette(imageUrl, loadPalette).catch((error) => {
+        requestsByUrl.delete(imageUrl);
+        throw error;
       });
+      requestsByUrl.set(imageUrl, request);
 
       return request;
     },
@@ -26,9 +29,12 @@ export function createPaletteClient(): PaletteClient {
 
 export const paletteClient = createPaletteClient();
 
-async function getClientPalette(imageUrl: string): Promise<string[]> {
+async function loadAndLogPalette(
+  imageUrl: string,
+  loadPalette: PaletteLoader,
+): Promise<string[]> {
   try {
-    const colors = await extractPaletteInBrowser(imageUrl);
+    const colors = await loadPalette(imageUrl);
     logPaletteResult("client", imageUrl);
     return colors;
   } catch (error) {

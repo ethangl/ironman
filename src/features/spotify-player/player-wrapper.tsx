@@ -32,25 +32,24 @@ export const PlayerWrapper: FC<PlayerWrapperProps> = ({
     >
       <div className="relative h-full w-full">
         <div className="absolute pointer-events-none inset-0 overflow-hidden rounded-3xl z-0">
+          <Shader className="relative size-full">
+            <Swirl
+              blendMode="normal-oklch"
+              colorA={palette[0]}
+              colorB={palette[1]}
+              colorSpace="oklch"
+              detail={0.75}
+              speed={0.2}
+            />
+            <FilmGrain strength={0.08} />
+          </Shader>{" "}
           {displayImage && (
             <img
               src={displayImage}
               alt=""
-              className="absolute blur-sm object-cover opacity-60 scale-200 size-full -translate-y-[25%]"
+              className="absolute blur-md mix-blend-overlay object-cover opacity-40 scale-200 size-full -translate-y-[25%]"
             />
           )}
-          <Shader className="relative size-full">
-            <FilmGrain strength={0.07}>
-              <Swirl
-                colorA={palette[0]}
-                colorB={palette[2]}
-                colorSpace="oklch"
-                detail={0.75}
-                opacity={0.5}
-                speed={0.5}
-              />
-            </FilmGrain>
-          </Shader>
         </div>
         {children}
       </div>

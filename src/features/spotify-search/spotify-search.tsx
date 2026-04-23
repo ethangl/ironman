@@ -13,11 +13,12 @@ import { Spinner } from "@/components/ui/spinner";
 import { useWebPlayerActions } from "@/features/spotify-player";
 import { SearchIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useSearch } from "./search-provider";
 
 export function SpotifySearch() {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
   const navigate = useNavigate();
   const { playTrack } = useWebPlayerActions();
   const { error, loading, query, results, setQuery } = useSearch();
@@ -104,12 +105,15 @@ export function SpotifySearch() {
                         value={artist.id}
                         keywords={[artist.name]}
                         onSelect={() => {
-                          navigate(`/artist/${artist.id}`);
+                          navigate({
+                            pathname: `/artist/${artist.id}`,
+                            search: location.search,
+                          });
                           setOpen(false);
                         }}
+                        className="truncate"
                       >
-                        <p className="truncate">{artist.name}</p>
-                        <CommandShortcut>Open</CommandShortcut>
+                        {artist.name}
                       </CommandItem>
                     ))}
                   </CommandGroup>

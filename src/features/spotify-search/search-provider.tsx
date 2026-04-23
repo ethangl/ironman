@@ -17,7 +17,6 @@ import type { SpotifySearchResults } from "@/features/spotify-client/types";
 const EMPTY_RESULTS: SpotifySearchResults = {
   tracks: [],
   artists: [],
-  playlists: [],
 };
 
 type SearchState = {

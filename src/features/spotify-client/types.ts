@@ -66,7 +66,6 @@ export interface SpotifyPlaylist {
 export interface SpotifySearchResults {
   tracks: SpotifyTrack[];
   artists: SpotifyArtist[];
-  playlists: SpotifyPlaylist[];
 }
 
 export interface SpotifyArtistPageData {

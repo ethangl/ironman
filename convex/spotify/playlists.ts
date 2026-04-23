@@ -15,8 +15,13 @@ import {
   type SpotifyApiPlaylist,
   type SpotifyApiTrack,
 } from "./mappers";
-import type { SpotifyPlaylistsPage, SpotifyTrack } from "./types";
+import type {
+  SpotifyPlaylist,
+  SpotifyPlaylistsPage,
+  SpotifyTrack,
+} from "./types";
 import {
+  spotifyPlaylistValidator,
   spotifyPlaylistsPageValidator,
   spotifyTrackValidator,
 } from "./validators";
@@ -52,6 +57,17 @@ const loadPlaylistsPageRef = anyApi["spotify/playlists"]
     cacheScope: string;
   },
   SpotifyPlaylistsPage
+>;
+
+const loadPlaylistRef = anyApi["spotify/playlists"]
+  .loadPlaylist as FunctionReference<
+  "action",
+  "internal",
+  {
+    playlistId: string;
+    cacheScope: string;
+  },
+  SpotifyPlaylist | null
 >;
 
 const loadPlaylistTracksRef = anyApi["spotify/playlists"]
@@ -108,6 +124,30 @@ export async function getUserPlaylists(
   return { items, total: data.total };
 }
 
+export async function getPlaylist(
+  token: string,
+  playlistId: string,
+): Promise<SpotifyPlaylist | null> {
+  try {
+    const playlist = await spotifyFetch<SpotifyApiPlaylist>(
+      `/playlists/${playlistId}?fields=id,name,description,images,owner(display_name),public,tracks(total)`,
+      token,
+    );
+
+    if (!playlist?.id) {
+      return null;
+    }
+
+    return mapPlaylist(playlist);
+  } catch (error) {
+    if (error instanceof SpotifyApiError && error.status === 404) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 export async function getPlaylistTracks(
   token: string,
   playlistId: string,
@@ -152,6 +192,23 @@ export const loadPlaylistsPage = internalAction({
   },
 });
 
+export const loadPlaylist = internalAction({
+  args: {
+    playlistId: v.string(),
+    cacheScope: v.string(),
+  },
+  returns: v.union(spotifyPlaylistValidator, v.null()),
+  handler: async (ctx, args) => {
+    const accessToken = await requireSpotifyAccessToken(ctx);
+
+    try {
+      return await getPlaylist(accessToken, args.playlistId);
+    } catch (error) {
+      throw toPlaylistsError(error, "Could not load playlist.");
+    }
+  },
+});
+
 export const loadPlaylistTracks = internalAction({
   args: {
     playlistId: v.string(),
@@ -178,6 +235,12 @@ export const spotifyPlaylistsPageCache = new ActionCache(
   },
 );
 
+export const spotifyPlaylistCache = new ActionCache(components.actionCache, {
+  action: loadPlaylistRef,
+  name: "spotify-playlist-v1",
+  ttl: DAY_IN_MS,
+});
+
 export const spotifyPlaylistTracksCache = new ActionCache(
   components.actionCache,
   {
@@ -190,6 +253,7 @@ export const spotifyPlaylistTracksCache = new ActionCache(
 export async function clearPlaylistsCaches(ctx: ActionCtx) {
   await Promise.all([
     spotifyPlaylistsPageCache.removeAllForName(ctx),
+    spotifyPlaylistCache.removeAllForName(ctx),
     spotifyPlaylistTracksCache.removeAllForName(ctx),
   ]);
 }

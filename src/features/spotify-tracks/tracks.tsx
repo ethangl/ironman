@@ -4,6 +4,7 @@ import { List, ListItem } from "@/components/list";
 import {
   Section,
   SectionContent,
+  SectionDescription,
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
@@ -15,6 +16,7 @@ import { TrackCell } from "./track-cell";
 
 export type TracksProps = {
   action?: ReactNode;
+  description?: string | null;
   getTrackKey?: (track: SpotifyTrack, index: number) => React.Key;
   paginate?: ReactNode;
   renderTrackAction?: (track: SpotifyTrack) => ReactNode;
@@ -24,6 +26,7 @@ export type TracksProps = {
 
 export const Tracks: FC<TracksProps> = ({
   action,
+  description,
   getTrackKey,
   paginate,
   title,
@@ -43,6 +46,7 @@ export const Tracks: FC<TracksProps> = ({
           {title}
           {action}
         </SectionTitle>
+        {description && <SectionDescription>{description}</SectionDescription>}
       </SectionHeader>
       <SectionContent>
         <List count={tracks.length}>

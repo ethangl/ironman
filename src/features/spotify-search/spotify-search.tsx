@@ -1,7 +1,3 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -14,17 +10,16 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { Spinner } from "@/components/ui/spinner";
-import type { SpotifyPlaylist } from "@/features/spotify-client/types";
 import { useWebPlayerActions } from "@/features/spotify-player";
-import { usePlaylistTracksLoader } from "@/features/spotify-playlists/use-playlist-tracks-loader";
 import { SearchIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSearch } from "./search-provider";
 
 export function SpotifySearch() {
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const { loadingPlaylistId, loadPlaylistTracks } = usePlaylistTracksLoader();
-  const { playTrack, playTracks } = useWebPlayerActions();
+  const navigate = useNavigate();
+  const { playTrack } = useWebPlayerActions();
   const { error, loading, query, results, setQuery } = useSearch();
 
   useEffect(() => {
@@ -41,34 +36,16 @@ export function SpotifySearch() {
 
   const trimmedQuery = query.trim();
 
-  const hasResults =
-    results.tracks.length > 0 ||
-    results.playlists.length > 0 ||
-    results.artists.length > 0;
-
-  async function playPlaylist(playlist: SpotifyPlaylist) {
-    try {
-      const tracks = await loadPlaylistTracks(playlist);
-
-      if (tracks.length === 0) {
-        toast.error("That playlist does not have any playable tracks.");
-        return;
-      }
-
-      await playTracks(tracks);
-      setOpen(false);
-    } catch (nextError) {
-      toast.error(
-        nextError instanceof Error
-          ? nextError.message
-          : "Could not load playlist tracks.",
-      );
-    }
-  }
+  const hasResults = results.tracks.length > 0 || results.artists.length > 0;
 
   return (
     <>
-      <Button variant="ghost" size="icon-sm" onClick={() => setOpen(true)}>
+      <Button
+        aria-label="Search Spotify"
+        variant="ghost"
+        size="icon-sm"
+        onClick={() => setOpen(true)}
+      >
         <SearchIcon />
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
@@ -76,7 +53,7 @@ export function SpotifySearch() {
           <CommandInput
             value={query}
             onValueChange={setQuery}
-            placeholder="Search Spotify for songs, artists, or playlists..."
+            placeholder="Search Spotify for songs or artists..."
           />
           <CommandList className="max-h-[60vh]">
             {loading && (
@@ -119,42 +96,13 @@ export function SpotifySearch() {
                   </CommandGroup>
                 )}
 
-                {results.playlists.length > 0 && (
-                  <CommandGroup heading="Playlists">
-                    {results.playlists.map((playlist) => {
-                      const isLoadingPlaylist =
-                        loadingPlaylistId === playlist.id;
-
-                      return (
-                        <CommandItem
-                          key={playlist.id}
-                          value={`${playlist.name} ${playlist.owner ?? ""}`}
-                          disabled={isLoadingPlaylist}
-                          onSelect={() => void playPlaylist(playlist)}
-                        >
-                          <div className="min-w-0">
-                            <p className="truncate">{playlist.name}</p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {playlist.owner
-                                ? `${playlist.trackCount} songs by ${playlist.owner}`
-                                : `${playlist.trackCount} songs`}
-                            </p>
-                          </div>
-                          <CommandShortcut>
-                            {isLoadingPlaylist ? "Loading..." : "Play"}
-                          </CommandShortcut>
-                        </CommandItem>
-                      );
-                    })}
-                  </CommandGroup>
-                )}
-
                 {results.artists.length > 0 && (
                   <CommandGroup heading="Artists">
                     {results.artists.map((artist) => (
                       <CommandItem
                         key={artist.id}
-                        value={artist.name}
+                        value={artist.id}
+                        keywords={[artist.name]}
                         onSelect={() => {
                           navigate(`/artist/${artist.id}`);
                           setOpen(false);
@@ -168,9 +116,7 @@ export function SpotifySearch() {
                 )}
 
                 {!loading && !hasResults && (
-                  <CommandEmpty>
-                    No Spotify results for "${trimmedQuery}"
-                  </CommandEmpty>
+                  <CommandEmpty>No results for "${trimmedQuery}"</CommandEmpty>
                 )}
               </>
             )}

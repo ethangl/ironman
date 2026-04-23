@@ -11,7 +11,7 @@ vi.mock("./client", () => ({
 import { loadFavoriteArtists, loadTopArtists } from "./artists";
 import { spotifyFetch } from "./client";
 import { SpotifyApiError } from "./errors";
-import { loadPlaylistTracks, loadPlaylistsPage } from "./playlists";
+import { loadPlaylist, loadPlaylistTracks, loadPlaylistsPage } from "./playlists";
 import { loadRecentlyPlayed } from "./tracks";
 
 const mockedSpotifyFetch = vi.mocked(spotifyFetch);
@@ -158,6 +158,60 @@ describe("spotify activity loaders", () => {
         },
       ),
     ).rejects.toThrow("Spotify is rate limiting activity requests right now.");
+  });
+
+  it("returns null for a missing playlist", async () => {
+    mockedSpotifyFetch.mockRejectedValueOnce(
+      new SpotifyApiError(404, "not found"),
+    );
+
+    await expect(
+      runAction<{ playlistId: string; cacheScope: string }, unknown>(
+        loadPlaylist as unknown as RegisteredAction,
+        {
+          playlistId: "playlist-missing",
+          cacheScope: "user-1",
+        },
+      ),
+    ).resolves.toBeNull();
+  });
+
+  it("maps a playlist summary", async () => {
+    mockedSpotifyFetch.mockResolvedValueOnce({
+      id: "playlist-1",
+      name: "Heavy Rotation",
+      description: "Loud ones",
+      images: [{ url: "https://example.com/playlist.jpg" }],
+      owner: { display_name: "ethan" },
+      public: false,
+      tracks: { total: 12 },
+    });
+
+    await expect(
+      runAction<
+        { playlistId: string; cacheScope: string },
+        {
+          description: string | null;
+          id: string;
+          image: string | null;
+          name: string;
+          owner: string | null;
+          public: boolean;
+          trackCount: number;
+        } | null
+      >(loadPlaylist as unknown as RegisteredAction, {
+        playlistId: "playlist-1",
+        cacheScope: "user-1",
+      }),
+    ).resolves.toEqual({
+      id: "playlist-1",
+      name: "Heavy Rotation",
+      description: "Loud ones",
+      image: "https://example.com/playlist.jpg",
+      owner: "ethan",
+      public: false,
+      trackCount: 12,
+    });
   });
 
   it("returns an empty playlists page when spotify fails", async () => {

@@ -22,6 +22,7 @@ import {
 } from "./spotify/playback";
 import {
   clearPlaylistsCaches,
+  spotifyPlaylistCache,
   spotifyPlaylistsPageCache,
   spotifyPlaylistTracksCache,
 } from "./spotify/playlists";
@@ -40,6 +41,7 @@ import {
   spotifyArtistValidator,
   spotifyPlaybackCurrentlyPlayingResultValidator,
   spotifyPlaybackResultValidator,
+  spotifyPlaylistValidator,
   spotifyPlaylistsPageValidator,
   spotifyRecentlyPlayedPageResultValidator,
   spotifySearchResultsValidator,
@@ -157,6 +159,20 @@ export const playlistsPage = action({
       },
       args.forceRefresh ? { force: true } : undefined,
     );
+  },
+});
+
+export const playlist = action({
+  args: {
+    playlistId: v.string(),
+  },
+  returns: v.union(spotifyPlaylistValidator, v.null()),
+  handler: async (ctx, args) => {
+    const user = await requireAuthUser(ctx);
+    return spotifyPlaylistCache.fetch(ctx, {
+      playlistId: args.playlistId,
+      cacheScope: String(user._id),
+    });
   },
 });
 

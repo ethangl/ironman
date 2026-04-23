@@ -37,6 +37,7 @@ export interface SpotifyAlbumDetails {
   totalTracks: number;
   albumType: string | null;
   artists: SpotifyAlbumArtist[];
+  tracks: SpotifyTrack[];
 }
 
 export type SpotifyArtistReleaseGroup = "album" | "single";

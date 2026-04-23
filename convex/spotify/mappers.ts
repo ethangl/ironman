@@ -109,6 +109,7 @@ export function mapAlbumDetails(album: SpotifyAlbum): SpotifyAlbumDetails {
     totalTracks: album.total_tracks ?? 0,
     albumType: album.album_type ?? null,
     artists: (album.artists ?? []).map(mapAlbumArtist),
+    tracks: [],
   };
 }
 

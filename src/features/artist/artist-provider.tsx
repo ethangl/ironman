@@ -9,8 +9,8 @@ import type {
   SpotifyArtistPageData,
   SpotifyArtistReleaseGroup,
 } from "@/features/spotify-client/types";
-import { ArtistError } from "./artist-error";
-import { ArtistHeader } from "./artist-header";
+import { SpotifyError } from "../spotify-shell/spotify-error";
+import { SpotifyHeader } from "../spotify-shell/spotify-header";
 import { useArtistPageData } from "./use-artist-page-data";
 
 type ReleaseLoadingState = Record<SpotifyArtistReleaseGroup, boolean>;
@@ -43,7 +43,7 @@ export function ArtistProvider({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <>
-        <ArtistHeader href="/home" title={<Spinner />} />
+        <SpotifyHeader href="/home" title={<Spinner />} />
         <SidebarContent />
       </>
     );
@@ -52,7 +52,7 @@ export function ArtistProvider({ children }: { children: ReactNode }) {
   if (notFound) {
     return (
       <>
-        <ArtistHeader href="/home" title={<CircleQuestionMarkIcon />} />
+        <SpotifyHeader href="/home" title={<CircleQuestionMarkIcon />} />
         <SidebarContent>
           <SectionContent>
             <p className="text-center">Artist Not Found</p>
@@ -63,7 +63,7 @@ export function ArtistProvider({ children }: { children: ReactNode }) {
   }
 
   if (error || !data) {
-    return <ArtistError />;
+    return <SpotifyError href="/home" />;
   }
 
   return (

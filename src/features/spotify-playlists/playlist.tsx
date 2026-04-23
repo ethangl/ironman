@@ -8,7 +8,7 @@ import type {
 } from "@/features/spotify-client/types";
 import { Tracks } from "@/features/spotify-tracks";
 import { useStableAction } from "@/hooks/use-stable-action";
-import { ArtistHeader } from "../artist/artist-header";
+import { SpotifyHeader } from "../spotify-shell/spotify-header";
 import { EnqueuePlaylistButton } from "./enqueue-playlist-button";
 import {
   getSpotifyPlaylist,
@@ -48,7 +48,7 @@ export const Playlist: FC = () => {
 
   return (
     <>
-      <ArtistHeader href="/home" title="Playlist" />
+      <SpotifyHeader href="/home" title="Playlist" />
       <SidebarContent>
         <Tracks
           title={playlist.name}

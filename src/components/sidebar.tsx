@@ -53,22 +53,34 @@ export const Sidebar: FC<SidebarProps> = ({ children, style }) => {
   );
 };
 
-export type SidebarHeaderProps = PropsWithChildren & { title?: ReactNode };
+export type SidebarHeaderProps = PropsWithChildren & {
+  title?: ReactNode;
+  subtitle?: string;
+};
 
-export const SidebarHeader: FC<SidebarHeaderProps> = ({ children, title }) => {
+export const SidebarHeader: FC<SidebarHeaderProps> = ({
+  children,
+  title,
+  subtitle,
+}) => {
   const [expanded] = useSidebarState();
   return (
     <header className="flex flex-none group-first/sidebar:justify-end overflow-hidden shadow-[0_1px_0_--alpha(var(--color-background)/33%)] w-full">
       <div className="flex flex-1 gap-2 h-16 items-center justify-between px-3.5 relative w-sm">
         {title && (
-          <span
+          <div
             className={cn(
-              "absolute flex inset-0 items-center justify-center m-auto pointer-events-none transition-opacity truncate",
+              "absolute flex flex-col inset-0 items-center justify-center m-auto pointer-events-none transition-opacity truncate",
               expanded ? "delay-111 duration-222" : "duration-11 opacity-0",
             )}
           >
-            {title}
-          </span>
+            <div>{title}</div>
+            {subtitle && (
+              <div className="text-[11px] text-muted-foreground">
+                {subtitle}
+              </div>
+            )}
+          </div>
         )}
         {children}
       </div>

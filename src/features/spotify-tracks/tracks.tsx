@@ -20,7 +20,7 @@ export type TracksProps = {
   paginate?: ReactNode;
   renderTrackAction?: (track: SpotifyTrack) => ReactNode;
   tracks: SpotifyTrack[];
-  title: string;
+  title?: string;
 };
 
 export const Tracks: FC<TracksProps> = ({

@@ -1,29 +1,30 @@
 import { FC } from "react";
 
-import {
-  Section,
-  SectionDescription,
-  SectionHeader,
-  SectionTitle,
-} from "@/components/section";
 import { SidebarContent } from "@/components/sidebar";
-import { ArtistHeader } from "../artist/artist-header";
+import { SpotifyHeader } from "../spotify-shell/spotify-header";
+import { Tracks } from "../spotify-tracks";
 import { useRelease } from "./release-provider";
 
 export const Release: FC = () => {
-  const { artistId, data: album } = useRelease();
-  const artistNames = album.artists.map((artist) => artist.name).join(", ");
+  const { artistId, data } = useRelease();
+
+  const { artists, name, tracks } = data;
+  const artistNames = artists.map((artist) => artist.name).join(", ");
 
   return (
     <>
-      <ArtistHeader href={`/artist/${artistId}`} title={album.name} />
+      <SpotifyHeader
+        href={`/artist/${artistId}`}
+        title={name}
+        subtitle={artistNames}
+      />
       <SidebarContent>
-        <Section>
-          <SectionHeader>
-            <SectionTitle>{album.name}</SectionTitle>
-            <SectionDescription>{artistNames}</SectionDescription>
-          </SectionHeader>
-        </Section>
+        <Tracks
+          title={name}
+          description={artistNames}
+          // action={<EnqueuePlaylistButton playlist={playlist} />}
+          tracks={tracks ?? []}
+        />
       </SidebarContent>
     </>
   );

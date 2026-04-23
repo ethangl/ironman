@@ -6,8 +6,8 @@ import { SectionContent } from "@/components/section";
 import { SidebarContent } from "@/components/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import type { SpotifyAlbumDetails } from "@/features/spotify-client/types";
-import { ArtistError } from "../artist/artist-error";
-import { ArtistHeader } from "../artist/artist-header";
+import { SpotifyError } from "../spotify-shell/spotify-error";
+import { SpotifyHeader } from "../spotify-shell/spotify-header";
 import { useReleasePageData } from "./use-release-page-data";
 
 export interface ReleaseContextValue {
@@ -29,7 +29,7 @@ export function ReleaseProvider({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <>
-        <ArtistHeader href="/home" title={<Spinner />} />
+        <SpotifyHeader href={`/artist/${artistId}`} title={<Spinner />} />
         <SidebarContent />
       </>
     );
@@ -38,7 +38,10 @@ export function ReleaseProvider({ children }: { children: ReactNode }) {
   if (notFound) {
     return (
       <>
-        <ArtistHeader href="/home" title={<CircleQuestionMarkIcon />} />
+        <SpotifyHeader
+          href={`/artist/${artistId}`}
+          title={<CircleQuestionMarkIcon />}
+        />
         <SidebarContent>
           <SectionContent>
             <p className="text-center">Release Not Found</p>
@@ -49,7 +52,7 @@ export function ReleaseProvider({ children }: { children: ReactNode }) {
   }
 
   if (error || !data) {
-    return <ArtistError />;
+    return <SpotifyError href={`/artist/${artistId}`} />;
   }
 
   return (

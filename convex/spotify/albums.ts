@@ -14,18 +14,23 @@ import {
   type SpotifyAlbum,
   type SpotifyApiTrack,
 } from "./mappers";
+import type { SpotifyOffsetPagingResponse } from "./pagination";
 import type { SpotifyAlbumDetails, SpotifyTrack } from "./types";
 import {
   spotifyAlbumDetailsValidator,
   spotifyTrackValidator,
 } from "./validators";
 
+const SPOTIFY_ALBUM_TRACKS_PAGE_LIMIT = 50;
+
+type AlbumTrackItem = (Omit<SpotifyApiTrack, "album"> & {
+  album?: SpotifyAlbum;
+}) | null;
+
+type AlbumTracksPageResponse = SpotifyOffsetPagingResponse<AlbumTrackItem>;
+
 interface AlbumDetailsResponse extends SpotifyAlbum {
-  tracks?: {
-    items?: Array<
-      (Omit<SpotifyApiTrack, "album"> & { album?: SpotifyAlbum }) | null
-    >;
-  };
+  tracks?: AlbumTracksPageResponse;
 }
 
 const loadAlbumRef = anyApi["spotify/albums"].loadAlbum as FunctionReference<
@@ -63,11 +68,69 @@ function toAlbumError(error: unknown, fallback: string) {
   return new Error(fallback);
 }
 
+function toAlbumSummary(album: SpotifyAlbum): SpotifyAlbum {
+  return {
+    id: album.id,
+    name: album.name,
+    album_type: album.album_type,
+    images: album.images,
+    release_date: album.release_date,
+    total_tracks: album.total_tracks,
+    artists: album.artists,
+  };
+}
+
+function mapAlbumTrackItems(
+  items: Array<AlbumTrackItem | null> | undefined,
+  album: SpotifyAlbum,
+) {
+  return (items ?? [])
+    .filter(
+      (track): track is Omit<SpotifyApiTrack, "album"> => !!track && !!track.id,
+    )
+    .map((track) => mapTrack({ ...track, album }));
+}
+
 async function fetchAlbumDetails(
   token: string,
   albumId: string,
 ): Promise<AlbumDetailsResponse | null> {
   return await spotifyFetch<AlbumDetailsResponse>(`/albums/${albumId}`, token);
+}
+
+async function getAlbumTracksFromDetails(
+  token: string,
+  albumId: string,
+  data: AlbumDetailsResponse,
+): Promise<SpotifyTrack[]> {
+  const album = toAlbumSummary(data);
+  const firstPageItems = data.tracks?.items ?? [];
+  const tracks = mapAlbumTrackItems(firstPageItems, album);
+  let offset = (data.tracks?.offset ?? 0) + firstPageItems.length;
+  let total = data.tracks?.total ?? firstPageItems.length;
+  let hasMore = Boolean(data.tracks?.next) || offset < total;
+
+  while (hasMore) {
+    const page = await spotifyFetch<AlbumTracksPageResponse>(
+      `/albums/${albumId}/tracks?limit=${SPOTIFY_ALBUM_TRACKS_PAGE_LIMIT}&offset=${offset}`,
+      token,
+    );
+    const pageItems = page?.items ?? [];
+
+    tracks.push(...mapAlbumTrackItems(pageItems, album));
+
+    const nextOffset = (page?.offset ?? offset) + pageItems.length;
+    const nextTotal = page?.total ?? total;
+    if (nextOffset <= offset && !page?.next) {
+      break;
+    }
+
+    offset = nextOffset;
+    total = nextTotal;
+    hasMore = Boolean(page?.next) || offset < total;
+  }
+
+  return tracks;
 }
 
 export async function getAlbum(
@@ -81,7 +144,10 @@ export async function getAlbum(
       return null;
     }
 
-    return mapAlbumDetails(data);
+    return {
+      ...mapAlbumDetails(data),
+      tracks: await getAlbumTracksFromDetails(token, albumId, data),
+    };
   } catch (error) {
     if (error instanceof SpotifyApiError && error.status === 404) {
       return null;
@@ -97,25 +163,11 @@ export async function getAlbumTracks(
 ): Promise<SpotifyTrack[]> {
   const data = await fetchAlbumDetails(token, albumId);
 
-  if (!data?.tracks?.items) {
+  if (!data?.id) {
     return [];
   }
 
-  const album: SpotifyAlbum = {
-    id: data.id,
-    name: data.name,
-    album_type: data.album_type,
-    images: data.images,
-    release_date: data.release_date,
-    total_tracks: data.total_tracks,
-    artists: data.artists,
-  };
-
-  return data.tracks.items
-    .filter(
-      (track): track is Omit<SpotifyApiTrack, "album"> => !!track && !!track.id,
-    )
-    .map((track) => mapTrack({ ...track, album }));
+  return await getAlbumTracksFromDetails(token, albumId, data);
 }
 
 export const loadAlbum = internalAction({
@@ -152,7 +204,7 @@ export const loadAlbumTracks = internalAction({
 
 export const spotifyAlbumCache = new ActionCache(components.actionCache, {
   action: loadAlbumRef,
-  name: "spotify-album-v1",
+  name: "spotify-album-v2",
   ttl: DAY_IN_MS,
 });
 

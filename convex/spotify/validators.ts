@@ -62,6 +62,7 @@ export const spotifyAlbumDetailsValidator = v.object({
   totalTracks: v.number(),
   albumType: v.union(v.string(), v.null()),
   artists: v.array(spotifyAlbumArtistValidator),
+  tracks: v.array(spotifyTrackValidator),
 });
 
 export const spotifyPageInfoValidator = v.object({

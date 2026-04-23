@@ -1,6 +1,6 @@
 import { FC } from "react";
 
-import { List, ListItem } from "@/components/list";
+import { List, ListLink } from "@/components/list";
 import {
   Section,
   SectionContent,
@@ -8,7 +8,6 @@ import {
   SectionTitle,
 } from "@/components/section";
 import type { SpotifyPlaylist } from "@/features/spotify-client/types";
-import { EnqueuePlaylistButton } from "./enqueue-playlist-button";
 import { PlaylistCell } from "./playlist-cell";
 
 export type PlaylistsProps = {
@@ -28,7 +27,7 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => (
     <SectionContent>
       <List count={playlists.length}>
         {playlists.map((playlist) => (
-          <ListItem key={playlist.id}>
+          <ListLink key={playlist.id} href={`/playlist/${playlist.id}`}>
             <PlaylistCell
               image={playlist.image}
               name={playlist.name}
@@ -37,10 +36,8 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => (
                   ? `${playlist.trackCount} songs by ${playlist.owner}`
                   : `${playlist.trackCount} songs`
               }
-            >
-              <EnqueuePlaylistButton playlist={playlist} />
-            </PlaylistCell>
-          </ListItem>
+            />
+          </ListLink>
         ))}
       </List>
     </SectionContent>

@@ -20,20 +20,13 @@ export const EnqueuePlaylistButton: FC<EnqueuePlaylistButtonProps> = ({
   playlist,
 }) => {
   const rooms = useOptionalRooms();
+  const activeRoom = rooms?.activeRoom ?? null;
+  const enqueueTracks = rooms?.enqueueTracks;
+
   const { loadingPlaylistId, loadPlaylistTracks } = usePlaylistTracksLoader();
-
-  if (!rooms) {
-    return null;
-  }
-
-  const { activeRoom, enqueueTracks } = rooms;
 
   const canEnqueueToActiveRoom =
     !!activeRoom?.playback.canEnqueue && !!enqueueTracks;
-
-  if (!canEnqueueToActiveRoom) {
-    return null;
-  }
 
   const enqueuePlaylist = useCallback(
     async (playlist: SpotifyPlaylist) => {
@@ -65,8 +58,10 @@ export const EnqueuePlaylistButton: FC<EnqueuePlaylistButtonProps> = ({
       <TooltipTrigger
         render={
           <Button
-            size="icon"
-            disabled={loadingPlaylistId === playlist.id}
+            size="icon-lg"
+            disabled={
+              !canEnqueueToActiveRoom || loadingPlaylistId === playlist.id
+            }
             onClick={() => void enqueuePlaylist(playlist)}
             aria-label={`Queue ${playlist.name}`}
           >
@@ -74,7 +69,9 @@ export const EnqueuePlaylistButton: FC<EnqueuePlaylistButtonProps> = ({
           </Button>
         }
       />
-      <TooltipContent>Add Playlist to Queue</TooltipContent>
+      <TooltipContent>
+        {canEnqueueToActiveRoom ? "Add Playlist to Queue" : "Enter a room!"}
+      </TooltipContent>
     </Tooltip>
   );
 };

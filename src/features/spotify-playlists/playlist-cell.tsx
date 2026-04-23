@@ -1,6 +1,9 @@
+import { ArrowRightIcon } from "lucide-react";
 import { FC, PropsWithChildren, ReactNode } from "react";
 
 import { AlbumArt } from "@/components/album-art";
+import { ListItemAction } from "@/components/list";
+import { Square } from "@/components/square";
 
 export type PlaylistCellProps = PropsWithChildren & {
   count?: number;
@@ -31,6 +34,11 @@ export const PlaylistCell: FC<PlaylistCellProps> = ({
         <h5 className="text-muted-foreground text-xs truncate">{subtitle}</h5>
       )}
     </div>
-    <div className="flex gap-2 items-center">{children}</div>
+    <ListItemAction>
+      {children}
+      <Square>
+        <ArrowRightIcon />
+      </Square>
+    </ListItemAction>
   </>
 );

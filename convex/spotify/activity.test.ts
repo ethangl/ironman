@@ -300,18 +300,78 @@ describe("spotify activity loaders", () => {
     ).rejects.toThrow("Could not load playlists.");
   });
 
-  it("returns empty favorite artists when spotify fails", async () => {
+  it("maps favorite artists paging metadata", async () => {
+    mockedSpotifyFetch.mockResolvedValueOnce({
+      artists: {
+        items: [
+          {
+            id: "artist-1",
+            name: "Artist One",
+            images: [{ url: "https://example.com/artist-1.jpg" }],
+            followers: { total: 1234 },
+            genres: ["metal"],
+          },
+        ],
+        limit: 10,
+        next: "https://api.spotify.com/v1/me/following?type=artist&limit=10&after=artist-1",
+        cursors: {
+          after: "artist-1",
+        },
+        total: 44,
+      },
+    });
+
+    await expect(
+      runAction<
+        { limit: number; after: string | null; cacheScope: string },
+        {
+          hasMore: boolean;
+          items: Array<{
+            followerCount: number;
+            genres: string[];
+            id: string;
+            image: string | null;
+            name: string;
+          }>;
+          limit: number;
+          nextCursor: string | null;
+          total: number;
+        }
+      >(loadFavoriteArtists as unknown as RegisteredAction, {
+        limit: 10,
+        after: null,
+        cacheScope: "user-1",
+      }),
+    ).resolves.toEqual({
+      items: [
+        {
+          id: "artist-1",
+          name: "Artist One",
+          image: "https://example.com/artist-1.jpg",
+          followerCount: 1234,
+          genres: ["metal"],
+        },
+      ],
+      limit: 10,
+      total: 44,
+      nextCursor: "artist-1",
+      hasMore: true,
+    });
+  });
+
+  it("maps favorite artists failures to an artist error", async () => {
     mockedSpotifyFetch.mockRejectedValueOnce(new Error("boom"));
 
     await expect(
-      runAction<{ limit: number; cacheScope: string }, unknown[]>(
-        loadFavoriteArtists as unknown as RegisteredAction,
-        {
-          limit: 25,
-          cacheScope: "user-1",
-        },
-      ),
-    ).resolves.toEqual([]);
+      runAction<
+        { limit: number; after: string | null; cacheScope: string },
+        never
+      >(loadFavoriteArtists as unknown as RegisteredAction, {
+        limit: 25,
+        after: null,
+        cacheScope: "user-1",
+      }),
+    ).rejects.toThrow("Could not load favorite artists right now.");
   });
 
   it("returns empty top artists when spotify fails", async () => {

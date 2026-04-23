@@ -53,6 +53,8 @@ export interface SpotifyCursorPage<T, TCursor extends string | number>
   items: T[];
 }
 
+export type FavoriteArtistsPage = SpotifyCursorPage<SpotifyArtist, string>;
+
 export interface SpotifyPlaylist {
   id: string;
   name: string;

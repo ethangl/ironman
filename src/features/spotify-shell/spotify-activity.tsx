@@ -25,8 +25,14 @@ export function SpotifyActivity() {
     recentTracksHasMore,
     recentTracksLoadingMore,
   } = useSpotifyRecentlyPlayed();
-  const { favoriteArtists, favoriteArtistsLoading, loadFavoriteArtists } =
-    useSpotifyFavoriteArtists();
+  const {
+    favoriteArtists,
+    favoriteArtistsHasMore,
+    favoriteArtistsLoading,
+    favoriteArtistsLoadingMore,
+    loadFavoriteArtists,
+    loadMoreFavoriteArtists,
+  } = useSpotifyFavoriteArtists();
   const {
     loadMorePlaylists,
     playlists,
@@ -108,13 +114,30 @@ export function SpotifyActivity() {
             <Button
               variant="overlay"
               size="icon"
-              disabled={favoriteArtistsLoading}
+              disabled={favoriteArtistsLoading || favoriteArtistsLoadingMore}
               onClick={() => void loadFavoriteArtists(hasFavoriteArtists)}
             >
               <RefreshCwIcon
                 className={favoriteArtistsLoading ? "animate-spin" : undefined}
               />
             </Button>
+          }
+          paginate={
+            favoriteArtistsHasMore ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={favoriteArtistsLoading || favoriteArtistsLoadingMore}
+                onClick={() => void loadMoreFavoriteArtists()}
+                className="w-full rounded-2xl"
+              >
+                {favoriteArtistsLoadingMore ? (
+                  <Spinner />
+                ) : (
+                  "Load more Favorite Artists"
+                )}
+              </Button>
+            ) : null
           }
         />
       </SidebarContent>

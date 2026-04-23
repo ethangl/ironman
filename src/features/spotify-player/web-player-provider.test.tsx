@@ -4,8 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppRuntimeProvider } from "@/app/app-runtime";
 import {
+  FAVORITE_ARTISTS_PAGE_SIZE,
   PLAYLIST_PAGE_SIZE,
   RECENTLY_PLAYED_LIMIT,
+  type FavoriteArtistsPage,
   type PlaylistsPage,
 } from "@/features/spotify-client";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
@@ -154,16 +156,9 @@ function QueueListingProbe() {
 interface SpotifyActivityOverrides {
   getFavoriteArtists?: (
     limit?: number,
+    after?: string,
     forceRefresh?: boolean,
-  ) => Promise<
-    Array<{
-      id: string;
-      name: string;
-      image: string | null;
-      followerCount: number;
-      genres: string[];
-    }>
-  >;
+  ) => Promise<FavoriteArtistsPage>;
   getRecentlyPlayed?: (
     limit?: number,
     before?: number,
@@ -182,7 +177,14 @@ function renderProvider(
   children?: ReactNode,
 ) {
   const getFavoriteArtists =
-    spotifyReads?.getFavoriteArtists ?? vi.fn().mockResolvedValue([]);
+    spotifyReads?.getFavoriteArtists ??
+    vi.fn().mockResolvedValue({
+      items: [],
+      limit: FAVORITE_ARTISTS_PAGE_SIZE,
+      total: 0,
+      nextCursor: null,
+      hasMore: false,
+    });
   const getRecentlyPlayed =
     spotifyReads?.getRecentlyPlayed ??
     vi.fn().mockResolvedValue({
@@ -212,11 +214,12 @@ function renderProvider(
     const functionName = getFunctionName(ref as never);
 
     if (functionName === "spotify:favoriteArtists") {
-      const { limit, forceRefresh } = args as {
+      const { after, limit, forceRefresh } = args as {
+        after?: string;
         limit: number;
         forceRefresh?: boolean;
       };
-      return getFavoriteArtists(limit, forceRefresh);
+      return getFavoriteArtists(limit, after, forceRefresh);
     }
 
     if (functionName === "spotify:recentlyPlayed") {

@@ -39,6 +39,7 @@ import {
   spotifyAlbumReleasePageValidator,
   spotifyArtistPageDataValidator,
   spotifyArtistValidator,
+  spotifyFavoriteArtistsPageValidator,
   spotifyPlaybackCurrentlyPlayingResultValidator,
   spotifyPlaybackResultValidator,
   spotifyPlaylistValidator,
@@ -206,15 +207,17 @@ export const topArtists = action({
 
 export const favoriteArtists = action({
   args: {
+    after: v.optional(v.string()),
     limit: v.optional(v.number()),
     forceRefresh: v.optional(v.boolean()),
   },
-  returns: v.array(spotifyArtistValidator),
+  returns: spotifyFavoriteArtistsPageValidator,
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
     return spotifyFavoriteArtistsCache.fetch(
       ctx,
       {
+        after: args.after ?? null,
         limit: args.limit ?? DEFAULT_LIMIT,
         cacheScope: String(user._id),
       },

@@ -11,7 +11,6 @@ import { useEffect, useState } from "react";
 import { AlbumArt } from "@/components/album-art";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { toRoomTrack, useOptionalRooms } from "@/features/rooms";
 import { RoomPlayerPanel } from "@/features/rooms/ui/room-player-panel";
 import { NextTrackButton } from "./next-track-button";
 import { PlayerWrapper } from "./player-wrapper";
@@ -31,42 +30,8 @@ function formatTime(ms: number) {
 
 export function StandardPlayer() {
   const nowPlaying = useNowPlaying();
-  const rooms = useOptionalRooms();
-  const activeRoom = rooms?.activeRoom ?? null;
-  const closeRoom = rooms?.closeRoom;
-  const repairSync = rooms?.repairSync;
-  const resolvedPlayback = rooms?.resolvedPlayback ?? null;
-  const skipRoom = rooms?.skipRoom;
-  const roomTrack = toRoomTrack(resolvedPlayback?.currentQueueItem ?? null);
-  const isRoomMode = activeRoom !== null;
-  const roomPaused = resolvedPlayback?.paused ?? false;
-  const canControlPlayback = !!activeRoom?.playback.canControlPlayback;
-  const hasRoomTrack = !!resolvedPlayback?.currentQueueItem;
-  const canToggleListening = hasRoomTrack;
-  const displayArtist = activeRoom
-    ? roomTrack
-      ? `${activeRoom.room.name} • ${roomTrack.artist}`
-      : activeRoom.room.name
-    : nowPlaying.displayArtist;
-  const displayDuration = activeRoom
-    ? (roomTrack?.durationMs ?? 0)
-    : nowPlaying.displayDuration;
-  const displayImage = activeRoom
-    ? (roomTrack?.albumImage ?? null)
-    : nowPlaying.displayImage;
-  const displayName = activeRoom
-    ? (roomTrack?.name ?? activeRoom.room.name)
-    : nowPlaying.displayName;
-  const displayProgress = activeRoom
-    ? (resolvedPlayback?.currentOffsetMs ?? 0)
-    : nowPlaying.displayProgress;
+  const roomPlayback = nowPlaying.roomPlayback;
   const expanded = nowPlaying.expanded;
-  const hasQueue = isRoomMode
-    ? activeRoom.queue.length > 1
-    : nowPlaying.hasQueue;
-  const palette = nowPlaying.palette;
-  const pct =
-    displayDuration > 0 ? (displayProgress / displayDuration) * 100 : 0;
   const volume = nowPlaying.volume;
   const setExpanded = nowPlaying.setExpanded;
   const setVolume = nowPlaying.setVolume;
@@ -81,44 +46,15 @@ export function StandardPlayer() {
     await setVolume(nextVolume);
   };
 
-  const handleRoomToggle = () => {
-    if (!activeRoom) {
-      return;
-    }
-
-    if (!resolvedPlayback?.currentQueueItem) {
-      return;
-    }
-
-    if (roomPaused) {
-      repairSync?.();
-      return;
-    }
-
-    if (!closeRoom) {
-      return;
-    }
-
-    void closeRoom();
-  };
-
   return (
-    <PlayerWrapper
-      shaderProps={{
-        colorA: palette[0],
-        colorB: palette[2],
-        detail: 1,
-        speed: 0.5,
-      }}
-      toggled={expanded}
-    >
+    <PlayerWrapper toggled={expanded}>
       <div className="p-7 pb-2 rounded-3xl">
-        <AlbumArt src={displayImage} className="mb-9 mx-auto size-80" />
+        <AlbumArt src={nowPlaying.displayImage} className="mb-9 mx-auto size-80" />
         <header className="mb-5 mix-blend-plus-darker dark:mix-blend-plus-lighter space-y-6">
           <div className="space-y-0.5">
-            <h2 className="text-lg truncate">{displayName}</h2>
+            <h2 className="text-lg truncate">{nowPlaying.displayName}</h2>
             <h5 className="font-medium opacity-33 text-sm truncate">
-              {displayArtist}
+              {nowPlaying.displayArtist}
             </h5>
           </div>
           <div className="space-y-2 ">
@@ -126,33 +62,33 @@ export function StandardPlayer() {
               <div className="absolute bg-black dark:bg-white inset-0 opacity-10 rounded" />
               <div
                 className="h-full bg-black dark:bg-white duration-300 min-w-1 rounded transition-[width]"
-                style={{ width: `${pct}%` }}
+                style={{ width: `${nowPlaying.pct}%` }}
               />
             </div>
             <div className="flex font-medium items-center justify-between opacity-33 tabular-nums text-[11px]">
-              <span>{formatTime(displayProgress)}</span>
-              <span>{formatTime(displayDuration)}</span>
+              <span>{formatTime(nowPlaying.displayProgress)}</span>
+              <span>{formatTime(nowPlaying.displayDuration)}</span>
             </div>
           </div>
         </header>
 
         <nav className="grid grid-cols-[1fr_auto_1fr] gap-3 items-center mb-8 mix-blend-plus-darker dark:mix-blend-plus-lighter">
           <div className="flex flex-auto gap-3 items-center justify-end">
-            {!isRoomMode && hasQueue && (
+            {!nowPlaying.isRoomMode && nowPlaying.hasQueue && (
               <>
                 <ShuffleButton />
                 <PrevTrackButton />
               </>
             )}
           </div>
-          {isRoomMode ? (
+          {nowPlaying.isRoomMode ? (
             <Button
               variant="overlay"
               size="icon-2xl"
-              disabled={!canToggleListening}
-              onClick={handleRoomToggle}
+              disabled={!roomPlayback?.canToggleListening}
+              onClick={() => roomPlayback?.toggleListening()}
             >
-              {roomPaused ? (
+              {roomPlayback?.paused ? (
                 <PlayIcon fill="currentColor" strokeWidth={0} />
               ) : (
                 <PauseIcon fill="currentColor" strokeWidth={0} />
@@ -162,19 +98,17 @@ export function StandardPlayer() {
             <TogglePlayButton size="icon-2xl" />
           )}
           <div className="flex flex-auto gap-3 items-center justify-start">
-            {isRoomMode ? (
-              canControlPlayback && hasRoomTrack ? (
+            {nowPlaying.isRoomMode ? (
+              roomPlayback?.canSkip ? (
                 <Button
                   variant="overlay"
                   size="icon-lg"
-                  onClick={() =>
-                    skipRoom ? void skipRoom(activeRoom.room._id) : undefined
-                  }
+                  onClick={() => roomPlayback.skip()}
                 >
                   <SkipForwardIcon />
                 </Button>
               ) : null
-            ) : hasQueue ? (
+            ) : nowPlaying.hasQueue ? (
               <>
                 <NextTrackButton />
                 <RepeatButton />
@@ -213,7 +147,7 @@ export function StandardPlayer() {
           </Button>
           <RepairSyncButton />
         </footer>
-        <div className="hidden">{isRoomMode && <RoomPlayerPanel />}</div>
+        <div className="hidden">{nowPlaying.isRoomMode && <RoomPlayerPanel />}</div>
       </div>
     </PlayerWrapper>
   );

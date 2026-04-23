@@ -47,7 +47,7 @@ export function SpotifySearch() {
         size="icon-sm"
         onClick={() => setOpen(true)}
       >
-        <SearchIcon />
+        <SearchIcon className="-translate-x-px" />
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
         <Command shouldFilter={false}>

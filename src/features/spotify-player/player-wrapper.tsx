@@ -1,5 +1,4 @@
 import { ComponentProps, FC } from "react";
-import { ComponentProps as SwirlProps } from "shaders/core/Swirl";
 import { FilmGrain, Shader, Swirl } from "shaders/react";
 
 import { cn } from "@/lib/utils";
@@ -7,7 +6,6 @@ import { useNowPlaying } from "./use-now-playing";
 
 export type PlayerWrapperProps = ComponentProps<"section"> & {
   fullScreen?: boolean;
-  shaderProps?: Omit<SwirlProps, "colorSpace" | "blend">;
   toggled: boolean;
 };
 
@@ -15,11 +13,10 @@ export const PlayerWrapper: FC<PlayerWrapperProps> = ({
   children,
   className,
   fullScreen = false,
-  shaderProps,
   toggled,
   ...props
 }) => {
-  const { displayImage, isPlaying } = useNowPlaying();
+  const { displayImage, isPlaying, palette } = useNowPlaying();
 
   return (
     <section
@@ -44,7 +41,14 @@ export const PlayerWrapper: FC<PlayerWrapperProps> = ({
           )}
           <Shader className="relative size-full">
             <FilmGrain strength={0.07}>
-              <Swirl colorSpace="oklch" opacity={0.5} {...shaderProps} />
+              <Swirl
+                colorA={palette[0]}
+                colorB={palette[2]}
+                colorSpace="oklch"
+                detail={0.75}
+                opacity={0.5}
+                speed={0.5}
+              />
             </FilmGrain>
           </Shader>
         </div>

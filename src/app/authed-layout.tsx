@@ -28,7 +28,11 @@ function RoomsLayout() {
   if (roomId) {
     return (
       <>
-        <Main style={{ "--section-color": "var(--color-red-400)" }}>
+        <Main
+          style={{
+            "--section-color": "var(--palette-3, var(--color-red-400))",
+          }}
+        >
           <RoomHeader roomId={roomId} />
           <Room roomId={roomId} />
         </Main>
@@ -39,7 +43,11 @@ function RoomsLayout() {
 
   return (
     <>
-      <Main style={{ "--section-color": "var(--color-red-400)" }}>
+      <Main
+        style={{
+          "--section-color": "var(--palette-3, var(--color-red-400))",
+        }}
+      >
         <RoomsHeader />
         <Rooms />
       </Main>

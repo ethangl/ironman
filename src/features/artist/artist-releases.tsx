@@ -1,6 +1,6 @@
 import { FC, ReactNode } from "react";
 
-import { List, ListLink } from "@/components/list";
+import { List } from "@/components/list";
 import {
   Section,
   SectionContent,
@@ -54,13 +54,13 @@ export const Releases: FC<ReleasesProps> = ({ page, paginate, title }) => {
       <SectionContent>
         <List count={releases.length}>
           {releases.map((release) => (
-            <ListLink key={release.id} href={`release/${release.id}`}>
-              <PlaylistCell
-                image={release.image}
-                name={release.name}
-                subtitle={formatReleaseMeta(release)}
-              />
-            </ListLink>
+            <PlaylistCell
+              key={release.id}
+              href={`release/${release.id}`}
+              image={release.image}
+              name={release.name}
+              subtitle={formatReleaseMeta(release)}
+            />
           ))}
           {paginate}
         </List>

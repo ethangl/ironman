@@ -1,6 +1,6 @@
 import { FC } from "react";
 
-import { List, ListLink } from "@/components/list";
+import { List } from "@/components/list";
 import {
   Section,
   SectionContent,
@@ -33,9 +33,11 @@ export const Artists: FC<ArtistsProps> = ({
     <SectionContent>
       <List count={artists.length}>
         {artists.map((artist) => (
-          <ListLink key={artist.id} href={`/artist/${artist.id}`}>
-            <ArtistCell artist={artist} />
-          </ListLink>
+          <ArtistCell
+            key={artist.id}
+            href={`/artist/${artist.id}`}
+            artist={artist}
+          />
         ))}
         {paginate}
       </List>

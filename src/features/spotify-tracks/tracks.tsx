@@ -1,6 +1,6 @@
 import { FC, ReactNode } from "react";
 
-import { List, ListItem } from "@/components/list";
+import { List } from "@/components/list";
 import {
   Section,
   SectionContent,
@@ -47,12 +47,13 @@ export const Tracks: FC<TracksProps> = ({
       <SectionContent>
         <List count={tracks.length}>
           {tracks.map((track, index) => (
-            <ListItem key={getTrackKey?.(track, index) ?? track.id}>
-              <TrackCell track={track}>
-                <EnqueueTrackButton track={track} />
-                <PlayTrackButton track={track} />
-              </TrackCell>
-            </ListItem>
+            <TrackCell
+              key={getTrackKey?.(track, index) ?? track.id}
+              track={track}
+            >
+              <EnqueueTrackButton track={track} />
+              <PlayTrackButton track={track} />
+            </TrackCell>
           ))}
           {paginate}
         </List>

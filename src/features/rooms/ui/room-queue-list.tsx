@@ -1,6 +1,6 @@
 import { ArrowDownIcon, ArrowUpIcon, Trash2Icon } from "lucide-react";
 
-import { List, ListItem } from "@/components/list";
+import { List } from "@/components/list";
 import { Button } from "@/components/ui/button";
 import { TrackCell } from "@/features/spotify-tracks/track-cell";
 import type {
@@ -52,45 +52,44 @@ export function RoomQueueList({
         const canRemove = canRemoveQueueItem(queueItem);
 
         return (
-          <ListItem key={queueItem._id}>
-            <TrackCell
-              count={index + 1}
-              track={{
-                id: queueItem.trackId,
-                name: queueItem.trackName,
-                artist: queueItem.trackArtists.join(","),
-                albumImage: queueItem.trackImageUrl,
-                durationMs: queueItem.trackDurationMs,
-              }}
-            >
-              <div className="flex items-center gap-1">
-                {canMoveUp && (
-                  <Button
-                    size="icon-sm"
-                    onClick={() => onMove?.(roomId, queueItem._id, index - 1)}
-                  >
-                    <ArrowUpIcon />
-                  </Button>
-                )}
-                {canMoveDown && (
-                  <Button
-                    size="icon-sm"
-                    onClick={() => onMove?.(roomId, queueItem._id, index + 1)}
-                  >
-                    <ArrowDownIcon />
-                  </Button>
-                )}
-                {canRemove && (
-                  <Button
-                    size="icon-sm"
-                    onClick={() => onRemove?.(roomId, queueItem._id)}
-                  >
-                    <Trash2Icon />
-                  </Button>
-                )}
-              </div>
-            </TrackCell>
-          </ListItem>
+          <TrackCell
+            key={queueItem._id}
+            count={index + 1}
+            track={{
+              id: queueItem.trackId,
+              name: queueItem.trackName,
+              artist: queueItem.trackArtists.join(","),
+              albumImage: queueItem.trackImageUrl,
+              durationMs: queueItem.trackDurationMs,
+            }}
+          >
+            <div className="flex items-center gap-1">
+              {canMoveUp && (
+                <Button
+                  size="icon-sm"
+                  onClick={() => onMove?.(roomId, queueItem._id, index - 1)}
+                >
+                  <ArrowUpIcon />
+                </Button>
+              )}
+              {canMoveDown && (
+                <Button
+                  size="icon-sm"
+                  onClick={() => onMove?.(roomId, queueItem._id, index + 1)}
+                >
+                  <ArrowDownIcon />
+                </Button>
+              )}
+              {canRemove && (
+                <Button
+                  size="icon-sm"
+                  onClick={() => onRemove?.(roomId, queueItem._id)}
+                >
+                  <Trash2Icon />
+                </Button>
+              )}
+            </div>
+          </TrackCell>
         );
       })}
     </List>

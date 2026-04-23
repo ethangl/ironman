@@ -1,6 +1,6 @@
 import { FC } from "react";
 
-import { List, ListLink } from "@/components/list";
+import { List } from "@/components/list";
 import {
   Section,
   SectionContent,
@@ -33,13 +33,13 @@ export const Playlists: FC<PlaylistsProps> = ({
     <SectionContent>
       <List count={playlists.length}>
         {playlists.map((playlist) => (
-          <ListLink key={playlist.id} href={`/playlist/${playlist.id}`}>
-            <PlaylistCell
-              image={playlist.image}
-              name={playlist.name}
-              subtitle={`${playlist.trackCount} songs`}
-            />
-          </ListLink>
+          <PlaylistCell
+            key={playlist.id}
+            href={`/playlist/${playlist.id}`}
+            image={playlist.image}
+            name={playlist.name}
+            subtitle={`${playlist.trackCount} songs`}
+          />
         ))}
         {paginate}
       </List>

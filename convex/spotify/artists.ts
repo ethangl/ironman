@@ -28,6 +28,7 @@ import type {
   SpotifyArtist,
   SpotifyArtistPageData,
   SpotifyArtistReleaseGroup,
+  SpotifyFavoriteArtistsPage,
   SpotifyPage,
   SpotifyTrack,
 } from "./types";
@@ -35,6 +36,7 @@ import {
   spotifyAlbumReleasePageValidator,
   spotifyArtistPageDataValidator,
   spotifyArtistValidator,
+  spotifyFavoriteArtistsPageValidator,
 } from "./validators";
 
 interface SearchResponse {
@@ -53,7 +55,13 @@ interface TopArtistsResponse {
 
 interface FollowedArtistsResponse {
   artists?: {
+    cursors?: {
+      after?: string | null;
+    };
     items?: SpotifyApiArtist[];
+    limit?: number;
+    next?: string | null;
+    total?: number;
   };
 }
 
@@ -104,9 +112,10 @@ const loadFavoriteArtistsRef = anyApi["spotify/artists"]
   "internal",
   {
     limit: number;
+    after: string | null;
     cacheScope: string;
   },
-  SpotifyArtist[]
+  SpotifyFavoriteArtistsPage
 >;
 
 function toArtistRequestError(error: unknown, fallback: string) {
@@ -123,6 +132,18 @@ function toArtistRequestError(error: unknown, fallback: string) {
   }
 
   return new Error(fallback);
+}
+
+function getSpotifyNextArtistCursor(next: string | null | undefined) {
+  if (!next) {
+    return null;
+  }
+
+  try {
+    return new URL(next).searchParams.get("after");
+  } catch {
+    return null;
+  }
 }
 
 async function searchArtistTracks(
@@ -198,20 +219,39 @@ export async function getTopArtists(
 export async function getFavoriteArtists(
   token: string,
   limit = 50,
-): Promise<SpotifyArtist[]> {
+  after?: string | null,
+): Promise<SpotifyFavoriteArtistsPage> {
+  const params = new URLSearchParams({
+    type: "artist",
+    limit: String(limit),
+  });
+  if (after) {
+    params.set("after", after);
+  }
+
   const data = await spotifyFetch<FollowedArtistsResponse>(
-    `/me/following?type=artist&limit=${limit}`,
+    `/me/following?${params.toString()}`,
     token,
   );
   const artists = (data?.artists?.items ?? []).map(mapArtist);
+  const nextCursor =
+    getSpotifyNextArtistCursor(data?.artists?.next) ??
+    (data?.artists?.next ? data?.artists?.cursors?.after ?? null : null);
+  const hasMore = nextCursor !== null || Boolean(data?.artists?.next);
 
   if (process.env.NODE_ENV !== "test") {
     console.info(
-      `[spotify] followed artists limit=${limit} items=${artists.length}`,
+      `[spotify] followed artists limit=${limit} after=${after ?? "none"} items=${artists.length}`,
     );
   }
 
-  return artists;
+  return {
+    items: artists,
+    limit: data?.artists?.limit ?? limit,
+    total: data?.artists?.total ?? artists.length,
+    nextCursor,
+    hasMore,
+  };
 }
 
 export async function getArtistReleasesPage(
@@ -422,16 +462,20 @@ export const loadTopArtists = internalAction({
 export const loadFavoriteArtists = internalAction({
   args: {
     limit: v.number(),
+    after: v.union(v.string(), v.null()),
     cacheScope: v.string(),
   },
-  returns: v.array(spotifyArtistValidator),
+  returns: spotifyFavoriteArtistsPageValidator,
   handler: async (ctx, args) => {
     const accessToken = await requireSpotifyAccessToken(ctx);
 
     try {
-      return await getFavoriteArtists(accessToken, args.limit);
-    } catch {
-      return [];
+      return await getFavoriteArtists(accessToken, args.limit, args.after);
+    } catch (error) {
+      throw toArtistRequestError(
+        error,
+        "Could not load favorite artists right now.",
+      );
     }
   },
 });
@@ -461,7 +505,7 @@ export const spotifyFavoriteArtistsCache = new ActionCache(
   components.actionCache,
   {
     action: loadFavoriteArtistsRef,
-    name: "spotify-favorite-artists-v1",
+    name: "spotify-favorite-artists-v2",
     ttl: DAY_IN_MS,
   },
 );

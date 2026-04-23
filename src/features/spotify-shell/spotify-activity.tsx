@@ -1,12 +1,12 @@
 import { LibraryIcon, PanelLeftCloseIcon, RefreshCwIcon } from "lucide-react";
 
+import { LoadMoreButton } from "@/components/load-more-button";
 import {
   SidebarContent,
   SidebarHeader,
   SidebarToggle,
 } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import { Artists } from "@/features/artist";
 import {
   useSpotifyFavoriteArtists,
@@ -25,8 +25,14 @@ export function SpotifyActivity() {
     recentTracksHasMore,
     recentTracksLoadingMore,
   } = useSpotifyRecentlyPlayed();
-  const { favoriteArtists, favoriteArtistsLoading, loadFavoriteArtists } =
-    useSpotifyFavoriteArtists();
+  const {
+    favoriteArtists,
+    favoriteArtistsHasMore,
+    favoriteArtistsLoading,
+    favoriteArtistsLoadingMore,
+    loadFavoriteArtists,
+    loadMoreFavoriteArtists,
+  } = useSpotifyFavoriteArtists();
   const {
     loadMorePlaylists,
     playlists,
@@ -49,29 +55,6 @@ export function SpotifyActivity() {
         />
       </SidebarHeader>
       <SidebarContent>
-        <Tracks
-          title="Recent Tracks"
-          getTrackKey={(_track, index) => {
-            const recentTrack = recentTracks[index];
-            return recentTrack
-              ? `${recentTrack.track.id}:${recentTrack.playedAt}`
-              : index;
-          }}
-          tracks={recentTracks.map(({ track }) => track)}
-          paginate={
-            recentTracksHasMore ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={recentTracksLoading || recentTracksLoadingMore}
-                onClick={() => void loadMoreRecentTracks()}
-                className="w-full rounded-2xl"
-              >
-                {recentTracksLoadingMore ? <Spinner /> : "Load more Tracks"}
-              </Button>
-            ) : null
-          }
-        />
         <Playlists
           title="Your Playlists"
           playlists={playlists}
@@ -88,17 +71,13 @@ export function SpotifyActivity() {
             </Button>
           }
           paginate={
-            playlistsHasMore ? (
-              <Button
-                variant="secondary"
-                size="sm"
+            playlistsHasMore && (
+              <LoadMoreButton
                 disabled={playlistsLoading || playlistsLoadingMore}
+                loading={playlistsLoadingMore}
                 onClick={() => void loadMorePlaylists()}
-                className="w-full rounded-2xl"
-              >
-                {playlistsLoadingMore ? <Spinner /> : "Load more Playlists"}
-              </Button>
-            ) : null
+              />
+            )
           }
         />
         <Artists
@@ -108,13 +87,41 @@ export function SpotifyActivity() {
             <Button
               variant="overlay"
               size="icon"
-              disabled={favoriteArtistsLoading}
+              disabled={favoriteArtistsLoading || favoriteArtistsLoadingMore}
               onClick={() => void loadFavoriteArtists(hasFavoriteArtists)}
             >
               <RefreshCwIcon
                 className={favoriteArtistsLoading ? "animate-spin" : undefined}
               />
             </Button>
+          }
+          paginate={
+            favoriteArtistsHasMore && (
+              <LoadMoreButton
+                disabled={favoriteArtistsLoading || favoriteArtistsLoadingMore}
+                loading={favoriteArtistsLoadingMore}
+                onClick={() => void loadMoreFavoriteArtists()}
+              />
+            )
+          }
+        />
+        <Tracks
+          title="Recent Tracks"
+          getTrackKey={(_track, index) => {
+            const recentTrack = recentTracks[index];
+            return recentTrack
+              ? `${recentTrack.track.id}:${recentTrack.playedAt}`
+              : index;
+          }}
+          tracks={recentTracks.map(({ track }) => track)}
+          paginate={
+            recentTracksHasMore && (
+              <LoadMoreButton
+                disabled={recentTracksLoading || recentTracksLoadingMore}
+                loading={recentTracksLoadingMore}
+                onClick={() => void loadMoreRecentTracks()}
+              />
+            )
           }
         />
       </SidebarContent>

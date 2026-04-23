@@ -27,7 +27,7 @@ export function Chat({ roomId }: { roomId: RoomId }) {
   const room = roomQuery.data;
 
   return (
-    <Sidebar style={{ "--section-color": "var(--color-cyan-400)" }}>
+    <Sidebar style={{ "--section-color": "var(--color-red-400)" }}>
       <SidebarHeader>
         <SidebarToggle
           collapseIcon={<PanelRightCloseIcon />}
@@ -42,7 +42,7 @@ export function Chat({ roomId }: { roomId: RoomId }) {
               <RoomPeople people={room.presentUsers} />
             </SectionTitle>
           </SectionHeader>
-          <SectionContent>not yet</SectionContent>
+          <SectionContent>not yet, chatty cathy</SectionContent>
         </Section>
       </SidebarContent>
       <SidebarFooter></SidebarFooter>

@@ -13,10 +13,16 @@ import { ArtistCell } from "./artist-cell";
 export type ArtistsProps = {
   action?: React.ReactNode;
   artists: SpotifyArtist[];
+  paginate?: React.ReactNode;
   title: string;
 };
 
-export const Artists: FC<ArtistsProps> = ({ action, artists, title }) => (
+export const Artists: FC<ArtistsProps> = ({
+  action,
+  artists,
+  paginate,
+  title,
+}) => (
   <Section>
     <SectionHeader>
       <SectionTitle>
@@ -31,6 +37,7 @@ export const Artists: FC<ArtistsProps> = ({ action, artists, title }) => (
             <ArtistCell artist={artist} />
           </ListLink>
         ))}
+        {paginate}
       </List>
     </SectionContent>
   </Section>

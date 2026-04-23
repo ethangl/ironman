@@ -8,8 +8,10 @@ import {
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  FAVORITE_ARTISTS_PAGE_SIZE,
   PLAYLIST_PAGE_SIZE,
   RECENTLY_PLAYED_LIMIT,
+  type FavoriteArtistsPage,
   type PlaylistsPage,
 } from "@/features/spotify-client";
 import {
@@ -49,6 +51,16 @@ function playlist(id: string) {
     owner: "ethan",
     public: true,
     trackCount: 1,
+  };
+}
+
+function artist(id: string) {
+  return {
+    id: `artist-${id}`,
+    name: `Artist ${id}`,
+    image: null,
+    followerCount: 100,
+    genres: [],
   };
 }
 
@@ -111,6 +123,20 @@ function createPlaylistsPage(
   };
 }
 
+function createFavoriteArtistsPage(
+  items: Array<ReturnType<typeof artist>>,
+  nextCursor: string | null = null,
+  total = items.length,
+): FavoriteArtistsPage {
+  return {
+    items,
+    limit: FAVORITE_ARTISTS_PAGE_SIZE,
+    total,
+    nextCursor,
+    hasMore: nextCursor !== null,
+  };
+}
+
 function ActivityConsumer() {
   const {
     loadMoreRecentTracks,
@@ -119,8 +145,11 @@ function ActivityConsumer() {
   } = useSpotifyRecentlyPlayed();
   const {
     favoriteArtists,
+    favoriteArtistsHasMore,
     favoriteArtistsLoading,
+    favoriteArtistsLoadingMore,
     loadFavoriteArtists,
+    loadMoreFavoriteArtists,
   } = useSpotifyFavoriteArtists();
   const {
     playlists,
@@ -140,6 +169,9 @@ function ActivityConsumer() {
       </div>
       <div data-testid="recent-has-more">{String(recentTracksHasMore)}</div>
       <div data-testid="favorite-artists-count">{favoriteArtists.length}</div>
+      <div data-testid="favorite-artists-has-more">
+        {String(favoriteArtistsHasMore)}
+      </div>
       <div data-testid="playlists-loading">{String(playlistsLoading)}</div>
       <div data-testid="playlists-has-more">{String(playlistsHasMore)}</div>
       <div data-testid="playlists-loading-more">
@@ -148,8 +180,16 @@ function ActivityConsumer() {
       <div data-testid="favorite-artists-loading">
         {String(favoriteArtistsLoading)}
       </div>
+      <div data-testid="favorite-artists-loading-more">
+        {String(favoriteArtistsLoadingMore)}
+      </div>
       {playlists.map((item) => (
         <div data-testid="playlist-name" key={item.id}>
+          {item.name}
+        </div>
+      ))}
+      {favoriteArtists.map((item) => (
+        <div data-testid="favorite-artist-name" key={item.id}>
           {item.name}
         </div>
       ))}
@@ -163,20 +203,19 @@ function ActivityConsumer() {
       <button onClick={() => void loadFavoriteArtists(true)}>
         Refresh favorite artists
       </button>
+      <button onClick={() => void loadMoreFavoriteArtists()}>
+        Load more favorite artists
+      </button>
     </div>
   );
 }
 
 interface SpotifyActivityOverrides {
-  getFavoriteArtists?: (limit?: number, forceRefresh?: boolean) => Promise<
-    Array<{
-      id: string;
-      name: string;
-      image: string | null;
-      followerCount: number;
-      genres: string[];
-    }>
-  >;
+  getFavoriteArtists?: (
+    limit?: number,
+    after?: string,
+    forceRefresh?: boolean,
+  ) => Promise<FavoriteArtistsPage>;
   getRecentlyPlayed?: (
     limit?: number,
     before?: number,
@@ -192,7 +231,8 @@ interface SpotifyActivityOverrides {
 
 function renderProvider(overrides: SpotifyActivityOverrides = {}) {
   const getFavoriteArtists =
-    overrides.getFavoriteArtists ?? vi.fn().mockResolvedValue([]);
+    overrides.getFavoriteArtists ??
+    vi.fn().mockResolvedValue(createFavoriteArtistsPage([]));
   const getRecentlyPlayed =
     overrides.getRecentlyPlayed ??
     vi.fn().mockResolvedValue(recentlyPlayedPage([]));
@@ -206,11 +246,12 @@ function renderProvider(overrides: SpotifyActivityOverrides = {}) {
     const functionName = getFunctionName(ref as never);
 
     if (functionName === "spotify:favoriteArtists") {
-      const { limit, forceRefresh } = args as {
+      const { after, limit, forceRefresh } = args as {
+        after?: string;
         limit: number;
         forceRefresh?: boolean;
       };
-      return getFavoriteArtists(limit, forceRefresh);
+      return getFavoriteArtists(limit, after, forceRefresh);
     }
 
     if (functionName === "spotify:recentlyPlayed") {
@@ -465,16 +506,92 @@ describe("SpotifyActivityProvider", () => {
     );
   });
 
-  it("loads favorite artists on mount", async () => {
-    const getFavoriteArtists = vi.fn().mockResolvedValue([
-      {
-        id: "artist-1",
-        name: "Artist 1",
-        image: null,
-        followerCount: 100,
-        genres: [],
+  it("applies a shared favorite artists page only once", async () => {
+    const nextPage = createDeferred<FavoriteArtistsPage>();
+    const getFavoriteArtists = vi.fn(
+      (
+        limit = FAVORITE_ARTISTS_PAGE_SIZE,
+        after?: string,
+        forceRefresh = false,
+      ) => {
+        if (limit !== FAVORITE_ARTISTS_PAGE_SIZE) {
+          throw new Error(`Unexpected favorite artists page size: ${limit}`);
+        }
+
+        if (forceRefresh) {
+          throw new Error("Favorite artists load more should not force refresh.");
+        }
+
+        if (after === undefined) {
+          return Promise.resolve(
+            createFavoriteArtistsPage([artist("1")], "artist-1", 2),
+          );
+        }
+
+        if (after === "artist-1") {
+          return nextPage.promise;
+        }
+
+        throw new Error(`Unexpected favorite artists cursor: ${after}`);
       },
-    ]);
+    );
+
+    renderProvider({
+      getFavoriteArtists,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("favorite-artists-count")).toHaveTextContent(
+        "1",
+      );
+    });
+    expect(screen.getByTestId("favorite-artists-has-more")).toHaveTextContent(
+      "true",
+    );
+
+    const loadMoreFavoriteArtists = screen.getByRole("button", {
+      name: "Load more favorite artists",
+    });
+    fireEvent.click(loadMoreFavoriteArtists);
+    fireEvent.click(loadMoreFavoriteArtists);
+
+    await waitFor(() => {
+      expect(getFavoriteArtists).toHaveBeenCalledTimes(2);
+    });
+    expect(getFavoriteArtists).toHaveBeenNthCalledWith(
+      1,
+      FAVORITE_ARTISTS_PAGE_SIZE,
+      undefined,
+      false,
+    );
+    expect(getFavoriteArtists).toHaveBeenNthCalledWith(
+      2,
+      FAVORITE_ARTISTS_PAGE_SIZE,
+      "artist-1",
+      undefined,
+    );
+
+    await act(async () => {
+      nextPage.resolve(createFavoriteArtistsPage([artist("2")], null, 2));
+      await nextPage.promise;
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("favorite-artists-count")).toHaveTextContent(
+        "2",
+      );
+    });
+
+    expect(screen.getByText("Artist 2")).toBeInTheDocument();
+    expect(screen.getByTestId("favorite-artists-has-more")).toHaveTextContent(
+      "false",
+    );
+  });
+
+  it("loads favorite artists on mount", async () => {
+    const getFavoriteArtists = vi
+      .fn()
+      .mockResolvedValue(createFavoriteArtistsPage([artist("1")]));
     renderProvider({
       getFavoriteArtists,
     });
@@ -484,30 +601,18 @@ describe("SpotifyActivityProvider", () => {
     });
 
     expect(getFavoriteArtists).toHaveBeenCalledTimes(1);
-    expect(getFavoriteArtists).toHaveBeenCalledWith(50, false);
+    expect(getFavoriteArtists).toHaveBeenCalledWith(
+      FAVORITE_ARTISTS_PAGE_SIZE,
+      undefined,
+      false,
+    );
   });
 
   it("refreshes favorite artists with force refresh", async () => {
     const getFavoriteArtists = vi
       .fn()
-      .mockResolvedValueOnce([
-        {
-          id: "artist-1",
-          name: "Artist 1",
-          image: null,
-          followerCount: 100,
-          genres: [],
-        },
-      ])
-      .mockResolvedValueOnce([
-        {
-          id: "artist-2",
-          name: "Artist 2",
-          image: null,
-          followerCount: 200,
-          genres: [],
-        },
-      ]);
+      .mockResolvedValueOnce(createFavoriteArtistsPage([artist("1")]))
+      .mockResolvedValueOnce(createFavoriteArtistsPage([artist("2")]));
 
     renderProvider({
       getFavoriteArtists,
@@ -517,7 +622,12 @@ describe("SpotifyActivityProvider", () => {
       expect(screen.getByTestId("favorite-artists-count")).toHaveTextContent("1");
     });
 
-    expect(getFavoriteArtists).toHaveBeenNthCalledWith(1, 50, false);
+    expect(getFavoriteArtists).toHaveBeenNthCalledWith(
+      1,
+      FAVORITE_ARTISTS_PAGE_SIZE,
+      undefined,
+      false,
+    );
 
     fireEvent.click(
       screen.getByRole("button", { name: "Refresh favorite artists" }),
@@ -526,7 +636,12 @@ describe("SpotifyActivityProvider", () => {
     await waitFor(() => {
       expect(screen.getByTestId("favorite-artists-count")).toHaveTextContent("1");
     });
-    expect(getFavoriteArtists).toHaveBeenNthCalledWith(2, 50, true);
+    expect(getFavoriteArtists).toHaveBeenNthCalledWith(
+      2,
+      FAVORITE_ARTISTS_PAGE_SIZE,
+      undefined,
+      true,
+    );
   });
 
 });

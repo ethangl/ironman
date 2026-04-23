@@ -34,6 +34,9 @@ export const spotifyRecentlyPlayedItemValidator = v.object({
   track: spotifyTrackValidator,
 });
 
+export const spotifyFavoriteArtistsPageValidator =
+  createSpotifyCursorPageValidator(spotifyArtistValidator, v.string());
+
 export const spotifyPlaylistsPageValidator =
   createSpotifyPageValidator(spotifyPlaylistValidator);
 

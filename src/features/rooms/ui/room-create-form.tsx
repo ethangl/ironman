@@ -47,7 +47,7 @@ export function RoomCreateForm() {
   };
 
   return (
-    <Sidebar style={{ "--section-color": "var(--color-cyan-400)" }}>
+    <Sidebar style={{ "--section-color": "var(--color-red-400)" }}>
       <SidebarHeader>
         <SidebarToggle
           collapseIcon={<PanelRightCloseIcon />}

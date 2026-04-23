@@ -2,14 +2,13 @@ import { FC, useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { List, ListLink } from "@/components/list";
+import { LoadMoreButton } from "@/components/load-more-button";
 import {
   Section,
   SectionContent,
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import { getSpotifyAlbumTracks } from "@/features/artist/spotify-artist-client";
 import type {
   SpotifyAlbumRelease,
@@ -130,19 +129,11 @@ export const Releases: FC<ReleasesProps> = ({
             </ListLink>
           ))}
           {page.hasMore && onLoadMore && (
-            <Button
-              variant="secondary"
-              size="sm"
+            <LoadMoreButton
               disabled={loadingMore}
+              loading={loadingMore}
               onClick={() => void loadMore()}
-              className="w-full rounded-2xl"
-            >
-              {loadingMore ? (
-                <Spinner className="size-3" />
-              ) : (
-                `Load more ${title}`
-              )}
-            </Button>
+            />
           )}
         </List>
       </SectionContent>

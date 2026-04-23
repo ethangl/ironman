@@ -1,12 +1,12 @@
 import { LibraryIcon, PanelLeftCloseIcon, RefreshCwIcon } from "lucide-react";
 
+import { LoadMoreButton } from "@/components/load-more-button";
 import {
   SidebarContent,
   SidebarHeader,
   SidebarToggle,
 } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import { Artists } from "@/features/artist";
 import {
   useSpotifyFavoriteArtists,
@@ -65,17 +65,13 @@ export function SpotifyActivity() {
           }}
           tracks={recentTracks.map(({ track }) => track)}
           paginate={
-            recentTracksHasMore ? (
-              <Button
-                variant="secondary"
-                size="sm"
+            recentTracksHasMore && (
+              <LoadMoreButton
                 disabled={recentTracksLoading || recentTracksLoadingMore}
+                loading={recentTracksLoadingMore}
                 onClick={() => void loadMoreRecentTracks()}
-                className="w-full rounded-2xl"
-              >
-                {recentTracksLoadingMore ? <Spinner /> : "Load more Tracks"}
-              </Button>
-            ) : null
+              />
+            )
           }
         />
         <Playlists
@@ -94,17 +90,13 @@ export function SpotifyActivity() {
             </Button>
           }
           paginate={
-            playlistsHasMore ? (
-              <Button
-                variant="secondary"
-                size="sm"
+            playlistsHasMore && (
+              <LoadMoreButton
                 disabled={playlistsLoading || playlistsLoadingMore}
+                loading={playlistsLoadingMore}
                 onClick={() => void loadMorePlaylists()}
-                className="w-full rounded-2xl"
-              >
-                {playlistsLoadingMore ? <Spinner /> : "Load more Playlists"}
-              </Button>
-            ) : null
+              />
+            )
           }
         />
         <Artists
@@ -123,21 +115,13 @@ export function SpotifyActivity() {
             </Button>
           }
           paginate={
-            favoriteArtistsHasMore ? (
-              <Button
-                variant="secondary"
-                size="sm"
+            favoriteArtistsHasMore && (
+              <LoadMoreButton
                 disabled={favoriteArtistsLoading || favoriteArtistsLoadingMore}
+                loading={favoriteArtistsLoadingMore}
                 onClick={() => void loadMoreFavoriteArtists()}
-                className="w-full rounded-2xl"
-              >
-                {favoriteArtistsLoadingMore ? (
-                  <Spinner />
-                ) : (
-                  "Load more Favorite Artists"
-                )}
-              </Button>
-            ) : null
+              />
+            )
           }
         />
       </SidebarContent>

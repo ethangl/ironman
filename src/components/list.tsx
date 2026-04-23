@@ -53,4 +53,14 @@ const ListLink: FC<ListLinkProps> = ({ children, className, ...props }) => (
   </li>
 );
 
-export { List, ListItem, ListLink };
+const ListItemAction: FC<ComponentProps<"div">> = ({ className, ...props }) => (
+  <div
+    className={cn(
+      "duration-888 group-hover/list:duration-222 flex items-center opacity-0 group-hover/list:opacity-100 transition-opacity",
+      className,
+    )}
+    {...props}
+  />
+);
+
+export { List, ListItem, ListItemAction, ListLink };

@@ -8,6 +8,9 @@ import {
   SectionTitle,
 } from "@/components/section";
 import type { SpotifyTrack } from "@/features/spotify-client/types";
+import { useOptionalRooms } from "../rooms";
+import { EnqueueTrackButton } from "./enqueue-track-button";
+import { PlayTrackButton } from "./play-track-button";
 import { TrackCell } from "./track-cell";
 
 export type TracksProps = {
@@ -23,10 +26,12 @@ export const Tracks: FC<TracksProps> = ({
   action,
   getTrackKey,
   paginate,
-  renderTrackAction,
   title,
   tracks,
 }) => {
+  const rooms = useOptionalRooms();
+  const activeRoom = rooms?.activeRoom ?? null;
+
   if (tracks.length === 0) {
     return null;
   }
@@ -41,9 +46,15 @@ export const Tracks: FC<TracksProps> = ({
       </SectionHeader>
       <SectionContent>
         <List count={tracks.length}>
-          {tracks.map((song, index) => (
-            <ListItem key={getTrackKey?.(song, index) ?? song.id}>
-              <TrackCell track={song}>{renderTrackAction?.(song)}</TrackCell>
+          {tracks.map((track, index) => (
+            <ListItem key={getTrackKey?.(track, index) ?? track.id}>
+              <TrackCell track={track}>
+                {activeRoom ? (
+                  <EnqueueTrackButton track={track} />
+                ) : (
+                  <PlayTrackButton track={track} />
+                )}
+              </TrackCell>
             </ListItem>
           ))}
           {paginate}

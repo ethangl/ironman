@@ -38,6 +38,10 @@ export const router = createBrowserRouter([
                   },
                 ],
               },
+              {
+                path: "playlist/:playlistId",
+                element: <div>playlist</div>,
+              },
             ],
           },
         ],

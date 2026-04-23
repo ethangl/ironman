@@ -16,24 +16,22 @@ export type ArtistsProps = {
   title: string;
 };
 
-export const Artists: FC<ArtistsProps> = ({ action, artists, title }) => {
-  return (
-    <Section>
-      <SectionHeader>
-        <SectionTitle>
-          {title}
-          {action}
-        </SectionTitle>
-      </SectionHeader>
-      <SectionContent>
-        <List count={artists.length}>
-          {artists.map((artist) => (
-            <ListLink key={artist.id} href={`/artist/${artist.id}`}>
-              <ArtistCell artist={artist} />
-            </ListLink>
-          ))}
-        </List>
-      </SectionContent>
-    </Section>
-  );
-};
+export const Artists: FC<ArtistsProps> = ({ action, artists, title }) => (
+  <Section>
+    <SectionHeader>
+      <SectionTitle>
+        {title}
+        {action}
+      </SectionTitle>
+    </SectionHeader>
+    <SectionContent>
+      <List count={artists.length}>
+        {artists.map((artist) => (
+          <ListLink key={artist.id} href={`/artist/${artist.id}`}>
+            <ArtistCell artist={artist} />
+          </ListLink>
+        ))}
+      </List>
+    </SectionContent>
+  </Section>
+);

@@ -54,7 +54,7 @@ export const Releases: FC<ReleasesProps> = ({ page, paginate, title }) => {
       <SectionContent>
         <List count={releases.length}>
           {releases.map((release) => (
-            <ListLink key={release.id} href={`./release/${release.id}`}>
+            <ListLink key={release.id} href={`release/${release.id}`}>
               <PlaylistCell
                 image={release.image}
                 name={release.name}

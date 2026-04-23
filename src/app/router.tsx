@@ -2,6 +2,8 @@ import { createBrowserRouter, Outlet } from "react-router-dom";
 
 import { ArtistProvider } from "@/features/artist";
 import { Artist } from "@/features/artist/artist";
+import { Release } from "@/features/release/release";
+import { ReleaseProvider } from "@/features/release/release-provider";
 import { Playlist } from "@/features/spotify-playlists/playlist";
 import { SpotifyActivity } from "@/features/spotify-shell";
 import { ArtistResolveRoute, HomeRoute, NotFoundRoute } from "@/routes";
@@ -36,6 +38,14 @@ export const router = createBrowserRouter([
                   {
                     index: true,
                     element: <Artist />,
+                  },
+                  {
+                    path: "release/:releaseId",
+                    element: (
+                      <ReleaseProvider>
+                        <Release />
+                      </ReleaseProvider>
+                    ),
                   },
                 ],
               },

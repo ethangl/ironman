@@ -35,7 +35,7 @@ const InternalAppLink = forwardRef<HTMLAnchorElement, AppLinkProps>(
 export const AppLink = forwardRef<HTMLAnchorElement, AppLinkProps>(
   ({ href, preserveSearch = true, ...props }, ref) => {
     const inRouterContext = useInRouterContext();
-    const isInternal = href.startsWith("/");
+    const isInternal = !href.startsWith("http");
 
     if (inRouterContext && isInternal && !props.target && !props.download) {
       return (

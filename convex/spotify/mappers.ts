@@ -1,4 +1,6 @@
 import type {
+  SpotifyAlbumArtist,
+  SpotifyAlbumDetails,
   SpotifyAlbumRelease,
   SpotifyArtist,
   SpotifyPlaylist,
@@ -68,6 +70,13 @@ export function mapArtist(artist: SpotifyApiArtist): SpotifyArtist {
   };
 }
 
+export function mapAlbumArtist(artist: SpotifyApiArtist): SpotifyAlbumArtist {
+  return {
+    id: artist.id ?? artist.name,
+    name: artist.name,
+  };
+}
+
 export function mapPlaylist(playlist: SpotifyApiPlaylist): SpotifyPlaylist {
   return {
     id: playlist.id,
@@ -88,6 +97,18 @@ export function mapAlbumRelease(album: SpotifyAlbum): SpotifyAlbumRelease {
     releaseDate: album.release_date ?? null,
     totalTracks: album.total_tracks ?? 0,
     albumType: album.album_type ?? null,
+  };
+}
+
+export function mapAlbumDetails(album: SpotifyAlbum): SpotifyAlbumDetails {
+  return {
+    id: album.id ?? album.name ?? "",
+    name: album.name ?? "Untitled release",
+    image: album.images?.[0]?.url ?? null,
+    releaseDate: album.release_date ?? null,
+    totalTracks: album.total_tracks ?? 0,
+    albumType: album.album_type ?? null,
+    artists: (album.artists ?? []).map(mapAlbumArtist),
   };
 }
 

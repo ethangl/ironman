@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getAlbumTracks } from "./albums";
+import { getAlbum, getAlbumTracks } from "./albums";
 import {
   getArtistPageData,
   getArtistPageDataResult,
@@ -470,6 +470,51 @@ describe("getArtistPageData", () => {
 describe("getAlbumTracks", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("maps album details into a dedicated album payload", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: "album-1",
+          name: "Oceanic",
+          images: [{ url: "album.jpg" }],
+          album_type: "album",
+          release_date: "2002-09-28",
+          total_tracks: 8,
+          artists: [
+            { id: "artist-1", name: "ISIS" },
+            { id: "artist-2", name: "Aereogramme" },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await getAlbum("spotify-token", "album-1");
+
+    expect(result).toEqual({
+      id: "album-1",
+      name: "Oceanic",
+      image: "album.jpg",
+      releaseDate: "2002-09-28",
+      totalTracks: 8,
+      albumType: "album",
+      artists: [
+        { id: "artist-1", name: "ISIS" },
+        { id: "artist-2", name: "Aereogramme" },
+      ],
+    });
+  });
+
+  it("returns null when Spotify does not find the album", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: { status: 404, message: "nope" } }), {
+        status: 404,
+      }),
+    );
+
+    await expect(getAlbum("spotify-token", "missing")).resolves.toBeNull();
   });
 
   it("maps album track items using the parent album metadata", async () => {

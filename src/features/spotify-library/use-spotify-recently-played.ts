@@ -10,7 +10,6 @@ import { RECENTLY_PLAYED_LIMIT } from "@/features/spotify-client";
 import type {
   RecentTrack,
   RecentlyPlayedPage,
-  SpotifyTrack,
 } from "@/features/spotify-client/types";
 import { useStableAction } from "@/hooks/use-stable-action";
 import { useStablePaginatedAction } from "@/hooks/use-stable-paginated-action";
@@ -45,31 +44,7 @@ function mergeRecentTrackPages(
   };
 }
 
-function prependRecentTrack(
-  page: RecentlyPlayedPage,
-  track: SpotifyTrack,
-): RecentlyPlayedPage {
-  const nextItems = [
-    {
-      playedAt: new Date().toISOString(),
-      track,
-    },
-    ...page.items,
-  ];
-  const items =
-    page.items.length > RECENTLY_PLAYED_LIMIT
-      ? nextItems
-      : nextItems.slice(0, RECENTLY_PLAYED_LIMIT);
-
-  return {
-    ...page,
-    items,
-    total: Math.max(page.total, items.length),
-  };
-}
-
 interface SpotifyRecentlyPlayedContextValue {
-  appendRecentTrack: (track: SpotifyTrack) => void;
   loadMoreRecentTracks: () => Promise<void>;
   loading: boolean;
   recentTracks: RecentTrack[];
@@ -139,13 +114,6 @@ export function useSpotifyRecentlyPlayedState(): SpotifyRecentlyPlayedContextVal
     setData,
   });
 
-  const appendRecentTrack = useCallback(
-    (track: SpotifyTrack) => {
-      setData((current) => prependRecentTrack(current ?? emptyPageRef.current, track));
-    },
-    [setData],
-  );
-
   const refresh = useCallback(async () => {
     resetRecentTracksLoadingState();
     await refreshRecentTracks();
@@ -157,7 +125,6 @@ export function useSpotifyRecentlyPlayedState(): SpotifyRecentlyPlayedContextVal
 
   return useMemo(
     () => ({
-      appendRecentTrack,
       loadMoreRecentTracks,
       loading: recentTracksLoading || recentTracksRefreshing,
       recentTracks: recentTracksPage.items,
@@ -166,7 +133,6 @@ export function useSpotifyRecentlyPlayedState(): SpotifyRecentlyPlayedContextVal
       refresh,
     }),
     [
-      appendRecentTrack,
       loadMoreRecentTracks,
       recentTracksLoading,
       recentTracksRefreshing,

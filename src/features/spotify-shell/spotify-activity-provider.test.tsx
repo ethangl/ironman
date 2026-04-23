@@ -96,7 +96,6 @@ function recentlyPlayedPage(
 
 function ActivityConsumer() {
   const {
-    appendRecentTrack,
     loadMoreRecentTracks,
     recentTracks,
     recentTracksHasMore,
@@ -112,14 +111,6 @@ function ActivityConsumer() {
     loadPlaylists,
     loadMorePlaylists,
   } = useSpotifyPlaylists();
-  const sampleTrack: SpotifyTrack = {
-    id: "track-1",
-    name: "Track 1",
-    artist: "Artist 1",
-    albumImage: null,
-    durationMs: 120000,
-    albumName: "Album 1",
-  };
 
   return (
     <div>
@@ -145,7 +136,6 @@ function ActivityConsumer() {
       <button onClick={() => void loadMoreRecentTracks()}>
         Load more recent tracks
       </button>
-      <button onClick={() => appendRecentTrack(sampleTrack)}>Append recent</button>
       <button onClick={() => void loadFavoriteArtists()}>Load favorite artists</button>
       <button onClick={() => void loadFavoriteArtists(true)}>
         Refresh favorite artists
@@ -309,25 +299,6 @@ describe("SpotifyActivityProvider", () => {
 
     expect(screen.getAllByTestId("playlist-name")).toHaveLength(2);
     expect(screen.getByText("Playlist 2")).toBeInTheDocument();
-  });
-
-  it("appends recents locally without refetching Spotify", async () => {
-    const getRecentlyPlayed = vi.fn().mockResolvedValue(recentlyPlayedPage([]));
-    renderProvider({
-      getRecentlyPlayed,
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId("recent-count")).toHaveTextContent("0");
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Append recent" }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("recent-count")).toHaveTextContent("1");
-    });
-
-    expect(getRecentlyPlayed).toHaveBeenCalledTimes(1);
   });
 
   it("applies a shared recent tracks page only once and preserves duplicate plays", async () => {
@@ -549,84 +520,4 @@ describe("SpotifyActivityProvider", () => {
     expect(getFavoriteArtists).toHaveBeenNthCalledWith(2, 50, true);
   });
 
-  it("caps locally appended recents at the configured limit", async () => {
-    function LimitConsumer() {
-      const { appendRecentTrack, recentTracks } = useSpotifyRecentlyPlayed();
-
-      return (
-        <div>
-          <div data-testid="recent-count">{recentTracks.length}</div>
-          <button
-            onClick={() => {
-              for (let index = 0; index < RECENTLY_PLAYED_LIMIT + 5; index += 1) {
-                appendRecentTrack({
-                  id: `track-${index}`,
-                  name: `Track ${index}`,
-                  artist: `Artist ${index}`,
-                  albumImage: null,
-                  durationMs: 100000,
-                  albumName: `Album ${index}`,
-                });
-              }
-              appendRecentTrack({
-                id: "track-10",
-                name: "Track 10",
-                artist: "Artist 10",
-                albumImage: null,
-                durationMs: 100000,
-                albumName: "Album 10",
-              });
-            }}
-          >
-            Fill recents
-          </button>
-        </div>
-      );
-    }
-
-    vi.mocked(getAuthenticatedSpotifyConvexClient).mockResolvedValue({
-      action: vi.fn((ref: unknown) => {
-        const functionName = getFunctionName(ref as never);
-
-        if (functionName === "spotify:favoriteArtists") {
-          return Promise.resolve([]);
-        }
-
-        if (functionName === "spotify:recentlyPlayed") {
-          return Promise.resolve(recentlyPlayedPage([]));
-        }
-
-        if (functionName === "spotify:playlistsPage") {
-          return Promise.resolve({
-            items: [],
-            total: 0,
-          });
-        }
-
-        if (functionName === "spotify:playlistTracks") {
-          return Promise.resolve([]);
-        }
-
-        throw new Error(`Unexpected Spotify action: ${functionName}`);
-      }),
-    } as never);
-
-    render(
-      <SpotifyActivityProvider>
-        <LimitConsumer />
-      </SpotifyActivityProvider>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId("recent-count")).toHaveTextContent("0");
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Fill recents" }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("recent-count")).toHaveTextContent(
-        String(RECENTLY_PLAYED_LIMIT),
-      );
-    });
-  });
 });

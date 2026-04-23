@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { paletteClient } from "./palette-client";
 
-export function usePlayerPalette(artworkUrl: string | null) {
+export function usePalette(artworkUrl: string | null) {
   const [palette, setPalette] = useState<string[]>([]);
 
   useEffect(() => {

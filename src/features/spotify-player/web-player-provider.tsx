@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppAuth, useAppCapabilities } from "@/app/app-runtime";
 import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import type { Track } from "@/features/spotify-client/types";
+import { usePalette } from "../palette/use-palette";
 import { useSpotify } from "../spotify-sdk/use-spotify";
-import { usePlayerPalette } from "./use-player-palette";
 import { usePlayerPlayback } from "./use-player-playback";
 import {
   WebPlayerActionsContext,
@@ -96,7 +96,7 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   });
 
   const artworkUrl = currentTrack?.albumImage ?? null;
-  const palette = usePlayerPalette(artworkUrl);
+  const palette = usePalette(artworkUrl);
 
   const actions = useMemo(
     () => ({

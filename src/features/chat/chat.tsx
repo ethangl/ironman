@@ -16,6 +16,7 @@ import {
 import { useRoomDetails } from "../rooms/client/room-hooks";
 import type { RoomId } from "../rooms/client/room-types";
 import { RoomPeople } from "../rooms/ui/room-people";
+import { UserMenu } from "./user-menu";
 
 export function Chat({ roomId }: { roomId: RoomId }) {
   const roomQuery = useRoomDetails(roomId);
@@ -49,7 +50,9 @@ export function Chat({ roomId }: { roomId: RoomId }) {
           <SectionContent>not yet, chatty cathy</SectionContent>
         </Section>
       </SidebarContent>
-      <SidebarFooter></SidebarFooter>
+      <SidebarFooter>
+        <UserMenu />
+      </SidebarFooter>
     </Sidebar>
   );
 }

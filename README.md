@@ -11,7 +11,7 @@ pnpm dev
 pnpm dev:convex
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173) for the frontend.
+Open [https://rooms.localhost](https://rooms.localhost) for the frontend.
 
 Useful scripts:
 

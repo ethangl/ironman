@@ -4,7 +4,7 @@ import { FC } from "react";
 import { AppLink } from "@/components/app-link";
 import { SidebarHeader, SidebarHeaderProps } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
-import { SpotifySearch } from "../spotify-search/spotify-search";
+import { SpotifySearchButton } from "../spotify-search/spotify-search-button";
 import { SpotfiySidebarToggle } from "./spotify-sidebar-toggle";
 
 export type SpotifyHeaderProps = SidebarHeaderProps & { href?: string };
@@ -23,7 +23,7 @@ export const SpotifyHeader: FC<SpotifyHeaderProps> = ({ href, ...props }) => (
         }
       />
     ) : (
-      <SpotifySearch />
+      <SpotifySearchButton />
     )}
     <SpotfiySidebarToggle />
   </SidebarHeader>

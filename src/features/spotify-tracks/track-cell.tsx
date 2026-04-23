@@ -2,6 +2,7 @@ import { FC, PropsWithChildren } from "react";
 
 import { AlbumArt } from "@/components/album-art";
 import { ListItem, ListItemAction } from "@/components/list";
+import { Square } from "@/components/square";
 import type { Track } from "@/features/spotify-client/types";
 import type { TrackSnapshot } from "./types";
 
@@ -34,11 +35,11 @@ export const TrackCell: FC<TrackCellProps> = ({ children, count, track }) => {
   const { albumImage, artist, name } = toDisplayTrack(track);
   return (
     <ListItem>
-      <div className="flex gap-3 items-center">
+      <div className="flex items-center -space-x-2">
         {count && (
-          <div className="bg-black/25 font-bold flex items-center justify-center rounded-3xl text-xs size-8">
+          <Square className="bg-section-color/10 font-bold rounded-l-2xl h-10 pr-2 text-xs tracking-tight w-12">
             {count}
-          </div>
+          </Square>
         )}
         {albumImage && <AlbumArt src={albumImage} className="size-10" />}
       </div>

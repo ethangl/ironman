@@ -1,7 +1,7 @@
 import { FC, useCallback, useState } from "react";
 import { toast } from "sonner";
 
-import { List, ListItem } from "@/components/list";
+import { List, ListLink } from "@/components/list";
 import {
   Section,
   SectionContent,
@@ -121,16 +121,13 @@ export const Releases: FC<ReleasesProps> = ({
       <SectionContent>
         <List count={releases.length}>
           {releases.map((release) => (
-            <ListItem key={release.id}>
+            <ListLink key={release.id} href={`./release/${release.id}`}>
               <PlaylistCell
-                disabled={loadingItemId === release.id}
                 image={release.image}
                 name={release.name}
                 subtitle={formatReleaseMeta(release)}
-                tracks={[]}
-                onPlay={() => void playRelease(release)}
               />
-            </ListItem>
+            </ListLink>
           ))}
           {page.hasMore && onLoadMore && (
             <Button

@@ -4,6 +4,7 @@ import { List, ListLink } from "@/components/list";
 import {
   Section,
   SectionContent,
+  SectionFooter,
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
@@ -12,11 +13,17 @@ import { PlaylistCell } from "./playlist-cell";
 
 export type PlaylistsProps = {
   action?: React.ReactNode;
+  paginate?: React.ReactNode;
   playlists: SpotifyPlaylist[];
   title: string;
 };
 
-export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => (
+export const Playlists: FC<PlaylistsProps> = ({
+  action,
+  paginate,
+  playlists,
+  title,
+}) => (
   <Section>
     <SectionHeader>
       <SectionTitle>
@@ -41,5 +48,6 @@ export const Playlists: FC<PlaylistsProps> = ({ action, playlists, title }) => (
         ))}
       </List>
     </SectionContent>
+    {paginate ? <SectionFooter>{paginate}</SectionFooter> : null}
   </Section>
 );

@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   PLAYLIST_PAGE_SIZE,
   RECENTLY_PLAYED_LIMIT,
+  type PlaylistsPage,
 } from "@/features/spotify-client";
 import {
   useSpotifyFavoriteArtists,
@@ -94,6 +95,22 @@ function recentlyPlayedPage(
   return createRecentlyPlayedPage(ids.map((id) => recentTrack(id)), nextCursor, total);
 }
 
+function createPlaylistsPage(
+  items: Array<ReturnType<typeof playlist>>,
+  nextOffset: number | null = null,
+  total = items.length,
+  offset = 0,
+): PlaylistsPage {
+  return {
+    items,
+    offset,
+    limit: PLAYLIST_PAGE_SIZE,
+    total,
+    nextOffset,
+    hasMore: nextOffset !== null,
+  };
+}
+
 function ActivityConsumer() {
   const {
     loadMoreRecentTracks,
@@ -107,7 +124,9 @@ function ActivityConsumer() {
   } = useSpotifyFavoriteArtists();
   const {
     playlists,
+    playlistsHasMore,
     playlistsLoading,
+    playlistsLoadingMore,
     loadPlaylists,
     loadMorePlaylists,
   } = useSpotifyPlaylists();
@@ -122,6 +141,10 @@ function ActivityConsumer() {
       <div data-testid="recent-has-more">{String(recentTracksHasMore)}</div>
       <div data-testid="favorite-artists-count">{favoriteArtists.length}</div>
       <div data-testid="playlists-loading">{String(playlistsLoading)}</div>
+      <div data-testid="playlists-has-more">{String(playlistsHasMore)}</div>
+      <div data-testid="playlists-loading-more">
+        {String(playlistsLoadingMore)}
+      </div>
       <div data-testid="favorite-artists-loading">
         {String(favoriteArtistsLoading)}
       </div>
@@ -163,7 +186,7 @@ interface SpotifyActivityOverrides {
     limit?: number,
     offset?: number,
     forceRefresh?: boolean,
-  ) => Promise<{ items: ReturnType<typeof playlist>[]; total: number }>;
+  ) => Promise<PlaylistsPage>;
   getPlaylistTracks?: (playlistId: string) => Promise<SpotifyTrack[]>;
 }
 
@@ -175,7 +198,7 @@ function renderProvider(overrides: SpotifyActivityOverrides = {}) {
     vi.fn().mockResolvedValue(recentlyPlayedPage([]));
   const getPlaylistsPage =
     overrides.getPlaylistsPage ??
-    vi.fn().mockResolvedValue({ items: [], total: 0 });
+    vi.fn().mockResolvedValue(createPlaylistsPage([]));
   const getPlaylistTracks =
     overrides.getPlaylistTracks ?? vi.fn().mockResolvedValue([]);
 
@@ -234,20 +257,14 @@ describe("SpotifyActivityProvider", () => {
   });
 
   it("applies a shared playlist page only once", async () => {
-    const nextPage = createDeferred<{
-      items: ReturnType<typeof playlist>[];
-      total: number;
-    }>();
+    const nextPage = createDeferred<PlaylistsPage>();
     const getPlaylistsPage = vi.fn((limit = PLAYLIST_PAGE_SIZE, offset = 0) => {
       if (limit !== PLAYLIST_PAGE_SIZE) {
         throw new Error(`Unexpected playlist page size: ${limit}`);
       }
 
       if (offset === 0) {
-        return Promise.resolve({
-          items: [playlist("1")],
-          total: 2,
-        });
+        return Promise.resolve(createPlaylistsPage([playlist("1")], 1, 2));
       }
 
       if (offset === 1) {
@@ -264,6 +281,7 @@ describe("SpotifyActivityProvider", () => {
     await waitFor(() => {
       expect(screen.getByTestId("playlist-count")).toHaveTextContent("1");
     });
+    expect(screen.getByTestId("playlists-has-more")).toHaveTextContent("true");
 
     const loadMore = screen.getByRole("button", { name: "Load more" });
     fireEvent.click(loadMore);
@@ -282,14 +300,11 @@ describe("SpotifyActivityProvider", () => {
       2,
       PLAYLIST_PAGE_SIZE,
       1,
-      false,
+      undefined,
     );
 
     await act(async () => {
-      nextPage.resolve({
-        items: [playlist("2")],
-        total: 2,
-      });
+      nextPage.resolve(createPlaylistsPage([playlist("2")], null, 2, 1));
       await nextPage.promise;
     });
 
@@ -299,6 +314,7 @@ describe("SpotifyActivityProvider", () => {
 
     expect(screen.getAllByTestId("playlist-name")).toHaveLength(2);
     expect(screen.getByText("Playlist 2")).toBeInTheDocument();
+    expect(screen.getByTestId("playlists-has-more")).toHaveTextContent("false");
   });
 
   it("applies a shared recent tracks page only once and preserves duplicate plays", async () => {
@@ -395,10 +411,9 @@ describe("SpotifyActivityProvider", () => {
   });
 
   it("loads playlists on mount", async () => {
-    const getPlaylistsPage = vi.fn().mockResolvedValue({
-      items: [playlist("1")],
-      total: 1,
-    });
+    const getPlaylistsPage = vi
+      .fn()
+      .mockResolvedValue(createPlaylistsPage([playlist("1")]));
 
     renderProvider({
       getPlaylistsPage,
@@ -419,14 +434,8 @@ describe("SpotifyActivityProvider", () => {
   it("refreshes playlists with force refresh", async () => {
     const getPlaylistsPage = vi
       .fn()
-      .mockResolvedValueOnce({
-        items: [playlist("1")],
-        total: 1,
-      })
-      .mockResolvedValueOnce({
-        items: [playlist("2")],
-        total: 1,
-      });
+      .mockResolvedValueOnce(createPlaylistsPage([playlist("1")]))
+      .mockResolvedValueOnce(createPlaylistsPage([playlist("2")]));
 
     renderProvider({
       getPlaylistsPage,

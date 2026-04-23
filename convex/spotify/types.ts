@@ -60,10 +60,7 @@ export interface SpotifyPlaylist {
   trackCount: number;
 }
 
-export interface SpotifyPlaylistsPage {
-  items: SpotifyPlaylist[];
-  total: number;
-}
+export type SpotifyPlaylistsPage = SpotifyPage<SpotifyPlaylist>;
 
 export interface SpotifyRecentlyPlayedItem {
   playedAt: string;

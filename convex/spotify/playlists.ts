@@ -15,6 +15,10 @@ import {
   type SpotifyApiPlaylist,
   type SpotifyApiTrack,
 } from "./mappers";
+import {
+  createSpotifyPage,
+  type SpotifyOffsetPagingResponse,
+} from "./pagination";
 import type {
   SpotifyPlaylist,
   SpotifyPlaylistsPage,
@@ -26,19 +30,18 @@ import {
   spotifyTrackValidator,
 } from "./validators";
 
-interface PlaylistSummaryResponse {
-  items?: {
-    id: string;
-    name: string;
-    description: string | null;
-    images?: { url: string }[];
-    items?: { total?: number };
-    tracks?: { total?: number };
-    owner?: { display_name?: string | null };
-    public: boolean;
-  }[];
-  total: number;
-}
+type PlaylistSummaryItem = {
+  id: string;
+  name: string;
+  description: string | null;
+  images?: { url: string }[];
+  items?: { total?: number };
+  tracks?: { total?: number };
+  owner?: { display_name?: string | null };
+  public: boolean;
+};
+
+type PlaylistSummaryResponse = SpotifyOffsetPagingResponse<PlaylistSummaryItem>;
 
 interface PlaylistTracksResponse {
   items?: {
@@ -106,22 +109,20 @@ export async function getUserPlaylists(
     `/me/playlists?limit=${limit}&offset=${offset}`,
     token,
   );
-  if (!data?.items) {
-    return { items: [], total: 0 };
-  }
-
-  const items = data.items.map((playlist) => ({
-    ...mapPlaylist(playlist as SpotifyApiPlaylist),
-    trackCount: playlist.items?.total ?? playlist.tracks?.total ?? 0,
-  }));
+  const items = (data?.items ?? [])
+    .filter((playlist): playlist is PlaylistSummaryItem => playlist !== null)
+    .map((playlist) => ({
+      ...mapPlaylist(playlist as SpotifyApiPlaylist),
+      trackCount: playlist.items?.total ?? playlist.tracks?.total ?? 0,
+    }));
 
   if (process.env.NODE_ENV !== "test") {
     console.info(
-      `[spotify] playlists summary limit=${limit} offset=${offset} items=${items.length} total=${data.total}`,
+      `[spotify] playlists summary limit=${limit} offset=${offset} items=${items.length} total=${data?.total ?? 0}`,
     );
   }
 
-  return { items, total: data.total };
+  return createSpotifyPage(data, items, limit, offset);
 }
 
 export async function getPlaylist(
@@ -186,8 +187,15 @@ export const loadPlaylistsPage = internalAction({
 
     try {
       return await getUserPlaylists(accessToken, args.limit, args.offset);
-    } catch {
-      return { items: [], total: 0 };
+    } catch (error) {
+      if (process.env.NODE_ENV !== "test") {
+        console.warn(
+          `[spotify] playlists summary failed limit=${args.limit} offset=${args.offset}`,
+          error,
+        );
+      }
+
+      throw toPlaylistsError(error, "Could not load playlists.");
     }
   },
 });
@@ -230,7 +238,7 @@ export const spotifyPlaylistsPageCache = new ActionCache(
   components.actionCache,
   {
     action: loadPlaylistsPageRef,
-    name: "spotify-playlists-page-v1",
+    name: "spotify-playlists-page-v2",
     ttl: DAY_IN_MS,
   },
 );

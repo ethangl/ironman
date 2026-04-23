@@ -2,117 +2,125 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
 
-import { PLAYLIST_PAGE_SIZE } from "@/features/spotify-client";
+import { PLAYLIST_PAGE_SIZE, type PlaylistsPage } from "@/features/spotify-client";
 import type { Playlist } from "@/features/spotify-client/types";
-import { api } from "@api";
-import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
+import {
+  appendSpotifyPage,
+  useStablePaginatedAction,
+} from "@/hooks/use-stable-paginated-action";
+import { useStableAction } from "@/hooks/use-stable-action";
+import { getSpotifyPlaylistsPage } from "@/features/spotify-playlists/spotify-playlist-client";
+
+const PLAYLISTS_KEY = "playlists";
+const PLAYLIST_KEYS = [PLAYLISTS_KEY] as const;
+
+function createEmptyPlaylistsPage(limit = PLAYLIST_PAGE_SIZE): PlaylistsPage {
+  return {
+    items: [],
+    offset: 0,
+    limit,
+    total: 0,
+    nextOffset: null,
+    hasMore: false,
+  };
+}
 
 interface SpotifyPlaylistsContextValue {
   loadMorePlaylists: () => Promise<void>;
   loadPlaylists: (forceRefresh?: boolean) => Promise<void>;
   playlists: Playlist[];
+  playlistsHasMore: boolean;
   playlistsLoading: boolean;
-  playlistsTotal: number;
+  playlistsLoadingMore: boolean;
 }
 
 export const SpotifyPlaylistsContext =
   createContext<SpotifyPlaylistsContextValue | null>(null);
 
 export function useSpotifyPlaylistsState(): SpotifyPlaylistsContextValue {
-  const nextPlaylistOffsetRef = useRef(0);
-  const appliedPlaylistOffsetsRef = useRef(new Set<number>());
-  const loadingPlaylistOffsetsRef = useRef(new Set<number>());
-  const playlistsGenerationRef = useRef(0);
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [playlistsTotal, setPlaylistsTotal] = useState(0);
-  const [playlistsLoading, setPlaylistsLoading] = useState(false);
+  const emptyPageRef = useRef(createEmptyPlaylistsPage());
+  const forceRefreshRef = useRef(false);
+  const {
+    data,
+    dataRef,
+    loading,
+    refreshing,
+    refresh,
+    reload,
+    requestVersionRef,
+    setData,
+  } = useStableAction<PlaylistsPage>({
+    initialData: emptyPageRef.current,
+    keepDataOnLoad: true,
+    load: useCallback(async () => {
+      const forceRefresh = forceRefreshRef.current;
+      forceRefreshRef.current = false;
 
-  const applyPlaylistsPage = useCallback(
-    (items: Playlist[], total: number) => {
-      setPlaylists(items);
-      setPlaylistsTotal(total);
-      nextPlaylistOffsetRef.current = items.length;
-      appliedPlaylistOffsetsRef.current = new Set(items.length > 0 ? [0] : []);
-      loadingPlaylistOffsetsRef.current.clear();
-      playlistsGenerationRef.current += 1;
-    },
-    [],
-  );
+      return await getSpotifyPlaylistsPage(0, PLAYLIST_PAGE_SIZE, forceRefresh);
+    }, []),
+  });
+
+  const playlistsPage = data ?? emptyPageRef.current;
+  const {
+    loadMore,
+    loadingByKey,
+    resetLoadingState: resetPlaylistLoadingState,
+  } = useStablePaginatedAction<
+    typeof PLAYLISTS_KEY,
+    PlaylistsPage,
+    PlaylistsPage,
+    number
+  >({
+    dataRef,
+    getCurrentPage: (page) => page,
+    getNextPageParam: (page) => page.nextOffset,
+    keys: PLAYLIST_KEYS,
+    loadPage: useCallback(
+      async (_key, offset, currentPage) => {
+        return await getSpotifyPlaylistsPage(offset, currentPage.limit);
+      },
+      [],
+    ),
+    mergePages: appendSpotifyPage,
+    onError: () => {},
+    requestVersionRef,
+    setCurrentPage: (_data, _key, page) => page,
+    setData,
+  });
 
   const loadPlaylists = useCallback(
     async (forceRefresh = false) => {
-      setPlaylistsLoading(true);
+      forceRefreshRef.current = forceRefresh;
+      resetPlaylistLoadingState();
 
-      try {
-        const client = await getAuthenticatedSpotifyConvexClient();
-        const nextPlaylistsPage = await client.action(api.spotify.playlistsPage, {
-          limit: PLAYLIST_PAGE_SIZE,
-          offset: 0,
-          forceRefresh,
-        });
-        applyPlaylistsPage(nextPlaylistsPage.items, nextPlaylistsPage.total);
-      } finally {
-        setPlaylistsLoading(false);
-      }
-    },
-    [applyPlaylistsPage],
-  );
-
-  useEffect(() => {
-    void loadPlaylists();
-  }, [loadPlaylists]);
-
-  const loadMorePlaylists = useCallback(async () => {
-    const requestedOffset = nextPlaylistOffsetRef.current;
-    if (
-      requestedOffset >= playlistsTotal ||
-      loadingPlaylistOffsetsRef.current.has(requestedOffset)
-    ) {
-      return;
-    }
-
-    const generation = playlistsGenerationRef.current;
-    loadingPlaylistOffsetsRef.current.add(requestedOffset);
-
-    try {
-      const client = await getAuthenticatedSpotifyConvexClient();
-      const data = await client.action(api.spotify.playlistsPage, {
-        limit: PLAYLIST_PAGE_SIZE,
-        offset: requestedOffset,
-        forceRefresh: false,
-      });
-
-      if (
-        generation !== playlistsGenerationRef.current ||
-        appliedPlaylistOffsetsRef.current.has(requestedOffset)
-      ) {
+      if (forceRefresh) {
+        await refresh();
         return;
       }
 
-      appliedPlaylistOffsetsRef.current.add(requestedOffset);
-      setPlaylists((previous) => [...previous, ...data.items]);
-      setPlaylistsTotal(data.total);
-      nextPlaylistOffsetRef.current = requestedOffset + data.items.length;
-    } finally {
-      loadingPlaylistOffsetsRef.current.delete(requestedOffset);
-    }
-  }, [playlistsTotal]);
+      await reload();
+    },
+    [refresh, reload, resetPlaylistLoadingState],
+  );
+
+  const loadMorePlaylists = useCallback(async () => {
+    await loadMore(PLAYLISTS_KEY);
+  }, [loadMore]);
 
   return useMemo(
     () => ({
       loadMorePlaylists,
       loadPlaylists,
-      playlists,
-      playlistsLoading,
-      playlistsTotal,
+      playlists: playlistsPage.items,
+      playlistsHasMore: playlistsPage.hasMore,
+      playlistsLoading: loading || refreshing,
+      playlistsLoadingMore: loadingByKey[PLAYLISTS_KEY],
     }),
-    [loadMorePlaylists, loadPlaylists, playlists, playlistsLoading, playlistsTotal],
+    [loadMorePlaylists, loadPlaylists, playlistsPage, loading, refreshing, loadingByKey],
   );
 }
 

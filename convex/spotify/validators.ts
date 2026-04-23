@@ -34,10 +34,8 @@ export const spotifyRecentlyPlayedItemValidator = v.object({
   track: spotifyTrackValidator,
 });
 
-export const spotifyPlaylistsPageValidator = v.object({
-  items: v.array(spotifyPlaylistValidator),
-  total: v.number(),
-});
+export const spotifyPlaylistsPageValidator =
+  createSpotifyPageValidator(spotifyPlaylistValidator);
 
 export const spotifyAlbumReleaseValidator = v.object({
   id: v.string(),

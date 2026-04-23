@@ -2,6 +2,7 @@ import { FC, useContext } from "react";
 
 import { PlayButton } from "@/components/play-button";
 import type { Track } from "@/features/spotify-client/types";
+import { useOptionalRooms } from "../rooms";
 import { WebPlayerActionsContext } from "../spotify-player/use-web-player";
 
 export type PlayTrackButtonProps = {
@@ -16,6 +17,8 @@ export const PlayTrackButton: FC<PlayTrackButtonProps> = ({
   track,
 }) => {
   const webPlayerActions = useContext(WebPlayerActionsContext);
+  const rooms = useOptionalRooms();
+  const activeRoom = rooms?.activeRoom ?? null;
 
   const handlePlay =
     onPlay ??
@@ -25,7 +28,7 @@ export const PlayTrackButton: FC<PlayTrackButtonProps> = ({
         }
       : undefined);
 
-  if (!handlePlay) {
+  if (!handlePlay || activeRoom) {
     return null;
   }
 

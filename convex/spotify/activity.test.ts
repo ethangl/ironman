@@ -214,7 +214,74 @@ describe("spotify activity loaders", () => {
     });
   });
 
-  it("returns an empty playlists page when spotify fails", async () => {
+  it("maps playlist paging metadata", async () => {
+    mockedSpotifyFetch.mockResolvedValueOnce({
+      items: [
+        {
+          id: "playlist-1",
+          name: "Heavy Rotation",
+          description: null,
+          images: [{ url: "https://example.com/playlist.jpg" }],
+          owner: { display_name: "ethan" },
+          public: true,
+          tracks: { total: 12 },
+        },
+      ],
+      limit: 10,
+      offset: 20,
+      next: "https://api.spotify.com/v1/me/playlists?limit=10&offset=30",
+      total: 44,
+    });
+
+    await expect(
+      runAction<
+        {
+          limit: number;
+          offset: number;
+          cacheScope: string;
+        },
+        {
+          hasMore: boolean;
+          items: Array<{
+            description: string | null;
+            id: string;
+            image: string | null;
+            name: string;
+            owner: string | null;
+            public: boolean;
+            trackCount: number;
+          }>;
+          limit: number;
+          nextOffset: number | null;
+          offset: number;
+          total: number;
+        }
+      >(loadPlaylistsPage as unknown as RegisteredAction, {
+        limit: 10,
+        offset: 20,
+        cacheScope: "user-1",
+      }),
+    ).resolves.toEqual({
+      items: [
+        {
+          id: "playlist-1",
+          name: "Heavy Rotation",
+          description: null,
+          image: "https://example.com/playlist.jpg",
+          owner: "ethan",
+          public: true,
+          trackCount: 12,
+        },
+      ],
+      offset: 20,
+      limit: 10,
+      total: 44,
+      nextOffset: 30,
+      hasMore: true,
+    });
+  });
+
+  it("maps playlist page failures to a playlist error", async () => {
     mockedSpotifyFetch.mockRejectedValueOnce(new Error("boom"));
 
     await expect(
@@ -224,16 +291,13 @@ describe("spotify activity loaders", () => {
           offset: number;
           cacheScope: string;
         },
-        { items: unknown[]; total: number }
+        never
       >(loadPlaylistsPage as unknown as RegisteredAction, {
         limit: 10,
         offset: 20,
         cacheScope: "user-1",
       }),
-    ).resolves.toEqual({
-      items: [],
-      total: 0,
-    });
+    ).rejects.toThrow("Could not load playlists.");
   });
 
   it("returns empty favorite artists when spotify fails", async () => {

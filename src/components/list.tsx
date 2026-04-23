@@ -56,7 +56,7 @@ const ListLink: FC<ListLinkProps> = ({ children, className, ...props }) => (
 const ListItemAction: FC<ComponentProps<"div">> = ({ className, ...props }) => (
   <div
     className={cn(
-      "duration-888 group-hover/list:duration-222 flex items-center opacity-0 group-hover/list:opacity-100 transition-opacity",
+      "duration-888 group-hover/list:duration-222 flex gap-1 items-center opacity-0 group-hover/list:opacity-100 transition-opacity",
       className,
     )}
     {...props}

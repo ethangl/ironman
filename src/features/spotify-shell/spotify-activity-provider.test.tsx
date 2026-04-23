@@ -51,11 +51,15 @@ function playlist(id: string) {
   };
 }
 
-function recentTrack(id: string) {
+function recentTrack(
+  id: string,
+  options?: { playedAt?: string; trackId?: string },
+) {
   return {
-    playedAt: `2026-04-22T12:${id.padStart(2, "0")}:00.000Z`,
+    playedAt:
+      options?.playedAt ?? `2026-04-22T12:${id.padStart(2, "0")}:00.000Z`,
     track: {
-      id: `track-${id}`,
+      id: options?.trackId ?? `track-${id}`,
       name: `Track ${id}`,
       artist: `Artist ${id}`,
       albumImage: null,
@@ -65,14 +69,14 @@ function recentTrack(id: string) {
   };
 }
 
-function recentlyPlayedPage(
-  ids: string[],
+function createRecentlyPlayedPage(
+  items: Array<ReturnType<typeof recentTrack>>,
   nextCursor: number | null = null,
-  total = ids.length,
+  total = items.length,
 ): RecentlyPlayedPageResult {
   return {
     page: {
-      items: ids.map(recentTrack),
+      items,
       limit: RECENTLY_PLAYED_LIMIT,
       total,
       nextCursor,
@@ -80,6 +84,14 @@ function recentlyPlayedPage(
     },
     rateLimited: false,
   };
+}
+
+function recentlyPlayedPage(
+  ids: string[],
+  nextCursor: number | null = null,
+  total = ids.length,
+): RecentlyPlayedPageResult {
+  return createRecentlyPlayedPage(ids.map((id) => recentTrack(id)), nextCursor, total);
 }
 
 function ActivityConsumer() {
@@ -113,6 +125,9 @@ function ActivityConsumer() {
     <div>
       <div data-testid="playlist-count">{playlists.length}</div>
       <div data-testid="recent-count">{recentTracks.length}</div>
+      <div data-testid="recent-ids">
+        {recentTracks.map(({ track }) => track.id).join(",")}
+      </div>
       <div data-testid="recent-has-more">{String(recentTracksHasMore)}</div>
       <div data-testid="favorite-artists-count">{favoriteArtists.length}</div>
       <div data-testid="playlists-loading">{String(playlistsLoading)}</div>
@@ -315,7 +330,7 @@ describe("SpotifyActivityProvider", () => {
     expect(getRecentlyPlayed).toHaveBeenCalledTimes(1);
   });
 
-  it("applies a shared recent tracks page only once", async () => {
+  it("applies a shared recent tracks page only once and preserves duplicate plays", async () => {
     const nextPage = createDeferred<RecentlyPlayedPageResult>();
     const getRecentlyPlayed = vi.fn(
       (limit = RECENTLY_PLAYED_LIMIT, before?: number, forceRefresh = false) => {
@@ -328,7 +343,18 @@ describe("SpotifyActivityProvider", () => {
         }
 
         if (before === undefined) {
-          return Promise.resolve(recentlyPlayedPage(["1"], 111, 2));
+          return Promise.resolve(
+            createRecentlyPlayedPage(
+              [
+                recentTrack("1", {
+                  playedAt: "2026-04-22T12:01:00.000Z",
+                  trackId: "track-repeat",
+                }),
+              ],
+              111,
+              2,
+            ),
+          );
         }
 
         if (before === 111) {
@@ -372,7 +398,18 @@ describe("SpotifyActivityProvider", () => {
     );
 
     await act(async () => {
-      nextPage.resolve(recentlyPlayedPage(["2"], null, 2));
+      nextPage.resolve(
+        createRecentlyPlayedPage(
+          [
+            recentTrack("2", {
+              playedAt: "2026-04-22T12:02:00.000Z",
+              trackId: "track-repeat",
+            }),
+          ],
+          null,
+          2,
+        ),
+      );
       await nextPage.promise;
     });
 
@@ -380,6 +417,9 @@ describe("SpotifyActivityProvider", () => {
       expect(screen.getByTestId("recent-count")).toHaveTextContent("2");
     });
 
+    expect(screen.getByTestId("recent-ids")).toHaveTextContent(
+      "track-repeat,track-repeat",
+    );
     expect(screen.getByTestId("recent-has-more")).toHaveTextContent("false");
   });
 
@@ -509,7 +549,7 @@ describe("SpotifyActivityProvider", () => {
     expect(getFavoriteArtists).toHaveBeenNthCalledWith(2, 50, true);
   });
 
-  it("dedupes and caps locally appended recents at the configured limit", async () => {
+  it("caps locally appended recents at the configured limit", async () => {
     function LimitConsumer() {
       const { appendRecentTrack, recentTracks } = useSpotifyRecentlyPlayed();
 

@@ -10,7 +10,7 @@ const buttonVariants = cva(
       variant: {
         default:
           "bg-section-color/20 hover:bg-section-color/40 text-foreground",
-        secondary: "bg-background/10 hover:bg-background/20 text-foreground",
+        secondary: "bg-background/10 hover:bg-background/20 text-section-color",
         outline:
           "border-section-color bg-section-color/5 hover:bg-section-color/10 text-section-color",
         ghost: "hover:bg-section-color/10 text-foreground",

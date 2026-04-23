@@ -44,6 +44,12 @@ export function SpotifyActivity() {
       <SidebarContent>
         <Tracks
           title="Recent Tracks"
+          getTrackKey={(_track, index) => {
+            const recentTrack = recentTracks[index];
+            return recentTrack
+              ? `${recentTrack.track.id}:${recentTrack.playedAt}`
+              : index;
+          }}
           tracks={recentTracks.map(({ track }) => track)}
           paginate={
             recentTracksHasMore ? (

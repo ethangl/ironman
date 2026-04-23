@@ -12,6 +12,7 @@ import { TrackCell } from "./track-cell";
 
 export type TracksProps = {
   action?: ReactNode;
+  getTrackKey?: (track: SpotifyTrack, index: number) => React.Key;
   paginate?: ReactNode;
   renderTrackAction?: (track: SpotifyTrack) => ReactNode;
   tracks: SpotifyTrack[];
@@ -20,6 +21,7 @@ export type TracksProps = {
 
 export const Tracks: FC<TracksProps> = ({
   action,
+  getTrackKey,
   paginate,
   renderTrackAction,
   title,
@@ -39,8 +41,8 @@ export const Tracks: FC<TracksProps> = ({
       </SectionHeader>
       <SectionContent>
         <List count={tracks.length}>
-          {tracks.map((song) => (
-            <ListItem key={song.id}>
+          {tracks.map((song, index) => (
+            <ListItem key={getTrackKey?.(song, index) ?? song.id}>
               <TrackCell track={song}>{renderTrackAction?.(song)}</TrackCell>
             </ListItem>
           ))}

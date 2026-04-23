@@ -19,26 +19,6 @@ import { getSpotifyRecentlyPlayedPage } from "./spotify-recently-played-client";
 const RECENT_TRACKS_KEY = "recent";
 const RECENT_TRACK_KEYS = [RECENT_TRACKS_KEY] as const;
 
-function dedupeRecentTracks(raw: RecentTrack[], maxItems?: number) {
-  const seen = new Set<string>();
-  const deduped: RecentTrack[] = [];
-
-  for (const item of raw) {
-    if (seen.has(item.track.id)) {
-      continue;
-    }
-
-    seen.add(item.track.id);
-    deduped.push(item);
-
-    if (maxItems !== undefined && deduped.length >= maxItems) {
-      break;
-    }
-  }
-
-  return deduped;
-}
-
 function createEmptyRecentlyPlayedPage(
   limit = RECENTLY_PLAYED_LIMIT,
 ): RecentlyPlayedPage {
@@ -55,7 +35,7 @@ function mergeRecentTrackPages(
   currentPage: RecentlyPlayedPage,
   nextPage: RecentlyPlayedPage,
 ): RecentlyPlayedPage {
-  const items = dedupeRecentTracks([...currentPage.items, ...nextPage.items]);
+  const items = [...currentPage.items, ...nextPage.items];
 
   return {
     ...nextPage,
@@ -69,18 +49,17 @@ function prependRecentTrack(
   page: RecentlyPlayedPage,
   track: SpotifyTrack,
 ): RecentlyPlayedPage {
-  const items = dedupeRecentTracks(
-    [
-      {
-        playedAt: new Date().toISOString(),
-        track,
-      },
-      ...page.items,
-    ],
+  const nextItems = [
+    {
+      playedAt: new Date().toISOString(),
+      track,
+    },
+    ...page.items,
+  ];
+  const items =
     page.items.length > RECENTLY_PLAYED_LIMIT
-      ? undefined
-      : RECENTLY_PLAYED_LIMIT,
-  );
+      ? nextItems
+      : nextItems.slice(0, RECENTLY_PLAYED_LIMIT);
 
   return {
     ...page,

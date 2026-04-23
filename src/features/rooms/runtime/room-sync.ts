@@ -16,6 +16,25 @@ export interface ResolvedRoomPlayback {
   startOffsetMs: number;
 }
 
+function buildPlaybackQueue(roomDetails: RoomDetails) {
+  return roomDetails.playback.currentQueueItem
+    ? [
+        roomDetails.playback.currentQueueItem,
+        ...roomDetails.queue.filter(
+          (queueItem) =>
+            queueItem._id !== roomDetails.playback.currentQueueItemId,
+        ),
+      ]
+    : roomDetails.queue;
+}
+
+function normalizeVisibleQueue(queue: RoomQueueItem[]) {
+  return queue.map((queueItem, index) => ({
+    ...queueItem,
+    position: index,
+  }));
+}
+
 export function resolveRoomPlayback(
   roomDetails: RoomDetails | null,
   now: number,
@@ -40,14 +59,7 @@ export function resolveRoomPlayback(
     };
   }
 
-  const playbackQueue = roomDetails.playback.currentQueueItem
-    ? [
-        roomDetails.playback.currentQueueItem,
-        ...roomDetails.queue.filter(
-          (queueItem) => queueItem._id !== roomDetails.playback.currentQueueItemId,
-        ),
-      ]
-    : roomDetails.queue;
+  const playbackQueue = buildPlaybackQueue(roomDetails);
 
   const resolvedPlayback = resolveRoomPlaybackState(
     playbackQueue.map((queueItem, index) => ({
@@ -71,6 +83,34 @@ export function resolveRoomPlayback(
         (queueItem) => queueItem._id === resolvedPlayback.currentQueueItemId,
       ) ?? null,
   };
+}
+
+export function getVisibleRoomQueue(
+  roomDetails: RoomDetails | null,
+  resolvedPlayback: ResolvedRoomPlayback | null,
+) {
+  if (!roomDetails) {
+    return [];
+  }
+
+  if (!resolvedPlayback?.currentQueueItemId) {
+    return normalizeVisibleQueue(roomDetails.queue);
+  }
+
+  const playbackQueue = buildPlaybackQueue(roomDetails);
+  const currentQueueItemIndex = playbackQueue.findIndex(
+    (queueItem) => queueItem._id === resolvedPlayback.currentQueueItemId,
+  );
+
+  if (currentQueueItemIndex < 0) {
+    return normalizeVisibleQueue(
+      roomDetails.queue.filter(
+        (queueItem) => queueItem._id !== resolvedPlayback.currentQueueItemId,
+      ),
+    );
+  }
+
+  return normalizeVisibleQueue(playbackQueue.slice(currentQueueItemIndex + 1));
 }
 
 export function getRoomSyncState({

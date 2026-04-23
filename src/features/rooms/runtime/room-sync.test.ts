@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { RoomDetails } from "../client/room-types";
-import { getRoomSyncState, resolveRoomPlayback } from "./room-sync";
+import {
+  getRoomSyncState,
+  getVisibleRoomQueue,
+  resolveRoomPlayback,
+} from "./room-sync";
 
 const roomDetails: RoomDetails = {
   room: {
@@ -157,6 +161,54 @@ describe("room-sync", () => {
       currentOffsetMs: 30_000,
     });
     expect(resolvedPlayback?.currentQueueItem?.trackId).toBe("track-1");
+  });
+
+  it("builds a visible queue that excludes the current track", () => {
+    const resolvedPlayback = resolveRoomPlayback(roomDetails, 40_000);
+
+    expect(getVisibleRoomQueue(roomDetails, resolvedPlayback)).toEqual([
+      {
+        ...roomDetails.queue[1]!,
+        position: 0,
+      },
+    ]);
+  });
+
+  it("advances the visible queue when playback advances locally", () => {
+    const laterRoomDetails: RoomDetails = {
+      ...roomDetails,
+      queueLength: 2,
+      queue: [
+        roomDetails.queue[1]!,
+        {
+          _id: "queue-3" as never,
+          roomId: "room-1" as never,
+          position: 1,
+          trackId: "track-3",
+          trackName: "Track Three",
+          trackArtists: ["Artist Three"],
+          trackImageUrl: null,
+          trackDurationMs: 180_000,
+          addedByUserId: "user-2",
+          addedAt: 3_000,
+        },
+      ],
+      playback: {
+        ...roomDetails.playback,
+        currentQueueItem: roomDetails.queue[0]!,
+        currentQueueItemId: roomDetails.queue[0]!._id,
+      },
+    };
+
+    const resolvedPlayback = resolveRoomPlayback(laterRoomDetails, 220_000);
+
+    expect(resolvedPlayback?.currentQueueItemId).toBe("queue-2");
+    expect(getVisibleRoomQueue(laterRoomDetails, resolvedPlayback)).toEqual([
+      {
+        ...laterRoomDetails.queue[1]!,
+        position: 0,
+      },
+    ]);
   });
 
   it("does not invent a current track before room playback starts", () => {

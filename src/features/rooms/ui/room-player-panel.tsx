@@ -3,6 +3,7 @@ import { SkipForwardIcon } from "lucide-react";
 import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { Button } from "@/components/ui/button";
 import { useRooms } from "../runtime/rooms-provider";
+import { getVisibleRoomQueue } from "../runtime/room-sync";
 import { RoomLink } from "./room-link";
 import { RoomQueueList } from "./room-queue-list";
 
@@ -15,7 +16,6 @@ export function RoomPlayerPanel() {
     repairSync,
     resolvedPlayback,
     skipRoom,
-    syncState,
   } = useRooms();
   const session = useAuthenticatedSession();
 
@@ -26,6 +26,7 @@ export function RoomPlayerPanel() {
   const canControlPlayback = activeRoom.playback.canControlPlayback;
   const canManageOwnQueueItems = !!activeRoom.viewerMembership;
   const currentQueueItem = resolvedPlayback?.currentQueueItem ?? null;
+  const visibleQueue = getVisibleRoomQueue(activeRoom, resolvedPlayback);
 
   return (
     <section className="mt-5 rounded-[2rem] bg-white/5 p-4 text-left">
@@ -71,7 +72,7 @@ export function RoomPlayerPanel() {
       <div className="mt-4">
         <RoomQueueList
           roomId={activeRoom.room._id}
-          queue={activeRoom.queue}
+          queue={visibleQueue}
           limit={4}
           currentQueueItemId={resolvedPlayback?.currentQueueItemId ?? null}
           canManageQueue={activeRoom.playback.canManageQueue}

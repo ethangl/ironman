@@ -1,7 +1,10 @@
 import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { SectionContent } from "@/components/section";
 import type { RoomDetails } from "../client/room-types";
-import { ResolvedRoomPlayback } from "../runtime/room-sync";
+import {
+  getVisibleRoomQueue,
+  ResolvedRoomPlayback,
+} from "../runtime/room-sync";
 import { useRooms } from "../runtime/rooms-provider";
 import { RoomNowPlaying } from "./room-now-playing";
 import { RoomQueueList } from "./room-queue-list";
@@ -17,6 +20,7 @@ export function RoomQueue({
   const { moveQueueItem, removeQueueItem } = useRooms();
 
   const canManageOwnQueueItems = !!room.viewerMembership;
+  const visibleQueue = getVisibleRoomQueue(room, resolvedPlayback);
 
   return (
     <SectionContent className="space-y-1">
@@ -24,7 +28,7 @@ export function RoomQueue({
       <div className="bg-section-color/10 h-0.5 -mx-3 my-2 rounded-full" />
       <RoomQueueList
         roomId={room.room._id}
-        queue={room.queue}
+        queue={visibleQueue}
         currentQueueItemId={resolvedPlayback?.currentQueueItemId ?? null}
         canManageQueue={room.playback.canManageQueue}
         canRemoveQueueItem={(queueItem) =>

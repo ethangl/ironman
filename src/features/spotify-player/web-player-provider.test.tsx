@@ -293,6 +293,7 @@ describe("WebPlayerProvider", () => {
     renderProvider(
       undefined,
       <>
+        <PlaybackAuthProbe />
         <PlayerProbe />
         <PlayActionProbe
           track={{
@@ -308,6 +309,11 @@ describe("WebPlayerProvider", () => {
 
     await waitFor(() => {
       expect(mockAuthFetch).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("player-is-authenticated")).toHaveTextContent(
+        "true",
+      );
     });
 
     await act(async () => {

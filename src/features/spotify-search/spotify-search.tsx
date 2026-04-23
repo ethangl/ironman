@@ -14,19 +14,16 @@ import {
   CommandShortcut,
 } from "@/components/ui/command";
 import { Spinner } from "@/components/ui/spinner";
-import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 import type { SpotifyPlaylist } from "@/features/spotify-client/types";
 import { useWebPlayerActions } from "@/features/spotify-player";
-import { api } from "@api";
+import { usePlaylistTracksLoader } from "@/features/spotify-playlists/use-playlist-tracks-loader";
 import { SearchIcon } from "lucide-react";
 import { useSearch } from "./search-provider";
 
 export function SpotifySearch() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [loadingPlaylistId, setLoadingPlaylistId] = useState<string | null>(
-    null,
-  );
+  const { loadingPlaylistId, loadPlaylistTracks } = usePlaylistTracksLoader();
   const { playTrack, playTracks } = useWebPlayerActions();
   const { error, loading, query, results, setQuery } = useSearch();
 
@@ -50,13 +47,8 @@ export function SpotifySearch() {
     results.artists.length > 0;
 
   async function playPlaylist(playlist: SpotifyPlaylist) {
-    setLoadingPlaylistId(playlist.id);
-
     try {
-      const client = await getAuthenticatedSpotifyConvexClient();
-      const tracks = await client.action(api.spotify.playlistTracks, {
-        playlistId: playlist.id,
-      });
+      const tracks = await loadPlaylistTracks(playlist);
 
       if (tracks.length === 0) {
         toast.error("That playlist does not have any playable tracks.");
@@ -70,10 +62,6 @@ export function SpotifySearch() {
         nextError instanceof Error
           ? nextError.message
           : "Could not load playlist tracks.",
-      );
-    } finally {
-      setLoadingPlaylistId((current) =>
-        current === playlist.id ? null : current,
       );
     }
   }

@@ -2,7 +2,7 @@ import { PlusIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { SpotifyTrack } from "@/features/spotify-client/types";
-import { useOptionalRooms } from "../runtime/rooms-provider";
+import { useOptionalRooms } from "../rooms/runtime/rooms-provider";
 
 export function EnqueueTrackButton({ track }: { track: SpotifyTrack }) {
   const rooms = useOptionalRooms();
@@ -14,7 +14,7 @@ export function EnqueueTrackButton({ track }: { track: SpotifyTrack }) {
   }
 
   return (
-    <Button size="sm" onClick={() => void enqueueTrack(track)}>
+    <Button size="icon" onClick={() => void enqueueTrack(track)}>
       <PlusIcon />
     </Button>
   );

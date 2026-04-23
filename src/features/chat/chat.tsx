@@ -27,7 +27,11 @@ export function Chat({ roomId }: { roomId: RoomId }) {
   const room = roomQuery.data;
 
   return (
-    <Sidebar style={{ "--section-color": "var(--color-red-400)" }}>
+    <Sidebar
+      style={{
+        "--section-color": "var(--palette-2, var(--color-red-400))",
+      }}
+    >
       <SidebarHeader>
         <SidebarToggle
           collapseIcon={<PanelRightCloseIcon />}

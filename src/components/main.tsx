@@ -15,7 +15,7 @@ export const Main: FC<MainProps> = ({ children, style }) => {
   return (
     <main
       className={cn(
-        "group/main flex flex-col max-h-full min-w-sm overflow-hidden relative rounded-3xl",
+        "group/main duration-1111 flex flex-col max-h-full min-w-sm overflow-hidden relative rounded-3xl transition-colors",
       )}
       style={style}
     >

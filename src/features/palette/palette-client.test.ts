@@ -1,12 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockExtractPaletteInBrowser = vi.fn();
-
-vi.mock("./browser-palette", () => ({
-  extractPaletteInBrowser: (...args: unknown[]) =>
-    mockExtractPaletteInBrowser(...args),
-}));
-
 import { createPaletteClient } from "./palette-client";
 
 function createDeferred<T>() {
@@ -22,27 +15,27 @@ function createDeferred<T>() {
 }
 
 describe("createPaletteClient", () => {
+  const loadPalette = vi.fn<(imageUrl: string) => Promise<string[]>>();
+
   beforeEach(() => {
-    mockExtractPaletteInBrowser.mockReset();
+    loadPalette.mockReset();
   });
 
   it("uses browser extraction", async () => {
-    mockExtractPaletteInBrowser.mockResolvedValue(["client-1", "client-2"]);
+    loadPalette.mockResolvedValue(["client-1", "client-2"]);
 
-    const client = createPaletteClient();
+    const client = createPaletteClient(loadPalette);
 
     await expect(
       client.get("https://image.example/client.jpg"),
     ).resolves.toEqual(["client-1", "client-2"]);
-    expect(mockExtractPaletteInBrowser).toHaveBeenCalledWith(
-      "https://image.example/client.jpg",
-    );
+    expect(loadPalette).toHaveBeenCalledWith("https://image.example/client.jpg");
   });
 
   it("rejects when browser extraction fails", async () => {
-    mockExtractPaletteInBrowser.mockRejectedValue(new Error("cors blocked"));
+    loadPalette.mockRejectedValue(new Error("cors blocked"));
 
-    const client = createPaletteClient();
+    const client = createPaletteClient(loadPalette);
 
     await expect(
       client.get("https://image.example/server.jpg"),
@@ -51,17 +44,33 @@ describe("createPaletteClient", () => {
 
   it("deduplicates in-flight palette lookups for the same artwork url", async () => {
     const deferred = createDeferred<string[]>();
-    mockExtractPaletteInBrowser.mockImplementation(() => deferred.promise);
+    loadPalette.mockImplementation(() => deferred.promise);
 
-    const client = createPaletteClient();
+    const client = createPaletteClient(loadPalette);
 
     const first = client.get("https://image.example/cached.jpg");
     const second = client.get("https://image.example/cached.jpg");
 
-    expect(mockExtractPaletteInBrowser).toHaveBeenCalledTimes(1);
+    expect(loadPalette).toHaveBeenCalledTimes(1);
     deferred.resolve(["cached-1", "cached-2"]);
 
     await expect(first).resolves.toEqual(["cached-1", "cached-2"]);
     await expect(second).resolves.toEqual(["cached-1", "cached-2"]);
+  });
+
+  it("keeps cache scoped to each client instance", async () => {
+    loadPalette.mockResolvedValue(["client-1"]);
+
+    const firstClient = createPaletteClient(loadPalette);
+    const secondClient = createPaletteClient(loadPalette);
+
+    await expect(firstClient.get("https://image.example/cached.jpg")).resolves.toEqual([
+      "client-1",
+    ]);
+    await expect(secondClient.get("https://image.example/cached.jpg")).resolves.toEqual([
+      "client-1",
+    ]);
+
+    expect(loadPalette).toHaveBeenCalledTimes(2);
   });
 });

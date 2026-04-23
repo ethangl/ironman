@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, useNavigate } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SpotifySearchResults } from "@/features/spotify-client/types";
@@ -105,6 +105,17 @@ function NavigateButton() {
 
   return (
     <button onClick={() => navigate("/artist/artist-1")}>Go to artist</button>
+  );
+}
+
+function LocationDisplay() {
+  const location = useLocation();
+
+  return (
+    <div data-testid="location-display">
+      {location.pathname}
+      {location.search}
+    </div>
   );
 }
 
@@ -268,5 +279,57 @@ describe("search", () => {
 
     expect(screen.queryByText("ISIS")).not.toBeInTheDocument();
     expect(mockScrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
+  it("preserves roomId when opening an artist from search results", async () => {
+    const searchResults = vi.fn().mockResolvedValue({
+      tracks: [],
+      artists: [
+        {
+          id: "artist-1",
+          name: "Mastodon",
+          image: "artist.jpg",
+          followerCount: 0,
+          genres: ["sludge metal"],
+        },
+      ],
+    });
+
+    const action = vi.fn((ref: unknown, args: unknown) => {
+      const functionName = getFunctionName(ref as never);
+
+      if (functionName === "spotify:search") {
+        return searchResults((args as { query: string }).query);
+      }
+
+      throw new Error(`Unexpected Spotify action: ${functionName}`);
+    });
+
+    vi.mocked(getAuthenticatedSpotifyConvexClient).mockResolvedValue({
+      action,
+    } as never);
+
+    render(
+      <MemoryRouter initialEntries={["/home?roomId=room-1"]}>
+        <SearchProvider>
+          <SpotifySearch />
+          <LocationDisplay />
+        </SearchProvider>
+      </MemoryRouter>,
+    );
+
+    await searchFor("mastodon");
+
+    await waitFor(() => {
+      expect(screen.getByText("Mastodon")).toBeInTheDocument();
+    });
+
+    fireEvent.click(getCommandItem("Mastodon"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location-display")).toHaveTextContent(
+        "/artist/artist-1?roomId=room-1",
+      );
+    });
   });
 });

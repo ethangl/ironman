@@ -22,8 +22,8 @@ export function RoomNowPlaying({
   return (
     <div className="bg-section-color/5 flex gap-4 items-center -mx-3 pr-3 rounded-2xl">
       <AlbumArt src={currentTrack?.albumImage || null} className="size-24" />
-      <div className="flex-1 min-w-0 space-y-1">
-        <h2 className="flex gap-3 items-center justify-between leading-none text-2xl">
+      <div className="flex-1 min-w-0 space-y-1.5">
+        <h2 className="flex gap-3 items-center justify-between leading-tight text-3xl">
           <span className="flex-1 min-w-0 truncate">
             {currentTrack?.name ?? "Queue is empty"}
           </span>
@@ -34,7 +34,7 @@ export function RoomNowPlaying({
           )}
         </h2>
         {currentTrack && (
-          <p className="leading-none text-lg text-muted-foreground">
+          <p className="leading-none text-xl text-muted-foreground">
             {currentTrack.artist} •{" "}
             {formatRoomDuration(resolvedPlayback?.currentOffsetMs ?? 0)}
           </p>

@@ -65,6 +65,7 @@ async function loadSpotifyModules({
       getAuth,
     },
     createAuth: vi.fn(),
+    requireAuthUser: getAuthUser,
   }));
 
   const spotifyModule = await import("./spotify");

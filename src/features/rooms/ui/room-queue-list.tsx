@@ -33,7 +33,12 @@ export function RoomQueueList({
   queue: RoomQueueItem[];
   roomId: RoomId;
 }) {
-  const visibleQueue = limit ? queue.slice(0, limit) : queue;
+  const nextVisibleQueue = currentQueueItemId
+    ? queue.filter((queueItem) => queueItem._id !== currentQueueItemId)
+    : queue;
+  const visibleQueue = limit
+    ? nextVisibleQueue.slice(0, limit)
+    : nextVisibleQueue;
 
   if (visibleQueue.length === 0) {
     return null;
@@ -42,12 +47,8 @@ export function RoomQueueList({
   return (
     <List count={visibleQueue.length}>
       {visibleQueue.map((queueItem, index) => {
-        const isCurrentQueueItem = currentQueueItemId === queueItem._id;
-        const canMoveUp = canManageQueue && !isCurrentQueueItem && index > 0;
-        const canMoveDown =
-          canManageQueue &&
-          !isCurrentQueueItem &&
-          index < visibleQueue.length - 1;
+        const canMoveUp = canManageQueue && index > 0;
+        const canMoveDown = canManageQueue && index < visibleQueue.length - 1;
         const canRemove = canRemoveQueueItem(queueItem);
 
         return (
@@ -66,9 +67,7 @@ export function RoomQueueList({
                 {canMoveUp && (
                   <Button
                     size="icon-sm"
-                    onClick={() =>
-                      onMove?.(roomId, queueItem._id, queueItem.position - 1)
-                    }
+                    onClick={() => onMove?.(roomId, queueItem._id, index - 1)}
                   >
                     <ArrowUpIcon />
                   </Button>
@@ -76,9 +75,7 @@ export function RoomQueueList({
                 {canMoveDown && (
                   <Button
                     size="icon-sm"
-                    onClick={() =>
-                      onMove?.(roomId, queueItem._id, queueItem.position + 1)
-                    }
+                    onClick={() => onMove?.(roomId, queueItem._id, index + 1)}
                   >
                     <ArrowDownIcon />
                   </Button>

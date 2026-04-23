@@ -7,7 +7,6 @@ import {
 } from "@/components/section";
 import { Spinner } from "@/components/ui/spinner";
 import { useRoomDetails, type RoomId } from "@/features/rooms";
-import { RoomActivityFeed } from "./room-activity-feed";
 import { RoomPeople } from "./room-people";
 import { RoomQueue } from "./room-queue";
 
@@ -49,7 +48,6 @@ export function Room({ roomId }: { roomId: RoomId }) {
           )}
         </SectionHeader>
         <RoomQueue resolvedPlayback={resolvedPlayback} room={data} />
-        <RoomActivityFeed room={data} />
       </Section>
     </MainContent>
   );

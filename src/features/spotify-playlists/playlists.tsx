@@ -4,7 +4,6 @@ import { List, ListLink } from "@/components/list";
 import {
   Section,
   SectionContent,
-  SectionFooter,
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
@@ -38,16 +37,12 @@ export const Playlists: FC<PlaylistsProps> = ({
             <PlaylistCell
               image={playlist.image}
               name={playlist.name}
-              subtitle={
-                playlist.owner
-                  ? `${playlist.trackCount} songs by ${playlist.owner}`
-                  : `${playlist.trackCount} songs`
-              }
+              subtitle={`${playlist.trackCount} songs`}
             />
           </ListLink>
         ))}
+        {paginate}
       </List>
     </SectionContent>
-    {paginate ? <SectionFooter>{paginate}</SectionFooter> : null}
   </Section>
 );

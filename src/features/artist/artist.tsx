@@ -1,4 +1,5 @@
 import { SidebarContent } from "@/components/sidebar";
+import { LoadMoreButton } from "@/components/load-more-button";
 import {
   ArtistExternalLinks,
   ArtistLastFmOverview,
@@ -34,14 +35,28 @@ export const Artist: FC = () => {
         <Releases
           title="Singles"
           page={singles}
-          loadingMore={loadingReleaseGroups.single}
-          onLoadMore={async () => await loadMoreReleases("single")}
+          paginate={
+            singles.hasMore && (
+              <LoadMoreButton
+                disabled={loadingReleaseGroups.single}
+                loading={loadingReleaseGroups.single}
+                onClick={() => void loadMoreReleases("single")}
+              />
+            )
+          }
         />
         <Releases
           title="Albums"
           page={albums}
-          loadingMore={loadingReleaseGroups.album}
-          onLoadMore={async () => await loadMoreReleases("album")}
+          paginate={
+            albums.hasMore && (
+              <LoadMoreButton
+                disabled={loadingReleaseGroups.album}
+                loading={loadingReleaseGroups.album}
+                onClick={() => void loadMoreReleases("album")}
+              />
+            )
+          }
         />
         <ArtistLastFmOverview artist={lastFmArtist} />
         <ArtistSimilar similarArtists={lastFmArtist?.similarArtists || []} />

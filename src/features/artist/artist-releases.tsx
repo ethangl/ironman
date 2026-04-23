@@ -1,21 +1,16 @@
-import { FC, useCallback, useState } from "react";
-import { toast } from "sonner";
+import { FC, ReactNode } from "react";
 
 import { List, ListLink } from "@/components/list";
-import { LoadMoreButton } from "@/components/load-more-button";
 import {
   Section,
   SectionContent,
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
-import { getSpotifyAlbumTracks } from "@/features/artist/spotify-artist-client";
 import type {
   SpotifyAlbumRelease,
   SpotifyPage,
-  Track,
 } from "@/features/spotify-client/types";
-import { useWebPlayerActions } from "@/features/spotify-player";
 import { PlaylistCell } from "@/features/spotify-playlists/playlist-cell";
 
 function formatReleaseDate(value: string | null) {
@@ -38,73 +33,12 @@ function formatReleaseMeta(release: SpotifyAlbumRelease) {
 
 export type ReleasesProps = {
   page: SpotifyPage<SpotifyAlbumRelease>;
+  paginate?: ReactNode;
   title: string;
-  loadingMore?: boolean;
-  onLoadMore?: () => Promise<void>;
 };
 
-export const Releases: FC<ReleasesProps> = ({
-  page,
-  title,
-  loadingMore = false,
-  onLoadMore,
-}) => {
-  const { playTracks } = useWebPlayerActions();
-  const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
+export const Releases: FC<ReleasesProps> = ({ page, paginate, title }) => {
   const releases = page.items;
-
-  const loadReleaseTracks = useCallback(
-    async (release: SpotifyAlbumRelease): Promise<Track[]> => {
-      setLoadingItemId(release.id);
-
-      try {
-        return await getSpotifyAlbumTracks(release.id);
-      } finally {
-        setLoadingItemId((current) =>
-          current === release.id ? null : current,
-        );
-      }
-    },
-    [],
-  );
-
-  const playRelease = useCallback(
-    async (release: SpotifyAlbumRelease) => {
-      try {
-        const tracks = await loadReleaseTracks(release);
-
-        if (tracks.length === 0) {
-          toast.error("That release does not have any playable tracks.");
-          return;
-        }
-
-        await playTracks(tracks);
-      } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Could not load that release right now.",
-        );
-      }
-    },
-    [loadReleaseTracks, playTracks],
-  );
-
-  const loadMore = useCallback(async () => {
-    if (!onLoadMore) {
-      return;
-    }
-
-    try {
-      await onLoadMore();
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Could not load more releases right now.",
-      );
-    }
-  }, [onLoadMore]);
 
   if (releases.length === 0) {
     return null;
@@ -128,13 +62,7 @@ export const Releases: FC<ReleasesProps> = ({
               />
             </ListLink>
           ))}
-          {page.hasMore && onLoadMore && (
-            <LoadMoreButton
-              disabled={loadingMore}
-              loading={loadingMore}
-              onClick={() => void loadMore()}
-            />
-          )}
+          {paginate}
         </List>
       </SectionContent>
     </Section>

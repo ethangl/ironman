@@ -55,25 +55,6 @@ export function SpotifyActivity() {
         />
       </SidebarHeader>
       <SidebarContent>
-        <Tracks
-          title="Recent Tracks"
-          getTrackKey={(_track, index) => {
-            const recentTrack = recentTracks[index];
-            return recentTrack
-              ? `${recentTrack.track.id}:${recentTrack.playedAt}`
-              : index;
-          }}
-          tracks={recentTracks.map(({ track }) => track)}
-          paginate={
-            recentTracksHasMore && (
-              <LoadMoreButton
-                disabled={recentTracksLoading || recentTracksLoadingMore}
-                loading={recentTracksLoadingMore}
-                onClick={() => void loadMoreRecentTracks()}
-              />
-            )
-          }
-        />
         <Playlists
           title="Your Playlists"
           playlists={playlists}
@@ -120,6 +101,25 @@ export function SpotifyActivity() {
                 disabled={favoriteArtistsLoading || favoriteArtistsLoadingMore}
                 loading={favoriteArtistsLoadingMore}
                 onClick={() => void loadMoreFavoriteArtists()}
+              />
+            )
+          }
+        />
+        <Tracks
+          title="Recent Tracks"
+          getTrackKey={(_track, index) => {
+            const recentTrack = recentTracks[index];
+            return recentTrack
+              ? `${recentTrack.track.id}:${recentTrack.playedAt}`
+              : index;
+          }}
+          tracks={recentTracks.map(({ track }) => track)}
+          paginate={
+            recentTracksHasMore && (
+              <LoadMoreButton
+                disabled={recentTracksLoading || recentTracksLoadingMore}
+                loading={recentTracksLoadingMore}
+                onClick={() => void loadMoreRecentTracks()}
               />
             )
           }

@@ -4,7 +4,6 @@ import { List, ListLink } from "@/components/list";
 import {
   Section,
   SectionContent,
-  SectionFooter,
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
@@ -38,8 +37,8 @@ export const Artists: FC<ArtistsProps> = ({
             <ArtistCell artist={artist} />
           </ListLink>
         ))}
+        {paginate}
       </List>
     </SectionContent>
-    {paginate ? <SectionFooter>{paginate}</SectionFooter> : null}
   </Section>
 );

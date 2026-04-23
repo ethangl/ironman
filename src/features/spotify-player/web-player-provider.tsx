@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useAppAuth, useAppCapabilities } from "@/app/app-runtime";
 import { useAuthenticatedSession } from "@/app/require-authenticated-session";
-import type { SpotifyTrack, Track } from "@/features/spotify-client/types";
-import { useSpotifyRecentlyPlayed } from "@/features/spotify-library";
+import type { Track } from "@/features/spotify-client/types";
 import { useSpotify } from "../spotify-sdk/use-spotify";
 import { usePlayerPalette } from "./use-player-palette";
 import { usePlayerPlayback } from "./use-player-playback";
@@ -16,7 +15,6 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
   const session = useAuthenticatedSession();
   const { getSpotifyAccessToken } = useAppAuth();
   const { canControlPlayback } = useAppCapabilities();
-  const { appendRecentTrack } = useSpotifyRecentlyPlayed();
   const tokenRef = useRef<string | null>(null);
 
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
@@ -99,40 +97,6 @@ export function WebPlayerProvider({ children }: { children: React.ReactNode }) {
 
   const artworkUrl = currentTrack?.albumImage ?? null;
   const palette = usePlayerPalette(artworkUrl);
-
-  const pendingRecentTrackRef = useRef<SpotifyTrack | null>(null);
-  const prevCurrentTrackIdRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!currentTrack || prevCurrentTrackIdRef.current === currentTrack.id) {
-      prevCurrentTrackIdRef.current = currentTrack?.id ?? null;
-      return;
-    }
-
-    const albumNameValue = (currentTrack as Partial<SpotifyTrack>).albumName;
-    const albumName = typeof albumNameValue === "string" ? albumNameValue : "";
-    pendingRecentTrackRef.current = {
-      ...currentTrack,
-      albumName,
-    };
-    prevCurrentTrackIdRef.current = currentTrack.id;
-  }, [currentTrack]);
-
-  useEffect(() => {
-    const confirmedTrackId = !sdkState?.paused
-      ? (sdkState?.trackId ?? null)
-      : null;
-
-    if (!confirmedTrackId) {
-      return;
-    }
-
-    const pendingTrack = pendingRecentTrackRef.current;
-    if (pendingTrack && pendingTrack.id === confirmedTrackId) {
-      appendRecentTrack(pendingTrack);
-      pendingRecentTrackRef.current = null;
-    }
-  }, [appendRecentTrack, sdkState]);
 
   const actions = useMemo(
     () => ({

@@ -41,6 +41,18 @@ export interface SpotifyPage<T> extends SpotifyPageInfo {
   items: T[];
 }
 
+export interface SpotifyCursorPageInfo<TCursor extends string | number> {
+  limit: number;
+  total: number;
+  nextCursor: TCursor | null;
+  hasMore: boolean;
+}
+
+export interface SpotifyCursorPage<T, TCursor extends string | number>
+  extends SpotifyCursorPageInfo<TCursor> {
+  items: T[];
+}
+
 export interface SpotifyPlaylist {
   id: string;
   name: string;
@@ -67,6 +79,13 @@ export interface SpotifyArtistPageData {
 export interface RecentTrack {
   playedAt: string;
   track: SpotifyTrack;
+}
+
+export type RecentlyPlayedPage = SpotifyCursorPage<RecentTrack, number>;
+
+export interface RecentlyPlayedPageResult {
+  page: RecentlyPlayedPage;
+  rateLimited: boolean;
 }
 
 export type Playlist = SpotifyPlaylist & {

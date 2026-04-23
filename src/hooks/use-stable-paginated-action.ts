@@ -15,22 +15,26 @@ export type PaginatedLoadingState<TKey extends string> = Record<TKey, boolean>;
 export interface UseStablePaginatedActionOptions<
   TKey extends string,
   TData,
-  TItem,
+  TPage,
+  TPageParam,
 > {
+  arePageParamsEqual?: (
+    left: TPageParam | null,
+    right: TPageParam | null,
+  ) => boolean;
   dataRef: MutableRefObject<TData | null>;
-  getCurrentPage: (data: TData, key: TKey) => SpotifyPage<TItem>;
+  getCurrentPage: (data: TData, key: TKey) => TPage;
+  getNextPageParam: (page: TPage) => TPageParam | null;
   keys: readonly TKey[];
   loadPage: (
     key: TKey,
-    requestedOffset: number,
-    limit: number,
-  ) => Promise<SpotifyPage<TItem>>;
-  mergePages?: (
-    currentPage: SpotifyPage<TItem>,
-    nextPage: SpotifyPage<TItem>,
-  ) => SpotifyPage<TItem>;
+    requestedPageParam: TPageParam,
+    currentPage: TPage,
+  ) => Promise<TPage | null>;
+  mergePages: (currentPage: TPage, nextPage: TPage) => TPage;
+  onError?: (error: unknown, key: TKey, requestedPageParam: TPageParam) => void;
   requestVersionRef: MutableRefObject<number>;
-  setCurrentPage: (data: TData, key: TKey, page: SpotifyPage<TItem>) => TData;
+  setCurrentPage: (data: TData, key: TKey, page: TPage) => TData;
   setData: Dispatch<SetStateAction<TData | null>>;
 }
 
@@ -55,16 +59,31 @@ export function appendSpotifyPage<TItem>(
   };
 }
 
-export function useStablePaginatedAction<TKey extends string, TData, TItem>({
+function defaultArePageParamsEqual<TPageParam>(
+  left: TPageParam | null,
+  right: TPageParam | null,
+) {
+  return Object.is(left, right);
+}
+
+export function useStablePaginatedAction<
+  TKey extends string,
+  TData,
+  TPage,
+  TPageParam,
+>({
+  arePageParamsEqual = defaultArePageParamsEqual,
   dataRef,
   getCurrentPage,
+  getNextPageParam,
   keys,
   loadPage,
-  mergePages = appendSpotifyPage,
+  mergePages,
+  onError,
   requestVersionRef,
   setCurrentPage,
   setData,
-}: UseStablePaginatedActionOptions<TKey, TData, TItem>) {
+}: UseStablePaginatedActionOptions<TKey, TData, TPage, TPageParam>) {
   const initialLoadingState = useMemo(() => createLoadingState(keys), [keys]);
   const [loadingByKey, setLoadingByKey] =
     useState<PaginatedLoadingState<TKey>>(initialLoadingState);
@@ -83,10 +102,9 @@ export function useStablePaginatedAction<TKey extends string, TData, TItem>({
       }
 
       const currentPage = getCurrentPage(currentData, key);
-      const requestedOffset = currentPage.nextOffset;
+      const requestedPageParam = getNextPageParam(currentPage);
       if (
-        !currentPage.hasMore ||
-        requestedOffset === null ||
+        requestedPageParam === null ||
         loadingKeysRef.current.has(key)
       ) {
         return;
@@ -100,11 +118,10 @@ export function useStablePaginatedAction<TKey extends string, TData, TItem>({
       }));
 
       try {
-        const nextPage = await loadPage(
-          key,
-          requestedOffset,
-          currentPage.limit,
-        );
+        const nextPage = await loadPage(key, requestedPageParam, currentPage);
+        if (!nextPage) {
+          return;
+        }
 
         if (requestVersionRef.current !== requestVersion) {
           return;
@@ -116,7 +133,12 @@ export function useStablePaginatedAction<TKey extends string, TData, TItem>({
           }
 
           const previousPage = getCurrentPage(previous, key);
-          if (previousPage.nextOffset !== requestedOffset) {
+          if (
+            !arePageParamsEqual(
+              getNextPageParam(previousPage),
+              requestedPageParam,
+            )
+          ) {
             return previous;
           }
 
@@ -126,6 +148,12 @@ export function useStablePaginatedAction<TKey extends string, TData, TItem>({
             mergePages(previousPage, nextPage),
           );
         });
+      } catch (error) {
+        if (!onError) {
+          throw error;
+        }
+
+        onError(error, key, requestedPageParam);
       } finally {
         loadingKeysRef.current.delete(key);
         if (requestVersionRef.current === requestVersion) {
@@ -137,10 +165,13 @@ export function useStablePaginatedAction<TKey extends string, TData, TItem>({
       }
     },
     [
+      arePageParamsEqual,
       dataRef,
       getCurrentPage,
+      getNextPageParam,
       loadPage,
       mergePages,
+      onError,
       requestVersionRef,
       setCurrentPage,
       setData,

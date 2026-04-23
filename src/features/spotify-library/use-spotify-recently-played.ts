@@ -2,120 +2,142 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
 
 import { RECENTLY_PLAYED_LIMIT } from "@/features/spotify-client";
 import type {
   RecentTrack,
-  SpotifyTrack,
+  RecentlyPlayedPage,
 } from "@/features/spotify-client/types";
-import { api } from "@api";
-import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
+import { useStableAction } from "@/hooks/use-stable-action";
+import { useStablePaginatedAction } from "@/hooks/use-stable-paginated-action";
+import { getSpotifyRecentlyPlayedPage } from "./spotify-recently-played-client";
 
-function dedupeRecent(raw: RecentTrack[]) {
-  const seen = new Set<string>();
-  const deduped: RecentTrack[] = [];
+const RECENT_TRACKS_KEY = "recent";
+const RECENT_TRACK_KEYS = [RECENT_TRACKS_KEY] as const;
 
-  for (const item of raw) {
-    if (seen.has(item.track.id)) {
-      continue;
-    }
+function createEmptyRecentlyPlayedPage(
+  limit = RECENTLY_PLAYED_LIMIT,
+): RecentlyPlayedPage {
+  return {
+    items: [],
+    limit,
+    total: 0,
+    nextCursor: null,
+    hasMore: false,
+  };
+}
 
-    seen.add(item.track.id);
-    deduped.push(item);
+function mergeRecentTrackPages(
+  currentPage: RecentlyPlayedPage,
+  nextPage: RecentlyPlayedPage,
+): RecentlyPlayedPage {
+  const items = [...currentPage.items, ...nextPage.items];
 
-    if (deduped.length >= RECENTLY_PLAYED_LIMIT) {
-      break;
-    }
-  }
-
-  return deduped;
+  return {
+    ...nextPage,
+    items,
+    limit: currentPage.limit,
+    total: Math.max(currentPage.total, nextPage.total, items.length),
+  };
 }
 
 interface SpotifyRecentlyPlayedContextValue {
-  appendRecentTrack: (track: SpotifyTrack) => void;
+  loadMoreRecentTracks: () => Promise<void>;
   loading: boolean;
   recentTracks: RecentTrack[];
-  refresh: () => void;
+  recentTracksHasMore: boolean;
+  recentTracksLoadingMore: boolean;
+  refresh: () => Promise<void>;
 }
 
 export const SpotifyRecentlyPlayedContext =
   createContext<SpotifyRecentlyPlayedContextValue | null>(null);
 
 export function useSpotifyRecentlyPlayedState(): SpotifyRecentlyPlayedContextValue {
-  const requestVersionRef = useRef(0);
-  const [recentTracks, setRecentTracks] = useState<RecentTrack[]>([]);
-  const [recentTracksLoading, setRecentTracksLoading] = useState(true);
-  const [recentTracksRefreshing, setRecentTracksRefreshing] = useState(false);
-
-  const appendRecentTrack = useCallback((track: SpotifyTrack) => {
-    const nextItem: RecentTrack = {
-      playedAt: new Date().toISOString(),
-      track,
-    };
-    setRecentTracks((current) => dedupeRecent([nextItem, ...current]));
-  }, []);
-
-  const loadRecentlyPlayed = useCallback(
-    async (mode: "load" | "refresh") => {
-      const requestVersion = ++requestVersionRef.current;
-      if (mode === "refresh") {
-        setRecentTracksRefreshing(true);
-      } else {
-        setRecentTracksLoading(true);
-        setRecentTracksRefreshing(false);
+  const emptyPageRef = useRef(createEmptyRecentlyPlayedPage());
+  const preservedPageRef = useRef(emptyPageRef.current);
+  const {
+    data,
+    dataRef,
+    loading: recentTracksLoading,
+    refreshing: recentTracksRefreshing,
+    refresh: refreshRecentTracks,
+    requestVersionRef,
+    setData,
+  } = useStableAction<RecentlyPlayedPage>({
+    initialData: emptyPageRef.current,
+    keepDataOnLoad: true,
+    load: useCallback(async () => {
+      const recentlyPlayed = await getSpotifyRecentlyPlayedPage();
+      if (recentlyPlayed.rateLimited) {
+        return preservedPageRef.current;
       }
 
-      try {
-        const client = await getAuthenticatedSpotifyConvexClient();
-        const recentlyPlayed = await client.action(api.spotify.recentlyPlayed, {
-          limit: RECENTLY_PLAYED_LIMIT,
-        });
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
+      return recentlyPlayed.page;
+    }, []),
+  });
 
-        if (!recentlyPlayed.rateLimited) {
-          setRecentTracks(dedupeRecent(recentlyPlayed.items));
-        }
-      } catch {
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
-      } finally {
-        if (requestVersionRef.current === requestVersion) {
-          setRecentTracksLoading(false);
-          setRecentTracksRefreshing(false);
-        }
-      }
-    },
-    [],
-  );
+  const recentTracksPage = data ?? emptyPageRef.current;
+  preservedPageRef.current = recentTracksPage;
 
-  useEffect(() => {
-    void loadRecentlyPlayed("load");
-  }, [loadRecentlyPlayed]);
+  const {
+    loadMore,
+    loadingByKey,
+    resetLoadingState: resetRecentTracksLoadingState,
+  } = useStablePaginatedAction<
+    typeof RECENT_TRACKS_KEY,
+    RecentlyPlayedPage,
+    RecentlyPlayedPage,
+    number
+  >({
+    dataRef,
+    getCurrentPage: (page) => page,
+    getNextPageParam: (page) => page.nextCursor,
+    keys: RECENT_TRACK_KEYS,
+    loadPage: useCallback(
+      async (_key, before, currentPage) => {
+        const recentlyPlayed = await getSpotifyRecentlyPlayedPage(
+          before,
+          currentPage.limit,
+        );
+        return recentlyPlayed.rateLimited ? null : recentlyPlayed.page;
+      },
+      [],
+    ),
+    mergePages: mergeRecentTrackPages,
+    onError: () => {},
+    requestVersionRef,
+    setCurrentPage: (_data, _key, page) => page,
+    setData,
+  });
 
-  const refresh = useCallback(() => {
-    void loadRecentlyPlayed("refresh");
-  }, [loadRecentlyPlayed]);
+  const refresh = useCallback(async () => {
+    resetRecentTracksLoadingState();
+    await refreshRecentTracks();
+  }, [refreshRecentTracks, resetRecentTracksLoadingState]);
+
+  const loadMoreRecentTracks = useCallback(async () => {
+    await loadMore(RECENT_TRACKS_KEY);
+  }, [loadMore]);
 
   return useMemo(
     () => ({
-      appendRecentTrack,
+      loadMoreRecentTracks,
       loading: recentTracksLoading || recentTracksRefreshing,
-      recentTracks,
+      recentTracks: recentTracksPage.items,
+      recentTracksHasMore: recentTracksPage.hasMore,
+      recentTracksLoadingMore: loadingByKey[RECENT_TRACKS_KEY],
       refresh,
     }),
     [
-      appendRecentTrack,
+      loadMoreRecentTracks,
       recentTracksLoading,
       recentTracksRefreshing,
-      recentTracks,
+      recentTracksPage,
+      loadingByKey,
       refresh,
     ],
   );

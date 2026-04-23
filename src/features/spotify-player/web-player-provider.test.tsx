@@ -3,9 +3,11 @@ import { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppRuntimeProvider } from "@/app/app-runtime";
+import { RECENTLY_PLAYED_LIMIT } from "@/features/spotify-client";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 import { clearCachedSpotifyAccessToken } from "@/features/spotify-client/spotify-access-token";
 import { clearCachedSpotifyAccountLink } from "@/features/spotify-client/spotify-account-link";
+import type { RecentlyPlayedPageResult } from "@/features/spotify-client/types";
 import { SpotifyActivityProvider } from "@/features/spotify-shell";
 import { getFunctionName } from "convex/server";
 import { usePlayerQueueListing } from "./use-player-queue-listing";
@@ -150,7 +152,11 @@ interface SpotifyActivityOverrides {
       genres: string[];
     }>
   >;
-  getRecentlyPlayed?: () => Promise<{ items: unknown[]; rateLimited: boolean }>;
+  getRecentlyPlayed?: (
+    limit?: number,
+    before?: number,
+    forceRefresh?: boolean,
+  ) => Promise<RecentlyPlayedPageResult>;
   getPlaylistsPage?: (
     limit?: number,
     offset?: number,
@@ -167,7 +173,16 @@ function renderProvider(
     spotifyReads?.getFavoriteArtists ?? vi.fn().mockResolvedValue([]);
   const getRecentlyPlayed =
     spotifyReads?.getRecentlyPlayed ??
-    vi.fn().mockResolvedValue({ items: [], rateLimited: false });
+    vi.fn().mockResolvedValue({
+      page: {
+        items: [],
+        limit: RECENTLY_PLAYED_LIMIT,
+        total: 0,
+        nextCursor: null,
+        hasMore: false,
+      },
+      rateLimited: false,
+    });
   const getPlaylistsPage =
     spotifyReads?.getPlaylistsPage ??
     vi.fn().mockResolvedValue({ items: [], total: 0 });
@@ -186,7 +201,12 @@ function renderProvider(
     }
 
     if (functionName === "spotify:recentlyPlayed") {
-      return getRecentlyPlayed();
+      const { before, forceRefresh, limit } = args as {
+        before?: number;
+        forceRefresh?: boolean;
+        limit: number;
+      };
+      return getRecentlyPlayed(limit, before, forceRefresh);
     }
 
     if (functionName === "spotify:playlistsPage") {

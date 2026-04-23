@@ -1,15 +1,15 @@
-import type { Playlist, RecentTrack } from "./types";
+import type { Playlist, RecentlyPlayedPage } from "./types";
 
 const PLAYLIST_PAGE_SIZE = 50;
-const RECENTLY_PLAYED_LIMIT = 30;
+const RECENTLY_PLAYED_LIMIT = 10;
 
 export interface PlaylistsPage {
   items: Playlist[];
   total: number;
 }
 
-export interface RecentlyPlayedResult {
-  items: RecentTrack[];
+export interface RecentlyPlayedPageResult {
+  page: RecentlyPlayedPage;
   rateLimited: boolean;
 }
 

@@ -1,11 +1,13 @@
 import { ExternalLinkIcon } from "lucide-react";
 
+import { AppLink } from "@/components/app-link";
 import {
   Section,
   SectionContent,
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
+import { Button } from "@/components/ui/button";
 import type { LastFmArtistMatch } from "./types";
 
 export function ArtistLastFmOverview({
@@ -33,17 +35,17 @@ export function ArtistLastFmOverview({
             {summary}
           </p>
         )}
-
         {lastFmUrl && (
-          <a
-            href={lastFmUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 self-start text-sm text-white/68 transition hover:text-white/90"
-          >
-            <ExternalLinkIcon className="h-4 w-4" />
-            <span>More on Last.fm</span>
-          </a>
+          <Button
+            size="xs"
+            nativeButton={false}
+            render={
+              <AppLink href={lastFmUrl} target="_blank" rel="noreferrer">
+                <ExternalLinkIcon className="h-4 w-4" />
+                <span>More on Last.fm</span>
+              </AppLink>
+            }
+          />
         )}
       </SectionContent>
     </Section>

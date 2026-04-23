@@ -1,11 +1,11 @@
-import { Link } from "react-router-dom";
-
+import { AppLink } from "@/components/app-link";
 import {
   Section,
   SectionContent,
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
+import { Button } from "@/components/ui/button";
 import { getSimilarArtistLink } from "./similar-artist-links";
 import type { LastFmSimilarArtist } from "./types";
 
@@ -19,39 +19,30 @@ export function ArtistSimilar({
       <SectionHeader>
         <SectionTitle>Similar Artists</SectionTitle>
       </SectionHeader>
-      <SectionContent className="flex flex-wrap gap-2 px-3 pb-3">
+      <SectionContent className="flex flex-wrap gap-2">
         {similarArtists.map((similarArtist) => {
           const link = getSimilarArtistLink(similarArtist);
           const key = `${similarArtist.name}:${similarArtist.musicBrainzId ?? "none"}`;
-          const className =
-            "inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/25 px-3 py-1.5 text-sm text-white/82 transition hover:bg-black/40";
-
-          if (link.href && !link.external) {
-            return (
-              <Link key={key} to={link.href} className={className}>
-                <span>{similarArtist.name}</span>
-              </Link>
-            );
-          }
 
           if (link.href) {
             return (
-              <a
+              <Button
                 key={key}
-                href={link.href}
-                target="_blank"
-                rel="noreferrer"
-                className={className}
-              >
-                <span>{similarArtist.name}</span>
-              </a>
+                size="xs"
+                nativeButton={false}
+                render={
+                  <AppLink href={link.href} target="_blank" rel="noreferrer">
+                    {similarArtist.name}
+                  </AppLink>
+                }
+              />
             );
           }
 
           return (
-            <span key={key} className={className}>
-              <span>{similarArtist.name}</span>
-            </span>
+            <Button key={key} size="xs">
+              {similarArtist.name}
+            </Button>
           );
         })}
       </SectionContent>

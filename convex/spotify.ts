@@ -41,7 +41,7 @@ import {
   spotifyPlaybackCurrentlyPlayingResultValidator,
   spotifyPlaybackResultValidator,
   spotifyPlaylistsPageValidator,
-  spotifyRecentlyPlayedResultValidator,
+  spotifyRecentlyPlayedPageResultValidator,
   spotifySearchResultsValidator,
   spotifyTrackValidator,
 } from "./spotify/validators";
@@ -120,15 +120,22 @@ export const albumTracks = action({
 
 export const recentlyPlayed = action({
   args: {
+    before: v.optional(v.number()),
+    forceRefresh: v.optional(v.boolean()),
     limit: v.optional(v.number()),
   },
-  returns: spotifyRecentlyPlayedResultValidator,
+  returns: spotifyRecentlyPlayedPageResultValidator,
   handler: async (ctx, args) => {
     const user = await requireAuthUser(ctx);
-    return spotifyRecentlyPlayedCache.fetch(ctx, {
-      limit: args.limit ?? DEFAULT_LIMIT,
-      cacheScope: String(user._id),
-    });
+    return spotifyRecentlyPlayedCache.fetch(
+      ctx,
+      {
+        before: args.before ?? null,
+        limit: args.limit ?? DEFAULT_LIMIT,
+        cacheScope: String(user._id),
+      },
+      args.forceRefresh ? { force: true } : undefined,
+    );
   },
 });
 

@@ -134,7 +134,7 @@ export const Releases: FC<ReleasesProps> = ({
           ))}
           {page.hasMore && onLoadMore && (
             <Button
-              variant="overlay"
+              variant="secondary"
               size="sm"
               disabled={loadingMore}
               onClick={() => void loadMore()}

@@ -9,7 +9,6 @@ import {
   SectionTitle,
 } from "@/components/section";
 import type { SpotifyTrack } from "@/features/spotify-client/types";
-import { useOptionalRooms } from "../rooms";
 import { EnqueueTrackButton } from "./enqueue-track-button";
 import { PlayTrackButton } from "./play-track-button";
 import { TrackCell } from "./track-cell";
@@ -32,9 +31,6 @@ export const Tracks: FC<TracksProps> = ({
   title,
   tracks,
 }) => {
-  const rooms = useOptionalRooms();
-  const activeRoom = rooms?.activeRoom ?? null;
-
   if (tracks.length === 0) {
     return null;
   }
@@ -53,11 +49,8 @@ export const Tracks: FC<TracksProps> = ({
           {tracks.map((track, index) => (
             <ListItem key={getTrackKey?.(track, index) ?? track.id}>
               <TrackCell track={track}>
-                {activeRoom ? (
-                  <EnqueueTrackButton track={track} />
-                ) : (
-                  <PlayTrackButton track={track} />
-                )}
+                <EnqueueTrackButton track={track} />
+                <PlayTrackButton track={track} />
               </TrackCell>
             </ListItem>
           ))}

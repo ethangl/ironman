@@ -18,6 +18,11 @@ import {
   type SpotifyApiArtist,
   type SpotifyApiTrack,
 } from "./mappers";
+import {
+  createEmptySpotifyPage,
+  createSpotifyPage,
+  type SpotifyOffsetPagingResponse,
+} from "./pagination";
 import type {
   SpotifyAlbumRelease,
   SpotifyArtist,
@@ -40,16 +45,7 @@ interface SearchResponse {
 
 type ArtistResponse = SpotifyApiArtist;
 
-interface SpotifyPagingResponse<TItem> {
-  items?: Array<TItem | null>;
-  limit?: number;
-  next?: string | null;
-  offset?: number;
-  previous?: string | null;
-  total?: number;
-}
-
-type ArtistAlbumsResponse = SpotifyPagingResponse<SpotifyAlbum>;
+type ArtistAlbumsResponse = SpotifyOffsetPagingResponse<SpotifyAlbum>;
 
 interface TopArtistsResponse {
   items?: SpotifyApiArtist[];
@@ -127,64 +123,6 @@ function toArtistRequestError(error: unknown, fallback: string) {
   }
 
   return new Error(fallback);
-}
-
-function getSpotifyNextOffset(next: string | null | undefined) {
-  if (!next) {
-    return null;
-  }
-
-  try {
-    const value = new URL(next).searchParams.get("offset");
-    if (value === null) {
-      return null;
-    }
-
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function createSpotifyPage<TItem>(
-  response: SpotifyPagingResponse<unknown> | null | undefined,
-  items: TItem[],
-  limit = DEFAULT_LIMIT,
-  offset = DEFAULT_OFFSET,
-): SpotifyPage<TItem> {
-  const normalizedLimit = response?.limit ?? limit;
-  const normalizedOffset = response?.offset ?? offset;
-  const total = response?.total ?? normalizedOffset + items.length;
-  const nextOffset =
-    getSpotifyNextOffset(response?.next) ??
-    (response?.next ? normalizedOffset + items.length : null);
-  const hasMore =
-    nextOffset !== null || total > normalizedOffset + items.length;
-
-  return {
-    items,
-    offset: normalizedOffset,
-    limit: normalizedLimit,
-    total,
-    nextOffset:
-      nextOffset ?? (hasMore ? normalizedOffset + items.length : null),
-    hasMore,
-  };
-}
-
-function createEmptySpotifyPage<TItem>(
-  limit = DEFAULT_LIMIT,
-  offset = DEFAULT_OFFSET,
-): SpotifyPage<TItem> {
-  return {
-    items: [],
-    offset,
-    limit,
-    total: 0,
-    nextOffset: null,
-    hasMore: false,
-  };
 }
 
 async function searchArtistTracks(

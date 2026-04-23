@@ -3,7 +3,11 @@ import { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppRuntimeProvider } from "@/app/app-runtime";
-import { RECENTLY_PLAYED_LIMIT } from "@/features/spotify-client";
+import {
+  PLAYLIST_PAGE_SIZE,
+  RECENTLY_PLAYED_LIMIT,
+  type PlaylistsPage,
+} from "@/features/spotify-client";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 import { clearCachedSpotifyAccessToken } from "@/features/spotify-client/spotify-access-token";
 import { clearCachedSpotifyAccountLink } from "@/features/spotify-client/spotify-account-link";
@@ -117,6 +121,14 @@ function TogglePlayProbe() {
   return <button onClick={() => void togglePlay()}>toggle-play</button>;
 }
 
+function PlaybackAuthProbe() {
+  const { isAuthenticated } = useWebPlayerActions();
+
+  return (
+    <div data-testid="player-is-authenticated">{String(isAuthenticated)}</div>
+  );
+}
+
 function QueueListingProbe() {
   const { activeIndex, activeTrackId, hasTracks, items, playbackIndex } =
     usePlayerQueueListing();
@@ -161,7 +173,7 @@ interface SpotifyActivityOverrides {
     limit?: number,
     offset?: number,
     forceRefresh?: boolean,
-  ) => Promise<{ items: unknown[]; total: number }>;
+  ) => Promise<PlaylistsPage>;
   getPlaylistTracks?: (playlistId: string) => Promise<unknown[]>;
 }
 
@@ -185,7 +197,14 @@ function renderProvider(
     });
   const getPlaylistsPage =
     spotifyReads?.getPlaylistsPage ??
-    vi.fn().mockResolvedValue({ items: [], total: 0 });
+    vi.fn().mockResolvedValue({
+      items: [],
+      offset: 0,
+      limit: PLAYLIST_PAGE_SIZE,
+      total: 0,
+      nextOffset: null,
+      hasMore: false,
+    });
   const getPlaylistTracks =
     spotifyReads?.getPlaylistTracks ?? vi.fn().mockResolvedValue([]);
 
@@ -361,6 +380,7 @@ describe("WebPlayerProvider", () => {
     renderProvider(
       undefined,
       <>
+        <PlaybackAuthProbe />
         <QueueListingProbe />
         <PlayTracksActionProbe
           startIndex={1}
@@ -390,6 +410,11 @@ describe("WebPlayerProvider", () => {
 
     await waitFor(() => {
       expect(mockAuthFetch).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("player-is-authenticated")).toHaveTextContent(
+        "true",
+      );
     });
 
     await act(async () => {

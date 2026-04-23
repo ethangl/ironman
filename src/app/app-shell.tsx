@@ -9,8 +9,8 @@ import { convexAuthClient as authClient } from "@/lib/convex-auth-client";
 import { getConvexUrl } from "@/lib/convex-env";
 import {
   FilmGrain,
+  Liquify,
   Shader,
-  SimplexNoise,
   Swirl,
   WaveDistortion,
 } from "shaders/react";
@@ -46,6 +46,7 @@ export function AppShell() {
                 colorSpace="oklch"
                 speed={0.2}
               />
+              <Liquify damping={3} intensity={20} radius={1} stiffness={30} />
               <WaveDistortion
                 angle={30}
                 blendMode="normal-oklch"
@@ -56,13 +57,7 @@ export function AppShell() {
                 visible={true}
                 waveType="bounce"
               />
-              <SimplexNoise
-                scale={8.0}
-                speed={0}
-                blendMode="overlay"
-                opacity={0.5}
-              />
-              <FilmGrain strength={0} />
+              <FilmGrain strength={0.02} />
             </Shader>
             <Outlet />
             <Toaster />

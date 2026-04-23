@@ -1,12 +1,9 @@
-import type { Playlist, RecentlyPlayedPage } from "./types";
+import type { Playlist, RecentlyPlayedPage, SpotifyPage } from "./types";
 
-const PLAYLIST_PAGE_SIZE = 50;
+const PLAYLIST_PAGE_SIZE = 10;
 const RECENTLY_PLAYED_LIMIT = 10;
 
-export interface PlaylistsPage {
-  items: Playlist[];
-  total: number;
-}
+export type PlaylistsPage = SpotifyPage<Playlist>;
 
 export interface RecentlyPlayedPageResult {
   page: RecentlyPlayedPage;

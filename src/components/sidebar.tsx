@@ -83,7 +83,7 @@ export const SidebarHeader: FC<SidebarHeaderProps> = ({
   const [expanded] = useSidebarState();
   return (
     <header className="flex flex-none group-first/sidebar:justify-end overflow-hidden shadow-[0_1px_0_--alpha(var(--color-background)/33%)] w-full">
-      <div className="flex flex-1 gap-2 h-16 items-center justify-between px-3.5 relative w-sm">
+      <div className="flex flex-1 gap-4 h-16 items-center justify-between px-3.5 relative w-sm">
         {title && (
           <div
             className={cn(
@@ -109,7 +109,7 @@ export const SidebarFooter: FC<PropsWithChildren> = ({ ...props }) => {
   return (
     <footer className="flex flex-none group-first/sidebar:justify-end overflow-hidden shadow-[0_-1px_0_--alpha(var(--color-background)/33%)] w-full">
       <div
-        className="flex gap-2 h-16 items-center justify-between px-4 w-sm"
+        className="flex gap-4 h-16 items-center justify-between px-4 w-sm"
         {...props}
       />
     </footer>

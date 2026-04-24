@@ -15,7 +15,7 @@ export const StopButton: FC<ButtonProps> = ({ ...props }) => {
 
   return (
     <Button
-      variant="overlay"
+      variant="ghost"
       size="icon"
       {...props}
       disabled={!roomPlayback?.canToggleListening}

@@ -13,7 +13,7 @@ export const SkipForwardButton: FC = () => {
 
   return (
     <Button
-      variant="overlay"
+      variant="ghost"
       size="icon"
       disabled={!roomPlayback.hasTrack}
       onClick={() => roomPlayback.skip()}

@@ -10,7 +10,7 @@ import { RoomCreateForm } from "@/features/rooms/ui/room-create-form";
 import { RoomHeader } from "@/features/rooms/ui/room-header";
 import { Rooms } from "@/features/rooms/ui/rooms";
 import { RoomsHeader } from "@/features/rooms/ui/rooms-header";
-import { MiniPlayer } from "@/features/spotify-player/mini-player2";
+import { MiniPlayer } from "@/features/spotify-player/mini-player";
 import { Player } from "@/features/spotify-player/player";
 import { PlayerWrapper } from "@/features/spotify-player/player-wrapper2";
 import { useNowPlaying } from "@/features/spotify-player/use-now-playing";

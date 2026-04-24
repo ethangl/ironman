@@ -1,11 +1,11 @@
-import { ChevronsUpIcon, SkipForwardIcon } from "lucide-react";
+import { ChevronsUpIcon } from "lucide-react";
 
 import { AlbumArt } from "@/components/album-art";
 import { useSidebarState } from "@/components/sidebar";
 import { StopButton } from "@/components/stop-button";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { NextTrackButton } from "./next-track-button";
+import { SkipForwardButton } from "./skip-forward-button";
 import { TogglePlayButton } from "./toggle-play-button";
 import { useNowPlaying } from "./use-now-playing";
 
@@ -17,7 +17,6 @@ export function MiniPlayer() {
     displayName,
     hasQueue,
     isRoomMode,
-    roomPlayback,
     setExpanded,
   } = useNowPlaying();
 
@@ -53,23 +52,8 @@ export function MiniPlayer() {
       >
         {isRoomMode ? (
           <>
-            <StopButton
-              variant="overlay"
-              size="icon-lg"
-              disabled={!roomPlayback?.canToggleListening}
-              playing={roomPlayback?.canToggleListening && !roomPlayback.paused}
-              onClick={() => roomPlayback?.toggleListening()}
-            />
-            {roomPlayback?.canSkip && (
-              <Button
-                variant="overlay"
-                size="icon-lg"
-                disabled={!roomPlayback.hasTrack}
-                onClick={() => roomPlayback.skip()}
-              >
-                <SkipForwardIcon />
-              </Button>
-            )}
+            <StopButton />
+            <SkipForwardButton />
           </>
         ) : (
           <>

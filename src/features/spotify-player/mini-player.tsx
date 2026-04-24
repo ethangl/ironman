@@ -1,11 +1,11 @@
-import { ChevronsUpIcon, SkipForwardIcon } from "lucide-react";
+import { ChevronsUpIcon } from "lucide-react";
 
 import { AlbumArt } from "@/components/album-art";
 import { PlayButton } from "@/components/play-button";
-import { Button } from "@/components/ui/button";
 import { NextTrackButton } from "./next-track-button";
 import { PlayerWrapper } from "./player-wrapper";
 import { RepairSyncButton } from "./repair-sync-button";
+import { SkipForwardButton } from "./skip-forward-button";
 import { TogglePlayButton } from "./toggle-play-button";
 import { useNowPlaying } from "./use-now-playing";
 
@@ -43,19 +43,12 @@ export function MiniPlayer() {
                 variant="overlay"
                 size="icon"
                 disabled={!roomPlayback?.canToggleListening}
-                playing={roomPlayback?.canToggleListening && !roomPlayback.paused}
+                playing={
+                  roomPlayback?.canToggleListening && !roomPlayback.paused
+                }
                 onClick={() => roomPlayback?.toggleListening()}
               />
-              {roomPlayback?.canSkip && (
-                <Button
-                  variant="overlay"
-                  size="icon"
-                  disabled={!roomPlayback.hasTrack}
-                  onClick={() => roomPlayback.skip()}
-                >
-                  <SkipForwardIcon />
-                </Button>
-              )}
+              <SkipForwardButton />
             </>
           ) : (
             <>

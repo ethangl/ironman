@@ -2,7 +2,6 @@ import {
   ChevronsDownIcon,
   PauseIcon,
   PlayIcon,
-  SkipForwardIcon,
   Volume2Icon,
   VolumeIcon,
 } from "lucide-react";
@@ -18,6 +17,7 @@ import { PrevTrackButton } from "./prev-track-button";
 import { RepairSyncButton } from "./repair-sync-button";
 import { RepeatButton } from "./repeat-button";
 import { ShuffleButton } from "./shuffle-button";
+import { SkipForwardButton } from "./skip-forward-button";
 import { TogglePlayButton } from "./toggle-play-button";
 import { useNowPlaying } from "./use-now-playing";
 
@@ -49,7 +49,10 @@ export function StandardPlayer() {
   return (
     <PlayerWrapper toggled={expanded}>
       <div className="p-7 pb-2 rounded-3xl">
-        <AlbumArt src={nowPlaying.displayImage} className="mb-9 mx-auto size-80" />
+        <AlbumArt
+          src={nowPlaying.displayImage}
+          className="mb-9 mx-auto size-80"
+        />
         <header className="mb-5 mix-blend-plus-darker dark:mix-blend-plus-lighter space-y-6">
           <div className="space-y-0.5">
             <h2 className="text-lg truncate">{nowPlaying.displayName}</h2>
@@ -99,15 +102,7 @@ export function StandardPlayer() {
           )}
           <div className="flex flex-auto gap-3 items-center justify-start">
             {nowPlaying.isRoomMode ? (
-              roomPlayback?.canSkip ? (
-                <Button
-                  variant="overlay"
-                  size="icon-lg"
-                  onClick={() => roomPlayback.skip()}
-                >
-                  <SkipForwardIcon />
-                </Button>
-              ) : null
+              <SkipForwardButton />
             ) : nowPlaying.hasQueue ? (
               <>
                 <NextTrackButton />
@@ -147,7 +142,9 @@ export function StandardPlayer() {
           </Button>
           <RepairSyncButton />
         </footer>
-        <div className="hidden">{nowPlaying.isRoomMode && <RoomPlayerPanel />}</div>
+        <div className="hidden">
+          {nowPlaying.isRoomMode && <RoomPlayerPanel />}
+        </div>
       </div>
     </PlayerWrapper>
   );

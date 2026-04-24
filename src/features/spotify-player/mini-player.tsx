@@ -1,70 +1,55 @@
-import { ChevronsUpIcon, SkipForwardIcon } from "lucide-react";
+import { ChevronsUpIcon } from "lucide-react";
 
 import { AlbumArt } from "@/components/album-art";
-import { PlayButton } from "@/components/play-button";
-import { Button } from "@/components/ui/button";
+import { StopButton } from "@/components/stop-button";
 import { NextTrackButton } from "./next-track-button";
-import { PlayerWrapper } from "./player-wrapper";
-import { RepairSyncButton } from "./repair-sync-button";
+import { SkipForwardButton } from "./skip-forward-button";
 import { TogglePlayButton } from "./toggle-play-button";
 import { useNowPlaying } from "./use-now-playing";
 
 export function MiniPlayer() {
-  const nowPlaying = useNowPlaying();
-  const roomPlayback = nowPlaying.roomPlayback;
+  const {
+    displayArtist,
+    displayImage,
+    displayName,
+    hasQueue,
+    isRoomMode,
+    setExpanded,
+  } = useNowPlaying();
 
   return (
-    <PlayerWrapper className="p-0.5" toggled={!nowPlaying.expanded}>
-      <div className="flex gap-2.5 h-12 items-center px-2.5">
-        <button
-          className="group flex flex-auto gap-2.5 items-center min-w-0"
-          onClick={() => nowPlaying.setExpanded(true)}
-        >
-          <div className="relative size-8">
-            <AlbumArt src={nowPlaying.displayImage} />
-            <div className="absolute backdrop-blur-none group-hover:backdrop-blur-md duration-444 inset-0 opacity-0 group-hover:opacity-100 pointer-events-none rounded-2xl transition-all">
+    <div className="backdrop-blur-xl backdrop-invert-10 backdrop-contrast-120 backdrop-saturate-120 bg-linear-to-b from-black/33 to-black/11 gap-4 grid grid-cols-[1fr_auto] items-center m-1 overflow-hidden p-1 rounded-2xl shadow-[inset_0_1px_3px_rgba(0,0,0,0.222),0_1px_1.5px_rgba(255,255,255,0.222)]">
+      <button
+        className="group gap-4 grid grid-cols-[auto_1fr] items-center z-1"
+        onClick={() => setExpanded(true)}
+      >
+        <div className="group relative z-1">
+          <AlbumArt src={displayImage} className="rounded-xl size-12">
+            <div className="absolute backdrop-blur-none group-hover:backdrop-blur-md duration-444 inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-all">
               <ChevronsUpIcon className="absolute inset-0 m-auto size-5 text-white" />
             </div>
-          </div>
-          <div className="min-w-0 mix-blend-plus-lighter space-y-1.5 text-left truncate">
-            <h6 className="leading-none text-xs truncate">
-              {nowPlaying.displayName}
-            </h6>
-            <p className="font-medium text-[9px] leading-none opacity-50 truncate">
-              {nowPlaying.compactDisplayArtist}
-            </p>
-          </div>
-        </button>
-        <nav className="flex flex-none items-center gap-1 mix-blend-plus-lighter">
-          <RepairSyncButton />
-          {nowPlaying.isRoomMode ? (
-            <>
-              <PlayButton
-                variant="overlay"
-                size="icon"
-                disabled={!roomPlayback?.canToggleListening}
-                playing={roomPlayback?.canToggleListening && !roomPlayback.paused}
-                onClick={() => roomPlayback?.toggleListening()}
-              />
-              {roomPlayback?.canSkip && (
-                <Button
-                  variant="overlay"
-                  size="icon"
-                  disabled={!roomPlayback.hasTrack}
-                  onClick={() => roomPlayback.skip()}
-                >
-                  <SkipForwardIcon />
-                </Button>
-              )}
-            </>
-          ) : (
-            <>
-              <TogglePlayButton />
-              {nowPlaying.hasQueue ? <NextTrackButton /> : null}
-            </>
-          )}
-        </nav>
-      </div>
-    </PlayerWrapper>
+          </AlbumArt>
+        </div>
+        <div className="block mix-blend-plus-lighter space-y-1 text-left transition-opacity truncate z-0">
+          <h4 className="font-medium leading-tight truncate">{displayName}</h4>
+          <p className="text-[11px] leading-tight opacity-50 truncate">
+            {displayArtist}
+          </p>
+        </div>
+      </button>
+      <nav className="flex flex-none items-center transition-opacity z-0">
+        {isRoomMode ? (
+          <>
+            <StopButton />
+            <SkipForwardButton />
+          </>
+        ) : (
+          <>
+            <TogglePlayButton />
+            {hasQueue ? <NextTrackButton /> : null}
+          </>
+        )}
+      </nav>
+    </div>
   );
 }

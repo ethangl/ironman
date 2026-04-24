@@ -1,12 +1,7 @@
 import { FC } from "react";
 
 import { List } from "@/components/list";
-import {
-  Section,
-  SectionContent,
-  SectionHeader,
-  SectionTitle,
-} from "@/components/section";
+import { Section, SectionHeader, SectionTitle } from "@/components/section";
 import type { SpotifyArtist } from "@/features/spotify-client/types";
 import { ArtistCell } from "./artist-cell";
 
@@ -30,17 +25,15 @@ export const Artists: FC<ArtistsProps> = ({
         {action}
       </SectionTitle>
     </SectionHeader>
-    <SectionContent>
-      <List count={artists.length}>
-        {artists.map((artist) => (
-          <ArtistCell
-            key={artist.id}
-            href={`/artist/${artist.id}`}
-            artist={artist}
-          />
-        ))}
-        {paginate}
-      </List>
-    </SectionContent>
+    <List count={artists.length}>
+      {artists.map((artist) => (
+        <ArtistCell
+          key={artist.id}
+          href={`/artist/${artist.id}`}
+          artist={artist}
+        />
+      ))}
+      {paginate}
+    </List>
   </Section>
 );

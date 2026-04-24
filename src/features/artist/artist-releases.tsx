@@ -1,12 +1,7 @@
 import { FC, ReactNode } from "react";
 
 import { List } from "@/components/list";
-import {
-  Section,
-  SectionContent,
-  SectionHeader,
-  SectionTitle,
-} from "@/components/section";
+import { Section, SectionHeader, SectionTitle } from "@/components/section";
 import type {
   SpotifyAlbumRelease,
   SpotifyPage,
@@ -51,20 +46,18 @@ export const Releases: FC<ReleasesProps> = ({ page, paginate, title }) => {
           <span>{title}</span>
         </SectionTitle>
       </SectionHeader>
-      <SectionContent>
-        <List count={releases.length}>
-          {releases.map((release) => (
-            <PlaylistCell
-              key={release.id}
-              href={`release/${release.id}`}
-              image={release.image}
-              name={release.name}
-              subtitle={formatReleaseMeta(release)}
-            />
-          ))}
-          {paginate}
-        </List>
-      </SectionContent>
+      <List count={releases.length}>
+        {releases.map((release) => (
+          <PlaylistCell
+            key={release.id}
+            href={`release/${release.id}`}
+            image={release.image}
+            name={release.name}
+            subtitle={formatReleaseMeta(release)}
+          />
+        ))}
+        {paginate}
+      </List>
     </Section>
   );
 };

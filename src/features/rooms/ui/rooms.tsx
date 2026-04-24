@@ -1,11 +1,6 @@
 import { List } from "@/components/list";
 import { MainContent } from "@/components/main";
-import {
-  Section,
-  SectionContent,
-  SectionHeader,
-  SectionTitle,
-} from "@/components/section";
+import { Section, SectionHeader, SectionTitle } from "@/components/section";
 import { useRooms } from "../runtime/rooms-provider";
 import { RoomCard } from "./room-card";
 
@@ -32,25 +27,21 @@ export function Rooms() {
         <SectionHeader>
           <SectionTitle>Your Rooms</SectionTitle>
         </SectionHeader>
-        <SectionContent>
-          <List count={joinedRooms.length} loading={roomsLoading}>
-            {joinedRooms.map((roomSummary) => (
-              <RoomCard key={roomSummary.room._id} roomSummary={roomSummary} />
-            ))}
-          </List>
-        </SectionContent>
+        <List count={joinedRooms.length} loading={roomsLoading}>
+          {joinedRooms.map((roomSummary) => (
+            <RoomCard key={roomSummary.room._id} roomSummary={roomSummary} />
+          ))}
+        </List>
       </Section>
       <Section>
         <SectionHeader>
           <SectionTitle>Discover Rooms</SectionTitle>
         </SectionHeader>
-        <SectionContent>
-          <List count={discoverRooms.length} loading={roomsLoading}>
-            {discoverRooms.map((roomSummary) => (
-              <RoomCard key={roomSummary.room._id} roomSummary={roomSummary} />
-            ))}
-          </List>
-        </SectionContent>
+        <List count={discoverRooms.length} loading={roomsLoading}>
+          {discoverRooms.map((roomSummary) => (
+            <RoomCard key={roomSummary.room._id} roomSummary={roomSummary} />
+          ))}
+        </List>
       </Section>
     </MainContent>
   );

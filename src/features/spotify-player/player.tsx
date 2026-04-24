@@ -1,7 +1,6 @@
 import { FC } from "react";
 
 import { cn } from "@/lib/utils";
-import { MiniPlayer } from "./mini-player";
 import { StandardPlayer } from "./standard-player";
 import { useNowPlaying } from "./use-now-playing";
 
@@ -16,7 +15,6 @@ export const Player: FC = () => {
         )}
         onClick={() => setExpanded(false)}
       />
-      <MiniPlayer />
       <StandardPlayer />
     </>
   );

@@ -58,7 +58,7 @@ export const EnqueuePlaylistButton: FC<EnqueuePlaylistButtonProps> = ({
       <TooltipTrigger
         render={
           <Button
-            size="icon-lg"
+            size="icon"
             disabled={
               !canEnqueueToActiveRoom || loadingPlaylistId === playlist.id
             }

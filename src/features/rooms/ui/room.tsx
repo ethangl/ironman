@@ -1,14 +1,11 @@
 import { MainContent } from "@/components/main";
-import { Section, SectionContent, SectionFooter } from "@/components/section";
-import { Button } from "@/components/ui/button";
+import { Section } from "@/components/section";
 import { Spinner } from "@/components/ui/spinner";
 import { useRoomDetails, type RoomId } from "@/features/rooms";
-import { useSearch } from "@/features/spotify-search/search-provider";
 import { RoomQueue } from "./room-queue";
 
 export function Room({ roomId }: { roomId: RoomId }) {
   const roomQuery = useRoomDetails(roomId);
-  const { setOpen } = useSearch();
 
   if (roomQuery.loading) {
     return (
@@ -31,12 +28,7 @@ export function Room({ roomId }: { roomId: RoomId }) {
   return (
     <MainContent>
       <Section>
-        <SectionContent className="pt-0">
-          <RoomQueue resolvedPlayback={resolvedPlayback} room={data} />
-        </SectionContent>
-        <SectionFooter>
-          <Button onClick={() => setOpen(true)}>Add to Queue</Button>
-        </SectionFooter>
+        <RoomQueue resolvedPlayback={resolvedPlayback} room={data} />
       </Section>
     </MainContent>
   );

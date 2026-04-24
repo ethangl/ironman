@@ -1,16 +1,5 @@
-import { ComponentProps, FC } from "react";
+import { FC } from "react";
 
-import { cn } from "@/lib/utils";
-
-export const BackgroundOverlay: FC<ComponentProps<"div">> = ({
-  className,
-  ...props
-}) => (
-  <div
-    className={cn(
-      "absolute bg-white duration-555 inset-0 mix-blend-overlay opacity-25 group-hover:opacity-75 rounded-[inherit] transition -z-1",
-      className,
-    )}
-    {...props}
-  />
+export const BackgroundOverlay: FC = () => (
+  <div className="absolute backdrop-brightness-600 backdrop-contrast-600 bg-section-color/50 duration-555 inset-0 mix-blend-exclusion opacity-25 rounded-[inherit] -z-1" />
 );

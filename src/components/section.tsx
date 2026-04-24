@@ -7,7 +7,7 @@ export const Section: FC<ComponentProps<"section">> = ({
   className,
 }) => {
   return (
-    <section className={cn("relative select-none", className)}>
+    <section className={cn("relative select-none space-y-2", className)}>
       {children}
     </section>
   );
@@ -16,7 +16,7 @@ export const Section: FC<ComponentProps<"section">> = ({
 export const SectionHeader: FC<ComponentProps<"header">> = ({
   className,
   ...props
-}) => <header className={cn("p-6 pb-0 space-y-2", className)} {...props} />;
+}) => <header className={cn("px-4 pt-4 space-y-1", className)} {...props} />;
 
 export const SectionTitle: FC<ComponentProps<"h2">> = ({
   className,
@@ -44,7 +44,7 @@ export const SectionDescription: FC<ComponentProps<"h4">> = ({
 export const SectionContent: FC<ComponentProps<"div">> = ({
   className,
   ...props
-}) => <div className={cn("p-6", className)} {...props} />;
+}) => <div className={cn("px-4", className)} {...props} />;
 
 export const SectionFooter: FC<ComponentProps<"header">> = ({
   className,
@@ -52,7 +52,7 @@ export const SectionFooter: FC<ComponentProps<"header">> = ({
 }) => (
   <footer
     className={cn(
-      "flex gap-3 items-center justify-between p-6 pt-0",
+      "flex gap-3 items-center justify-between px-4 pb-4",
       className,
     )}
     {...props}

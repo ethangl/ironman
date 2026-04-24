@@ -1,4 +1,5 @@
 import {
+  ComponentProps,
   createContext,
   CSSProperties,
   FC,
@@ -27,31 +28,47 @@ export function useSidebarState() {
   return sidebarState;
 }
 
+export const Sidebar: FC<ComponentProps<"div">> = ({ className, ...props }) => {
+  const [expanded, setExpanded] = useState(true);
+  return (
+    <SidebarStateContext.Provider value={[expanded, setExpanded]}>
+      <div
+        className={cn(
+          "group/sidebar duration-111 ease-out flex flex-col gap-3 max-h-full overflow-hidden transition-all",
+          expanded ? "w-sm" : "w-16",
+          className,
+        )}
+        {...props}
+      />
+    </SidebarStateContext.Provider>
+  );
+};
+
+export type SidebarWrapperProps = PropsWithChildren & {
+  className?: string;
+  style?: StyleWithCssVariables;
+};
+
 type StyleWithCssVariables = CSSProperties & {
   [key: `--${string}`]: string | number | undefined;
 };
 
-export type SidebarProps = PropsWithChildren & {
-  style?: StyleWithCssVariables;
-};
-
-export const Sidebar: FC<SidebarProps> = ({ children, style }) => {
-  const [expanded, setExpanded] = useState(true);
-  return (
-    <SidebarStateContext.Provider value={[expanded, setExpanded]}>
-      <aside
-        className={cn(
-          "group/sidebar duration-111 ease-out flex flex-col max-h-full overflow-hidden relative rounded-3xl transition-all",
-          expanded ? "w-sm" : "w-16",
-        )}
-        style={style}
-      >
-        <BackgroundOverlay className="backdrop-brightness-600 backdrop-contrast-600 bg-section-color/50 mix-blend-exclusion" />
-        {children}
-      </aside>
-    </SidebarStateContext.Provider>
-  );
-};
+export const SidebarWrapper: FC<SidebarWrapperProps> = ({
+  children,
+  className,
+  style,
+}) => (
+  <aside
+    className={cn(
+      "flex flex-1 flex-col overflow-hidden relative rounded-3xl",
+      className,
+    )}
+    style={style}
+  >
+    <BackgroundOverlay />
+    {children}
+  </aside>
+);
 
 export type SidebarHeaderProps = PropsWithChildren & {
   title?: ReactNode;
@@ -66,7 +83,7 @@ export const SidebarHeader: FC<SidebarHeaderProps> = ({
   const [expanded] = useSidebarState();
   return (
     <header className="flex flex-none group-first/sidebar:justify-end overflow-hidden shadow-[0_1px_0_--alpha(var(--color-background)/33%)] w-full">
-      <div className="flex flex-1 gap-2 h-16 items-center justify-between px-3.5 relative w-sm">
+      <div className="flex flex-1 gap-4 h-16 items-center justify-between px-3.5 relative w-sm">
         {title && (
           <div
             className={cn(
@@ -92,7 +109,7 @@ export const SidebarFooter: FC<PropsWithChildren> = ({ ...props }) => {
   return (
     <footer className="flex flex-none group-first/sidebar:justify-end overflow-hidden shadow-[0_-1px_0_--alpha(var(--color-background)/33%)] w-full">
       <div
-        className="flex gap-2 h-16 items-center justify-between px-4 w-sm"
+        className="flex gap-4 h-16 items-center justify-between px-4 w-sm"
         {...props}
       />
     </footer>

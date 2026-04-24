@@ -1,9 +1,18 @@
-import { ArrowDownIcon, ArrowUpIcon, Trash2Icon } from "lucide-react";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  GhostIcon,
+  PlusIcon,
+  Trash2Icon,
+} from "lucide-react";
 
 import { useAuthenticatedSession } from "@/app/require-authenticated-session";
-import { List } from "@/components/list";
+import { listItemClassName } from "@/components/list";
+import { Square } from "@/components/square";
 import { Button } from "@/components/ui/button";
+import { useSearch } from "@/features/spotify-search/search-provider";
 import { TrackCell } from "@/features/spotify-tracks/track-cell";
+import { cn } from "@/lib/utils";
 import type { RoomDetails } from "../client/room-types";
 import {
   getVisibleRoomQueue,
@@ -22,6 +31,7 @@ export function RoomQueue({
 }) {
   const session = useAuthenticatedSession();
   const { moveQueueItem, removeQueueItem } = useRooms();
+  const { setOpen } = useSearch();
 
   const canManageOwnQueueItems = !!room.viewerMembership;
   const currentQueueItemId = resolvedPlayback?.currentQueueItemId ?? null;
@@ -33,12 +43,8 @@ export function RoomQueue({
       : roomQueue
   ).slice(0, limit);
 
-  if (visibleQueue.length === 0) {
-    return null;
-  }
-
   return (
-    <List count={visibleQueue.length}>
+    <ol className="p-2 space-y-1">
       {visibleQueue.map((queueItem, index) => {
         const canMoveUp = room.playback.canManageQueue && index > 0;
         const canMoveDown =
@@ -95,6 +101,20 @@ export function RoomQueue({
           </TrackCell>
         );
       })}
-    </List>
+      <div
+        onClick={() => setOpen(true)}
+        className={cn(listItemClassName, "w-full")}
+      >
+        <div className="flex items-center -space-x-2">
+          <Square className="bg-section-color/10 font-bold rounded-l-2xl h-10 pr-2 text-xs tracking-tight w-12">
+            <PlusIcon size="16" />
+          </Square>
+          <Square className="bg-section-color rounded-2xl size-10 shadow-lg shadow-black/25">
+            <GhostIcon />
+          </Square>
+        </div>
+        Add to Queue
+      </div>
+    </ol>
   );
 }

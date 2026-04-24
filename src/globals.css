@@ -80,7 +80,7 @@
 }
 
 :root {
-  --section-color: #000;
+  --section-color: var(--palette-2, var(--color-emerald-400));
   --font-sans:
     "Host Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;

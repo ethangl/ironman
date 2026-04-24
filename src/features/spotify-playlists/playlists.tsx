@@ -1,12 +1,7 @@
 import { FC } from "react";
 
 import { List } from "@/components/list";
-import {
-  Section,
-  SectionContent,
-  SectionHeader,
-  SectionTitle,
-} from "@/components/section";
+import { Section, SectionHeader, SectionTitle } from "@/components/section";
 import type { SpotifyPlaylist } from "@/features/spotify-client/types";
 import { PlaylistCell } from "./playlist-cell";
 
@@ -30,19 +25,17 @@ export const Playlists: FC<PlaylistsProps> = ({
         {action}
       </SectionTitle>
     </SectionHeader>
-    <SectionContent>
-      <List count={playlists.length}>
-        {playlists.map((playlist) => (
-          <PlaylistCell
-            key={playlist.id}
-            href={`/playlist/${playlist.id}`}
-            image={playlist.image}
-            name={playlist.name}
-            subtitle={`${playlist.trackCount} songs`}
-          />
-        ))}
-        {paginate}
-      </List>
-    </SectionContent>
+    <List count={playlists.length}>
+      {playlists.map((playlist) => (
+        <PlaylistCell
+          key={playlist.id}
+          href={`/playlist/${playlist.id}`}
+          image={playlist.image}
+          name={playlist.name}
+          subtitle={`${playlist.trackCount} songs`}
+        />
+      ))}
+      {paginate}
+    </List>
   </Section>
 );

@@ -41,13 +41,26 @@ const queuedTrackValidator = v.object({
   trackImageUrl: v.optional(v.string()),
   trackDurationMs: v.number(),
 });
+const roomActivityPageSize = 100;
+const chatMessageMaxLength = 1_000;
 
 type RoomCtx = QueryCtx | MutationCtx;
 type RoomDoc = Doc<"rooms">;
 type RoomMembershipDoc = Doc<"roomMemberships">;
 type RoomQueueItemDoc = Doc<"roomQueueItems">;
 type RoomPlaybackStateDoc = Doc<"roomPlaybackStates">;
+type RoomActivityEventDoc = Doc<"roomActivityEvents">;
 type UserDoc = Doc<"users">;
+
+type RoomActivityActor = { tokenIdentifier: string; userId: string } | null;
+type RoomActivityTrackInput = {
+  queueItemId: Id<"roomQueueItems">;
+  trackId: string;
+  trackName: string;
+  trackArtists: string[];
+  trackImageUrl?: string | null;
+  trackDurationMs: number;
+};
 
 const roomPresence = new Presence<string, string>(components.presence);
 
@@ -136,6 +149,71 @@ function buildQueueItemSnapshot(
     addedByUserId: queueItem.addedByUserId,
     addedAt: queueItem.addedAt,
   };
+}
+
+function buildActivityTrackSnapshot(event: RoomActivityEventDoc) {
+  if (
+    !event.queueItemId ||
+    !event.trackId ||
+    !event.trackName ||
+    !event.trackArtists ||
+    event.trackDurationMs === undefined
+  ) {
+    throw new Error("Room activity event is missing track metadata.");
+  }
+
+  return {
+    queueItemId: event.queueItemId,
+    trackId: event.trackId,
+    trackName: event.trackName,
+    trackArtists: event.trackArtists,
+    trackImageUrl: event.trackImageUrl ?? null,
+    trackDurationMs: event.trackDurationMs,
+  };
+}
+
+function buildActivityEventSnapshot(
+  event: RoomActivityEventDoc,
+  actor: ReturnType<typeof buildRoomUserSnapshot> | null,
+) {
+  const base = {
+    _id: event._id,
+    roomId: event.roomId,
+    kind: event.kind,
+    createdAt: event.createdAt,
+    actor,
+  };
+
+  switch (event.kind) {
+    case "chat_message":
+      return {
+        ...base,
+        kind: "chat_message" as const,
+        body: event.body ?? "",
+      };
+    case "user_entered":
+      return {
+        ...base,
+        kind: "user_entered" as const,
+      };
+    case "user_left":
+      return {
+        ...base,
+        kind: "user_left" as const,
+      };
+    case "queue_added":
+      return {
+        ...base,
+        kind: "queue_added" as const,
+        track: buildActivityTrackSnapshot(event),
+      };
+    case "track_started":
+      return {
+        ...base,
+        kind: "track_started" as const,
+        track: buildActivityTrackSnapshot(event),
+      };
+  }
 }
 
 function isModeratorRole(roleMembership: RoomMembershipDoc | null) {
@@ -388,6 +466,130 @@ function normalizeQueuedTrack(input: {
   };
 }
 
+function normalizeChatMessageBody(body: string) {
+  const trimmedBody = body.trim();
+  if (!trimmedBody) {
+    throw new Error("Write a message before sending it.");
+  }
+
+  if (trimmedBody.length > chatMessageMaxLength) {
+    throw new Error("Keep chat messages under 1,000 characters.");
+  }
+
+  return trimmedBody;
+}
+
+function buildActivityTrackFields(track: RoomActivityTrackInput) {
+  return {
+    queueItemId: track.queueItemId,
+    trackId: track.trackId,
+    trackName: track.trackName,
+    trackArtists: track.trackArtists,
+    ...(track.trackImageUrl ? { trackImageUrl: track.trackImageUrl } : {}),
+    trackDurationMs: track.trackDurationMs,
+  };
+}
+
+function buildActivityTrackFromQueueItem(
+  queueItem: RoomQueueItemDoc,
+): RoomActivityTrackInput {
+  return {
+    queueItemId: queueItem._id,
+    trackId: queueItem.trackId,
+    trackName: queueItem.trackName,
+    trackArtists: queueItem.trackArtists,
+    trackImageUrl: queueItem.trackImageUrl ?? null,
+    trackDurationMs: queueItem.trackDurationMs,
+  };
+}
+
+async function insertRoomActivityEventOnce(
+  ctx: MutationCtx,
+  event: {
+    roomId: Id<"rooms">;
+    kind: "queue_added" | "track_started" | "user_entered" | "user_left";
+    createdAt: number;
+    actorUserId: string | null;
+    actorUserTokenIdentifier: string | null;
+    queueItemId?: Id<"roomQueueItems">;
+    trackId?: string;
+    trackName?: string;
+    trackArtists?: string[];
+    trackImageUrl?: string;
+    trackDurationMs?: number;
+    dedupeKey: string;
+  },
+) {
+  const existingEvent = await ctx.db
+    .query("roomActivityEvents")
+    .withIndex("by_roomId_and_dedupeKey", (q) =>
+      q.eq("roomId", event.roomId).eq("dedupeKey", event.dedupeKey),
+    )
+    .unique();
+
+  if (existingEvent) {
+    return existingEvent._id;
+  }
+
+  return ctx.db.insert("roomActivityEvents", event);
+}
+
+async function insertQueueAddedActivity(
+  ctx: MutationCtx,
+  roomId: Id<"rooms">,
+  actor: RoomActivityActor,
+  track: RoomActivityTrackInput,
+  createdAt: number,
+) {
+  return insertRoomActivityEventOnce(ctx, {
+    roomId,
+    kind: "queue_added",
+    createdAt,
+    actorUserId: actor?.userId ?? null,
+    actorUserTokenIdentifier: actor?.tokenIdentifier ?? null,
+    ...buildActivityTrackFields(track),
+    dedupeKey: `queue_added:${track.queueItemId}`,
+  });
+}
+
+export async function insertRoomPresenceActivity(
+  ctx: MutationCtx,
+  input: {
+    roomId: Id<"rooms">;
+    actor: Exclude<RoomActivityActor, null>;
+    kind: "user_entered" | "user_left";
+    createdAt: number;
+    sessionToken: string;
+  },
+) {
+  return insertRoomActivityEventOnce(ctx, {
+    roomId: input.roomId,
+    kind: input.kind,
+    createdAt: input.createdAt,
+    actorUserId: input.actor.userId,
+    actorUserTokenIdentifier: input.actor.tokenIdentifier,
+    dedupeKey: `${input.kind}:${input.sessionToken}`,
+  });
+}
+
+async function insertTrackStartedActivity(
+  ctx: MutationCtx,
+  roomId: Id<"rooms">,
+  actor: RoomActivityActor,
+  track: RoomActivityTrackInput,
+  createdAt: number,
+) {
+  return insertRoomActivityEventOnce(ctx, {
+    roomId,
+    kind: "track_started",
+    createdAt,
+    actorUserId: actor?.userId ?? null,
+    actorUserTokenIdentifier: actor?.tokenIdentifier ?? null,
+    ...buildActivityTrackFields(track),
+    dedupeKey: `track_started:${track.queueItemId}`,
+  });
+}
+
 async function insertQueuedTracks(
   ctx: MutationCtx,
   roomId: Id<"rooms">,
@@ -418,6 +620,16 @@ async function insertQueuedTracks(
       addedAt: now,
       removedAt: null,
     });
+    await insertQueueAddedActivity(
+      ctx,
+      roomId,
+      auth,
+      {
+        queueItemId,
+        ...track,
+      },
+      now,
+    );
     queueItemIds.push(queueItemId);
   }
 
@@ -541,6 +753,19 @@ async function compactRoomQueuePlayback(
   const desiredPausedAt = projection.currentQueueItem
     ? projection.resolvedPlaybackState.pausedAt
     : now;
+
+  if (
+    projection.currentQueueItem &&
+    playbackState.currentQueueItemId !== desiredCurrentQueueItemId
+  ) {
+    await insertTrackStartedActivity(
+      ctx,
+      playbackState.roomId,
+      null,
+      buildActivityTrackFromQueueItem(projection.currentQueueItem),
+      desiredStartedAt ?? now,
+    );
+  }
 
   if (
     playbackState.currentQueueItemId !== desiredCurrentQueueItemId ||
@@ -809,6 +1034,53 @@ export const get = query({
   },
 });
 
+export const listActivity = query({
+  args: {
+    roomId: v.id("rooms"),
+    since: v.number(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const visibleRoomContext = await getVisibleRoomContext(
+      ctx,
+      args.roomId,
+      undefined,
+    );
+    if (!visibleRoomContext) {
+      return [];
+    }
+
+    const limit = Math.max(
+      1,
+      Math.min(Math.trunc(args.limit ?? roomActivityPageSize), roomActivityPageSize),
+    );
+    const since = Number.isFinite(args.since) ? args.since : Date.now();
+    const events = await ctx.db
+      .query("roomActivityEvents")
+      .withIndex("by_roomId_and_createdAt", (q) =>
+        q.eq("roomId", visibleRoomContext.room._id).gt("createdAt", since),
+      )
+      .order("asc")
+      .take(limit);
+    const actorUserIds = events.flatMap((event) =>
+      event.actorUserId ? [event.actorUserId] : [],
+    );
+    const usersByUserId = await getUsersByUserId(ctx, actorUserIds);
+
+    return events.map((event) =>
+      buildActivityEventSnapshot(
+        event,
+        event.actorUserId
+          ? buildRoomUserSnapshot(
+              event.actorUserId,
+              usersByUserId.get(event.actorUserId) ?? null,
+            )
+          : null,
+      ),
+    );
+  },
+});
+
 export const create = mutation({
   args: {
     name: v.string(),
@@ -930,6 +1202,90 @@ export const unfollow = mutation({
   },
 });
 
+export const sendChatMessage = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    body: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const visibleRoomContext = await getVisibleRoomContext(
+      ctx,
+      args.roomId,
+      undefined,
+    );
+    if (!visibleRoomContext) {
+      throw new Error("Room not found.");
+    }
+
+    const now = Date.now();
+    const body = normalizeChatMessageBody(args.body);
+    const eventId = await ctx.db.insert("roomActivityEvents", {
+      roomId: visibleRoomContext.room._id,
+      kind: "chat_message",
+      createdAt: now,
+      actorUserId: visibleRoomContext.auth.userId,
+      actorUserTokenIdentifier: visibleRoomContext.auth.tokenIdentifier,
+      body,
+      dedupeKey: `chat_message:${visibleRoomContext.auth.tokenIdentifier}:${now}`,
+    });
+
+    return {
+      roomId: visibleRoomContext.room._id,
+      eventId,
+    };
+  },
+});
+
+export const recordCurrentTrackStarted = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    queueItemId: v.id("roomQueueItems"),
+  },
+  handler: async (ctx, args) => {
+    const visibleRoomContext = await getVisibleRoomContext(
+      ctx,
+      args.roomId,
+      undefined,
+    );
+    if (!visibleRoomContext) {
+      throw new Error("Room not found.");
+    }
+
+    const now = Date.now();
+    const [queueItems, playbackState] = await Promise.all([
+      getActiveQueueItems(ctx, visibleRoomContext.room._id),
+      getPlaybackStateDoc(ctx, visibleRoomContext.room._id),
+    ]);
+    const projection = resolveRoomPlaybackProjection(
+      queueItems,
+      playbackState,
+      now,
+    );
+    if (projection.currentQueueItem?._id !== args.queueItemId) {
+      return {
+        roomId: visibleRoomContext.room._id,
+        queueItemId: args.queueItemId,
+        recorded: false,
+      };
+    }
+
+    const eventId = await insertTrackStartedActivity(
+      ctx,
+      visibleRoomContext.room._id,
+      null,
+      buildActivityTrackFromQueueItem(projection.currentQueueItem),
+      projection.resolvedPlaybackState.startedAt ?? now,
+    );
+
+    return {
+      roomId: visibleRoomContext.room._id,
+      queueItemId: args.queueItemId,
+      eventId,
+      recorded: true,
+    };
+  },
+});
+
 export const enqueueTrack = mutation({
   args: enqueueTrackArgsValidator,
   handler: async (ctx, args) => {
@@ -938,14 +1294,18 @@ export const enqueueTrack = mutation({
         ctx,
         requireActiveRoomRoleContext(ctx, args.roomId),
       );
+    const track = normalizeQueuedTrack(args);
     const [queueItemId] = await insertQueuedTracks(
       ctx,
       roleContext.room._id,
       roleContext.auth,
-      [normalizeQueuedTrack(args)],
+      [track],
       projection.queueItems.length,
       now,
     );
+    if (!queueItemId) {
+      throw new Error("Track could not be queued.");
+    }
 
     if (projection.queueItems.length === 0) {
       await syncRoomPlaybackState(ctx, playbackState, {
@@ -956,6 +1316,16 @@ export const enqueueTrack = mutation({
         pausedAt: null,
         updatedAt: now,
       });
+      await insertTrackStartedActivity(
+        ctx,
+        roleContext.room._id,
+        roleContext.auth,
+        {
+          queueItemId,
+          ...track,
+        },
+        now,
+      );
     }
 
     return {
@@ -981,16 +1351,17 @@ export const enqueueTracks = mutation({
         ctx,
         requireActiveRoomRoleContext(ctx, args.roomId),
       );
+    const tracks = args.tracks.map((track) => normalizeQueuedTrack(track));
     const queueItemIds = await insertQueuedTracks(
       ctx,
       roleContext.room._id,
       roleContext.auth,
-      args.tracks.map((track) => normalizeQueuedTrack(track)),
+      tracks,
       projection.queueItems.length,
       now,
     );
 
-    if (projection.queueItems.length === 0) {
+    if (projection.queueItems.length === 0 && queueItemIds[0] && tracks[0]) {
       await syncRoomPlaybackState(ctx, playbackState, {
         currentQueueItemId: queueItemIds[0] ?? null,
         startedAt: now,
@@ -999,6 +1370,16 @@ export const enqueueTracks = mutation({
         pausedAt: null,
         updatedAt: now,
       });
+      await insertTrackStartedActivity(
+        ctx,
+        roleContext.room._id,
+        roleContext.auth,
+        {
+          queueItemId: queueItemIds[0],
+          ...tracks[0],
+        },
+        now,
+      );
     }
 
     return {
@@ -1193,6 +1574,16 @@ export const play = mutation({
       updatedAt: now,
     });
 
+    if (projection.currentQueueItemId !== currentQueueItemId) {
+      await insertTrackStartedActivity(
+        ctx,
+        moderatorContext.room._id,
+        moderatorContext.auth,
+        buildActivityTrackFromQueueItem(currentQueueItem),
+        now,
+      );
+    }
+
     return {
       roomId: moderatorContext.room._id,
       currentQueueItemId,
@@ -1292,6 +1683,16 @@ export const skip = mutation({
         projection.resolvedPlaybackState.paused || !nextQueueItem ? now : null,
       updatedAt: now,
     });
+
+    if (nextQueueItem) {
+      await insertTrackStartedActivity(
+        ctx,
+        moderatorContext.room._id,
+        moderatorContext.auth,
+        buildActivityTrackFromQueueItem(nextQueueItem),
+        now,
+      );
+    }
 
     return {
       roomId: moderatorContext.room._id,

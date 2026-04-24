@@ -10,10 +10,6 @@ export type ListProps = ComponentProps<"section"> & {
   loading?: boolean;
   title?: string;
 };
-
-const listItemClassName =
-  "group/list bg-section-color/5 hover:bg-section-color/10 duration-888 hover:duration-222 gap-4 grid grid-cols-[max-content_minmax(0,1fr)_max-content] inset-ring-section-color/0 hover:inset-ring-section-color inset-ring-1 items-center px-3 py-2.5 rounded-xl transition-colors";
-
 const List: FC<ListProps> = ({
   className,
   children,
@@ -37,8 +33,11 @@ const List: FC<ListProps> = ({
     );
   }
 
-  return <ol className={cn("-mx-3 -mb-3 space-y-1", className)}>{children}</ol>;
+  return <ol className={cn("p-2 space-y-1", className)}>{children}</ol>;
 };
+
+export const listItemClassName =
+  "group/list bg-section-color/5 hover:bg-section-color/10 duration-888 hover:duration-222 gap-4 grid grid-cols-[max-content_minmax(0,1fr)_max-content] inset-ring-section-color/0 hover:inset-ring-section-color inset-ring-1 items-center p-2 rounded-xl transition-colors";
 
 const ListItem: FC<ComponentProps<"li">> = ({ children, className }) => (
   <li className={cn(listItemClassName, className)}>{children}</li>

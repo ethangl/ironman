@@ -43,10 +43,6 @@ export function RoomQueue({
       : roomQueue
   ).slice(0, limit);
 
-  if (visibleQueue.length === 0) {
-    return null;
-  }
-
   return (
     <ol className="p-2 space-y-1">
       {visibleQueue.map((queueItem, index) => {

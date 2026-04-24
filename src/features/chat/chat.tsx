@@ -1,12 +1,6 @@
 import { MessageSquareIcon, PanelRightCloseIcon } from "lucide-react";
 
 import {
-  Section,
-  SectionContent,
-  SectionHeader,
-  SectionTitle,
-} from "@/components/section";
-import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -16,7 +10,6 @@ import {
 } from "@/components/sidebar";
 import { useRoomDetails } from "../rooms/client/room-hooks";
 import type { RoomId } from "../rooms/client/room-types";
-import { RoomPeople } from "../rooms/ui/room-people";
 import { UserMenu } from "./user-menu";
 
 export function Chat({ roomId }: { roomId: RoomId }) {
@@ -26,32 +19,25 @@ export function Chat({ roomId }: { roomId: RoomId }) {
     return null;
   }
 
-  const room = roomQuery.data;
-
   return (
     <Sidebar>
-      <SidebarWrapper
-        style={{
-          "--section-color": "var(--palette-2, var(--color-red-400))",
-        }}
-      >
-        <SidebarHeader>
+      <SidebarWrapper>
+        <SidebarHeader title="Chat">
           <SidebarToggle
             collapseIcon={<PanelRightCloseIcon />}
             expandIcon={<MessageSquareIcon />}
           />
         </SidebarHeader>
         <SidebarContent>
-          <Section>
-            <SectionHeader>
-              <SectionTitle>
-                Chat
-                <RoomPeople people={room.presentUsers} />
-              </SectionTitle>
-            </SectionHeader>
-            <SectionContent>not yet, chatty cathy</SectionContent>
-          </Section>
+          <div className="p-4">not yet, chatty cathy</div>
         </SidebarContent>
+      </SidebarWrapper>
+      <SidebarWrapper
+        className="flex-none h-16"
+        style={{
+          "--section-color": "var(--palette-2, var(--color-red-400))",
+        }}
+      >
         <SidebarFooter>
           <UserMenu />
         </SidebarFooter>

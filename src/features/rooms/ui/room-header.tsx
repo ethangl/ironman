@@ -1,12 +1,11 @@
-import { ArrowLeftIcon } from "lucide-react";
+import { ShipIcon } from "lucide-react";
 
 import { FC } from "react";
 
 import { MainHeader } from "@/components/main";
-import { Button } from "@/components/ui/button";
+import { Square } from "@/components/square";
 import { RoomId, useRoomDetails } from "@/features/rooms";
 import { RoomHeaderMenu } from "./room-header-menu";
-import { RoomLink } from "./room-link";
 
 export const RoomHeader: FC<{ roomId: RoomId }> = ({ roomId }) => {
   const { data } = useRoomDetails(roomId);
@@ -19,7 +18,7 @@ export const RoomHeader: FC<{ roomId: RoomId }> = ({ roomId }) => {
 
   return (
     <MainHeader title={room.name}>
-      <Button
+      {/* <Button
         variant="ghost"
         size="icon-sm"
         nativeButton={false}
@@ -28,7 +27,10 @@ export const RoomHeader: FC<{ roomId: RoomId }> = ({ roomId }) => {
             <ArrowLeftIcon />
           </RoomLink>
         }
-      />
+      /> */}
+      <Square className="size-8">
+        <ShipIcon className="size-5" />
+      </Square>
       <RoomHeaderMenu roomDetails={data} />
     </MainHeader>
   );

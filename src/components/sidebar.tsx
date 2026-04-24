@@ -45,6 +45,7 @@ export const Sidebar: FC<ComponentProps<"div">> = ({ className, ...props }) => {
 };
 
 export type SidebarWrapperProps = PropsWithChildren & {
+  className?: string;
   style?: StyleWithCssVariables;
 };
 
@@ -54,10 +55,14 @@ type StyleWithCssVariables = CSSProperties & {
 
 export const SidebarWrapper: FC<SidebarWrapperProps> = ({
   children,
+  className,
   style,
 }) => (
   <aside
-    className={cn("flex flex-1 flex-col overflow-hidden relative rounded-3xl")}
+    className={cn(
+      "flex flex-1 flex-col overflow-hidden relative rounded-3xl",
+      className,
+    )}
     style={style}
   >
     <BackgroundOverlay />

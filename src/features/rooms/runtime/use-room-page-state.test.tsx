@@ -8,6 +8,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { RoomId } from "../client/room-types";
 import { buildRoomPageHref, useRoomPageState } from "./use-room-page-state";
 
+const defaultRoomId = "kx73krhnfhtqg5kasyvj591t0s856nfw";
+
 describe("buildRoomPageHref", () => {
   it("preserves unrelated query params while replacing roomId", () => {
     expect(buildRoomPageHref("/artist/artist-1", "?view=top", "room-2" as RoomId)).toBe(
@@ -24,6 +26,23 @@ describe("buildRoomPageHref", () => {
 });
 
 describe("useRoomPageState", () => {
+  it("uses the default roomId when the URL does not provide one", async () => {
+    const { result } = renderHook(() => useRoomPageState(), {
+      wrapper: withNuqsTestingAdapter({
+        hasMemory: true,
+        searchParams: "?artistId=artist-1",
+      }),
+    });
+
+    expect(result.current.roomId).toBe(defaultRoomId);
+
+    await act(async () => {
+      await result.current.closeRoom();
+    });
+
+    expect(result.current.roomId).toBeNull();
+  });
+
   it("reads roomId from the URL and updates it with push history", async () => {
     const onUrlUpdate = vi.fn<OnUrlUpdateFunction>();
     const { result } = renderHook(() => useRoomPageState(), {

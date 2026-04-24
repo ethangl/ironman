@@ -1,23 +1,24 @@
-import { CSSProperties, FC, PropsWithChildren, ReactNode } from "react";
+import { ComponentProps, FC, PropsWithChildren, ReactNode } from "react";
 
 import { BackgroundOverlay } from "@/components/background-overlay";
 import { cn } from "@/lib/utils";
 
-type StyleWithCssVariables = CSSProperties & {
-  [key: `--${string}`]: string | number | undefined;
-};
+export const Main: FC<ComponentProps<"div">> = ({ className, ...props }) => (
+  <div
+    className={cn(
+      "flex flex-col gap-3 max-h-full min-w-sm overflow-hidden",
+      className,
+    )}
+    {...props}
+  />
+);
 
-export type MainProps = PropsWithChildren & {
-  style?: StyleWithCssVariables;
-};
-
-export const Main: FC<MainProps> = ({ children, style }) => {
+export const MainWrapper: FC<PropsWithChildren> = ({ children }) => {
   return (
     <main
       className={cn(
-        "group/main duration-1111 flex flex-col max-h-full min-w-sm overflow-hidden relative rounded-3xl transition-colors",
+        "group/main duration-1111 flex flex-1 flex-col overflow-hidden relative rounded-3xl transition-colors",
       )}
-      style={style}
     >
       <BackgroundOverlay />
       {children}

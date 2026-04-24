@@ -1,7 +1,7 @@
 import { FC } from "react";
 import { Outlet } from "react-router-dom";
 
-import { Main } from "@/components/main";
+import { Main, MainWrapper } from "@/components/main";
 import { Sidebar, SidebarWrapper } from "@/components/sidebar";
 import { Chat } from "@/features/chat/chat";
 import { useRoomPageState } from "@/features/rooms/runtime/use-room-page-state";
@@ -17,54 +17,36 @@ import { useNowPlaying } from "@/features/spotify-player/use-now-playing";
 
 export const AuthedLayout: FC = () => {
   const { isPlaying } = useNowPlaying();
+  const { roomId } = useRoomPageState();
   return (
     <div className="absolute gap-3 grid grid-cols-[auto_1fr_auto] inset-0 items-stretch p-3 overflow-x-auto scrollbar-none">
-      <Sidebar className={isPlaying ? "gap-3" : "gap-0"}>
+      <Sidebar>
         <SidebarWrapper
           style={{ "--section-color": "var(--color-emerald-400)" }}
         >
           <Outlet />
         </SidebarWrapper>
+      </Sidebar>
+      <Main className={isPlaying ? "gap-3" : "gap-0"}>
+        <MainWrapper>
+          {roomId ? (
+            <>
+              <RoomHeader roomId={roomId} />
+              <Room roomId={roomId} />
+            </>
+          ) : (
+            <>
+              <RoomsHeader />
+              <Rooms />
+            </>
+          )}
+        </MainWrapper>
         <PlayerWrapper>
           <MiniPlayer />
         </PlayerWrapper>
-      </Sidebar>
-      <RoomsLayout />
+      </Main>
+      {roomId ? <Chat roomId={roomId} /> : <RoomCreateForm />}
       <Player />
     </div>
   );
 };
-
-function RoomsLayout() {
-  const { roomId } = useRoomPageState();
-
-  if (roomId) {
-    return (
-      <>
-        <Main
-          style={{
-            "--section-color": "var(--palette-2, var(--color-red-400))",
-          }}
-        >
-          <RoomHeader roomId={roomId} />
-          <Room roomId={roomId} />
-        </Main>
-        <Chat roomId={roomId} />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <Main
-        style={{
-          "--section-color": "var(--palette-2, var(--color-red-400))",
-        }}
-      >
-        <RoomsHeader />
-        <Rooms />
-      </Main>
-      <RoomCreateForm />
-    </>
-  );
-}

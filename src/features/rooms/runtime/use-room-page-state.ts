@@ -1,10 +1,11 @@
-import { useCallback, useMemo } from "react";
-import { useLocation } from "react-router-dom";
 import { parseAsString, useQueryState } from "nuqs";
 import { useOptimisticSearchParams } from "nuqs/adapters/react-router/v7";
+import { useCallback, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import type { RoomId } from "../client/room-types";
 
+const DEFAULT_ROOM_ID = "kx73krhnfhtqg5kasyvj591t0s856nfw" as RoomId;
 const roomIdParser = parseAsString.withOptions({ history: "push" });
 
 export function buildRoomPageHref(
@@ -25,17 +26,25 @@ export function buildRoomPageHref(
 }
 
 export function useRoomPageState() {
-  const [roomIdValue, setRoomIdValue] = useQueryState("roomId", roomIdParser);
+  const [queryRoomIdValue, setRoomIdValue] = useQueryState(
+    "roomId",
+    roomIdParser,
+  );
+  const [defaultRoomClosed, setDefaultRoomClosed] = useState(false);
+  const roomIdValue =
+    queryRoomIdValue ?? (defaultRoomClosed ? null : DEFAULT_ROOM_ID);
   const roomId = roomIdValue as RoomId | null;
 
   const openRoom = useCallback(
     async (nextRoomId: RoomId) => {
+      setDefaultRoomClosed(false);
       await setRoomIdValue(nextRoomId);
     },
     [setRoomIdValue],
   );
 
   const closeRoom = useCallback(async () => {
+    setDefaultRoomClosed(true);
     await setRoomIdValue(null);
   }, [setRoomIdValue]);
 

@@ -3,7 +3,6 @@ import { FC, ReactNode } from "react";
 import { List } from "@/components/list";
 import {
   Section,
-  SectionContent,
   SectionDescription,
   SectionHeader,
   SectionTitle,
@@ -44,20 +43,18 @@ export const Tracks: FC<TracksProps> = ({
         </SectionTitle>
         {description && <SectionDescription>{description}</SectionDescription>}
       </SectionHeader>
-      <SectionContent>
-        <List count={tracks.length}>
-          {tracks.map((track, index) => (
-            <TrackCell
-              key={getTrackKey?.(track, index) ?? track.id}
-              track={track}
-            >
-              <EnqueueTrackButton track={track} />
-              <PlayTrackButton track={track} />
-            </TrackCell>
-          ))}
-          {paginate}
-        </List>
-      </SectionContent>
+      <List count={tracks.length}>
+        {tracks.map((track, index) => (
+          <TrackCell
+            key={getTrackKey?.(track, index) ?? track.id}
+            track={track}
+          >
+            <EnqueueTrackButton track={track} />
+            <PlayTrackButton track={track} />
+          </TrackCell>
+        ))}
+        {paginate}
+      </List>
     </Section>
   );
 };

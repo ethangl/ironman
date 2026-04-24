@@ -19,13 +19,7 @@ export const AuthedLayout: FC = () => {
   const { isPlaying } = useNowPlaying();
   return (
     <div className="absolute gap-3 grid grid-cols-[auto_1fr_auto] inset-0 items-stretch p-3 overflow-x-auto scrollbar-none">
-      <Sidebar
-        className={
-          isPlaying
-            ? "duration-888 ease-elastic gap-3"
-            : "duration-333 ease-out gap-0"
-        }
-      >
+      <Sidebar className={isPlaying ? "gap-3" : "gap-0"}>
         <SidebarWrapper
           style={{ "--section-color": "var(--color-emerald-400)" }}
         >

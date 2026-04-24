@@ -1,5 +1,5 @@
 import { MainContent } from "@/components/main";
-import { Section, SectionContent, SectionFooter } from "@/components/section";
+import { Section, SectionFooter } from "@/components/section";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useRoomDetails, type RoomId } from "@/features/rooms";
@@ -31,9 +31,7 @@ export function Room({ roomId }: { roomId: RoomId }) {
   return (
     <MainContent>
       <Section>
-        <SectionContent className="pt-0">
-          <RoomQueue resolvedPlayback={resolvedPlayback} room={data} />
-        </SectionContent>
+        <RoomQueue resolvedPlayback={resolvedPlayback} room={data} />
         <SectionFooter>
           <Button onClick={() => setOpen(true)}>Add to Queue</Button>
         </SectionFooter>

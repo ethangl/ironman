@@ -23,11 +23,12 @@ export function MiniPlayer() {
         className="group gap-4 grid grid-cols-[auto_1fr] items-center z-1"
         onClick={() => setExpanded(true)}
       >
-        <div className="relative z-1">
-          <AlbumArt src={displayImage} className="size-12" />
-          <div className="absolute backdrop-blur-none group-hover:backdrop-blur-md duration-444 inset-0 opacity-0 group-hover:opacity-100 pointer-events-none rounded-2xl transition-all">
-            <ChevronsUpIcon className="absolute inset-0 m-auto size-5 text-white" />
-          </div>
+        <div className="group relative z-1">
+          <AlbumArt src={displayImage} className="rounded-xl size-12">
+            <div className="absolute backdrop-blur-none group-hover:backdrop-blur-md duration-444 inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-all">
+              <ChevronsUpIcon className="absolute inset-0 m-auto size-5 text-white" />
+            </div>
+          </AlbumArt>
         </div>
         <div className="block mix-blend-plus-lighter space-y-1 text-left transition-opacity truncate z-0">
           <h4 className="font-medium leading-tight truncate">{displayName}</h4>

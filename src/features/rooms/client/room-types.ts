@@ -2,6 +2,7 @@ import type { Id } from "../../../../convex/_generated/dataModel";
 
 export type RoomId = Id<"rooms">;
 export type RoomQueueItemId = Id<"roomQueueItems">;
+export type RoomActivityEventId = Id<"roomActivityEvents">;
 
 export type RoomVisibility = "public" | "private";
 export type RoomRole = "owner" | "moderator" | "member";
@@ -47,6 +48,42 @@ export interface RoomQueueItem {
   addedByUserId: string;
   addedAt: number;
 }
+
+export interface RoomActivityTrack {
+  queueItemId: RoomQueueItemId;
+  trackId: string;
+  trackName: string;
+  trackArtists: string[];
+  trackImageUrl: string | null;
+  trackDurationMs: number;
+}
+
+interface RoomActivityEventBase {
+  _id: RoomActivityEventId;
+  roomId: RoomId;
+  createdAt: number;
+  actor: RoomUserSnapshot | null;
+}
+
+export interface RoomChatMessageEvent extends RoomActivityEventBase {
+  kind: "chat_message";
+  body: string;
+}
+
+export interface RoomQueueAddedEvent extends RoomActivityEventBase {
+  kind: "queue_added";
+  track: RoomActivityTrack;
+}
+
+export interface RoomTrackStartedEvent extends RoomActivityEventBase {
+  kind: "track_started";
+  track: RoomActivityTrack;
+}
+
+export type RoomActivityEvent =
+  | RoomChatMessageEvent
+  | RoomQueueAddedEvent
+  | RoomTrackStartedEvent;
 
 export interface RoomSummary {
   room: RoomSnapshot;

@@ -13,6 +13,13 @@ const roomRoleValidator = v.union(
 );
 
 const nullableNumberValidator = v.union(v.number(), v.null());
+const nullableStringValidator = v.union(v.string(), v.null());
+
+const roomActivityKindValidator = v.union(
+  v.literal("queue_added"),
+  v.literal("track_started"),
+  v.literal("chat_message"),
+);
 
 export default defineSchema({
   users: defineTable({
@@ -85,6 +92,23 @@ export default defineSchema({
     pausedAt: nullableNumberValidator,
     updatedAt: v.number(),
   }).index("by_roomId", ["roomId"]),
+  roomActivityEvents: defineTable({
+    roomId: v.id("rooms"),
+    kind: roomActivityKindValidator,
+    createdAt: v.number(),
+    actorUserId: nullableStringValidator,
+    actorUserTokenIdentifier: nullableStringValidator,
+    body: v.optional(v.string()),
+    queueItemId: v.optional(v.id("roomQueueItems")),
+    trackId: v.optional(v.string()),
+    trackName: v.optional(v.string()),
+    trackArtists: v.optional(v.array(v.string())),
+    trackImageUrl: v.optional(v.string()),
+    trackDurationMs: v.optional(v.number()),
+    dedupeKey: v.string(),
+  })
+    .index("by_roomId_and_createdAt", ["roomId", "createdAt"])
+    .index("by_roomId_and_dedupeKey", ["roomId", "dedupeKey"]),
   spotifyAuthCooldowns: defineTable({
     key: v.string(),
     expiresAt: v.number(),

@@ -19,7 +19,7 @@ export const Main: FC<MainProps> = ({ children, style }) => {
       )}
       style={style}
     >
-      <BackgroundOverlay className="backdrop-brightness-600 backdrop-contrast-600 bg-section-color/50 mix-blend-exclusion" />
+      <BackgroundOverlay />
       {children}
     </main>
   );

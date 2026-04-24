@@ -12,6 +12,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarToggle,
+  SidebarWrapper,
 } from "@/components/sidebar";
 import { useRoomDetails } from "../rooms/client/room-hooks";
 import type { RoomId } from "../rooms/client/room-types";
@@ -28,31 +29,33 @@ export function Chat({ roomId }: { roomId: RoomId }) {
   const room = roomQuery.data;
 
   return (
-    <Sidebar
-      style={{
-        "--section-color": "var(--palette-2, var(--color-red-400))",
-      }}
-    >
-      <SidebarHeader>
-        <SidebarToggle
-          collapseIcon={<PanelRightCloseIcon />}
-          expandIcon={<MessageSquareIcon />}
-        />
-      </SidebarHeader>
-      <SidebarContent>
-        <Section>
-          <SectionHeader>
-            <SectionTitle>
-              Chat
-              <RoomPeople people={room.presentUsers} />
-            </SectionTitle>
-          </SectionHeader>
-          <SectionContent>not yet, chatty cathy</SectionContent>
-        </Section>
-      </SidebarContent>
-      <SidebarFooter>
-        <UserMenu />
-      </SidebarFooter>
+    <Sidebar>
+      <SidebarWrapper
+        style={{
+          "--section-color": "var(--palette-2, var(--color-red-400))",
+        }}
+      >
+        <SidebarHeader>
+          <SidebarToggle
+            collapseIcon={<PanelRightCloseIcon />}
+            expandIcon={<MessageSquareIcon />}
+          />
+        </SidebarHeader>
+        <SidebarContent>
+          <Section>
+            <SectionHeader>
+              <SectionTitle>
+                Chat
+                <RoomPeople people={room.presentUsers} />
+              </SectionTitle>
+            </SectionHeader>
+            <SectionContent>not yet, chatty cathy</SectionContent>
+          </Section>
+        </SidebarContent>
+        <SidebarFooter>
+          <UserMenu />
+        </SidebarFooter>
+      </SidebarWrapper>
     </Sidebar>
   );
 }

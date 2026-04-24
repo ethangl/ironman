@@ -12,6 +12,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarToggle,
+  SidebarWrapper,
 } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,48 +50,50 @@ export function RoomCreateForm() {
   };
 
   return (
-    <Sidebar style={{ "--section-color": "var(--color-red-400)" }}>
-      <SidebarHeader>
-        <SidebarToggle
-          collapseIcon={<PanelRightCloseIcon />}
-          expandIcon={<MessageSquareIcon />}
-        />
-      </SidebarHeader>
-      <SidebarContent>
-        <Section>
-          <SectionHeader>
-            <SectionTitle>Start a Room</SectionTitle>
-          </SectionHeader>
-          <SectionContent>
-            <form className="space-y-3" onSubmit={handleSubmit}>
-              <Input
-                name="room-name"
-                value={name}
-                onValueChange={setName}
-                placeholder="Weekend warmup"
-                className="h-11 bg-white/10"
-              />
-              <Input
-                name="room-description"
-                value={description}
-                onValueChange={setDescription}
-                placeholder="What kind of room is this?"
-                className="h-11 bg-white/10"
-              />
-              <Button
-                type="submit"
-                size="lg"
-                disabled={submitting || !name.trim()}
-              >
-                {submitting ? "Opening room..." : "Create room"}
-              </Button>
-            </form>
-          </SectionContent>
-        </Section>
-      </SidebarContent>
-      <SidebarFooter>
-        <UserMenu />
-      </SidebarFooter>
+    <Sidebar>
+      <SidebarWrapper style={{ "--section-color": "var(--color-red-400)" }}>
+        <SidebarHeader>
+          <SidebarToggle
+            collapseIcon={<PanelRightCloseIcon />}
+            expandIcon={<MessageSquareIcon />}
+          />
+        </SidebarHeader>
+        <SidebarContent>
+          <Section>
+            <SectionHeader>
+              <SectionTitle>Start a Room</SectionTitle>
+            </SectionHeader>
+            <SectionContent>
+              <form className="space-y-3" onSubmit={handleSubmit}>
+                <Input
+                  name="room-name"
+                  value={name}
+                  onValueChange={setName}
+                  placeholder="Weekend warmup"
+                  className="h-11 bg-white/10"
+                />
+                <Input
+                  name="room-description"
+                  value={description}
+                  onValueChange={setDescription}
+                  placeholder="What kind of room is this?"
+                  className="h-11 bg-white/10"
+                />
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={submitting || !name.trim()}
+                >
+                  {submitting ? "Opening room..." : "Create room"}
+                </Button>
+              </form>
+            </SectionContent>
+          </Section>
+        </SidebarContent>
+        <SidebarFooter>
+          <UserMenu />
+        </SidebarFooter>
+      </SidebarWrapper>
     </Sidebar>
   );
 }

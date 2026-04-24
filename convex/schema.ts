@@ -19,6 +19,8 @@ const roomActivityKindValidator = v.union(
   v.literal("queue_added"),
   v.literal("track_started"),
   v.literal("chat_message"),
+  v.literal("user_entered"),
+  v.literal("user_left"),
 );
 
 export default defineSchema({
@@ -109,6 +111,22 @@ export default defineSchema({
   })
     .index("by_roomId_and_createdAt", ["roomId", "createdAt"])
     .index("by_roomId_and_dedupeKey", ["roomId", "dedupeKey"]),
+  roomPresenceSessions: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.string(),
+    userTokenIdentifier: v.string(),
+    sessionId: v.string(),
+    sessionToken: v.string(),
+    enteredAt: v.number(),
+    leftAt: nullableNumberValidator,
+  })
+    .index("by_sessionToken", ["sessionToken"])
+    .index("by_roomId_and_userId_and_sessionId", [
+      "roomId",
+      "userId",
+      "sessionId",
+    ])
+    .index("by_roomId_and_userId_and_leftAt", ["roomId", "userId", "leftAt"]),
   spotifyAuthCooldowns: defineTable({
     key: v.string(),
     expiresAt: v.number(),

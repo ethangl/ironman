@@ -90,6 +90,17 @@ describe("Chat room activity", () => {
   it("queries room activity after the sidebar join time", () => {
     mocks.events = [
       {
+        _id: "activity-entered",
+        roomId,
+        kind: "user_entered",
+        createdAt: 1_050,
+        actor: {
+          userId: "user-2",
+          name: "Maya",
+          image: null,
+        },
+      } as RoomActivityEvent,
+      {
         _id: "activity-1",
         roomId,
         kind: "chat_message",
@@ -101,6 +112,17 @@ describe("Chat room activity", () => {
         },
         body: "hello room",
       } as RoomActivityEvent,
+      {
+        _id: "activity-left",
+        roomId,
+        kind: "user_left",
+        createdAt: 1_200,
+        actor: {
+          userId: "user-3",
+          name: "River",
+          image: null,
+        },
+      } as RoomActivityEvent,
     ];
 
     render(<Chat roomId={roomId} />);
@@ -111,6 +133,8 @@ describe("Chat room activity", () => {
       limit: 100,
     });
     expect(screen.getByText("hello room")).toBeInTheDocument();
+    expect(screen.getByText("entered the room")).toBeInTheDocument();
+    expect(screen.getByText("left the room")).toBeInTheDocument();
   });
 
   it("sends trimmed chat messages from the sidebar child", async () => {

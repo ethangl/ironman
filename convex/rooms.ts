@@ -191,6 +191,16 @@ function buildActivityEventSnapshot(
         kind: "chat_message" as const,
         body: event.body ?? "",
       };
+    case "user_entered":
+      return {
+        ...base,
+        kind: "user_entered" as const,
+      };
+    case "user_left":
+      return {
+        ...base,
+        kind: "user_left" as const,
+      };
     case "queue_added":
       return {
         ...base,
@@ -497,16 +507,16 @@ async function insertRoomActivityEventOnce(
   ctx: MutationCtx,
   event: {
     roomId: Id<"rooms">;
-    kind: "queue_added" | "track_started";
+    kind: "queue_added" | "track_started" | "user_entered" | "user_left";
     createdAt: number;
     actorUserId: string | null;
     actorUserTokenIdentifier: string | null;
-    queueItemId: Id<"roomQueueItems">;
-    trackId: string;
-    trackName: string;
-    trackArtists: string[];
+    queueItemId?: Id<"roomQueueItems">;
+    trackId?: string;
+    trackName?: string;
+    trackArtists?: string[];
     trackImageUrl?: string;
-    trackDurationMs: number;
+    trackDurationMs?: number;
     dedupeKey: string;
   },
 ) {
@@ -539,6 +549,26 @@ async function insertQueueAddedActivity(
     actorUserTokenIdentifier: actor?.tokenIdentifier ?? null,
     ...buildActivityTrackFields(track),
     dedupeKey: `queue_added:${track.queueItemId}`,
+  });
+}
+
+export async function insertRoomPresenceActivity(
+  ctx: MutationCtx,
+  input: {
+    roomId: Id<"rooms">;
+    actor: Exclude<RoomActivityActor, null>;
+    kind: "user_entered" | "user_left";
+    createdAt: number;
+    sessionToken: string;
+  },
+) {
+  return insertRoomActivityEventOnce(ctx, {
+    roomId: input.roomId,
+    kind: input.kind,
+    createdAt: input.createdAt,
+    actorUserId: input.actor.userId,
+    actorUserTokenIdentifier: input.actor.tokenIdentifier,
+    dedupeKey: `${input.kind}:${input.sessionToken}`,
   });
 }
 

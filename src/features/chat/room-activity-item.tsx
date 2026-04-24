@@ -1,4 +1,9 @@
-import { ListPlusIcon, Music2Icon } from "lucide-react";
+import {
+  ListPlusIcon,
+  LogInIcon,
+  LogOutIcon,
+  Music2Icon,
+} from "lucide-react";
 
 import { AlbumArt } from "@/components/album-art";
 import { Avatar } from "@/components/avatar";
@@ -51,6 +56,36 @@ export function RoomActivityItem({ event }: { event: RoomActivityEvent }) {
           </div>
           <p className="whitespace-pre-wrap wrap-break-word text-sm leading-snug">
             {event.body}
+          </p>
+        </div>
+      </li>
+    );
+  }
+
+  if (event.kind === "user_entered" || event.kind === "user_left") {
+    const entered = event.kind === "user_entered";
+
+    return (
+      <li className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 rounded-xl bg-section-color/5 p-2">
+        <div
+          className={cn(
+            "flex size-8 items-center justify-center rounded-full",
+            entered
+              ? "bg-emerald-400/10 text-emerald-200"
+              : "bg-rose-400/10 text-rose-200",
+          )}
+        >
+          {entered ? <LogInIcon /> : <LogOutIcon />}
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-2">
+            <span className="truncate text-sm font-medium">{actorName}</span>
+            <time className="shrink-0 text-[11px] text-muted-foreground">
+              {time}
+            </time>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {entered ? "entered the room" : "left the room"}
           </p>
         </div>
       </li>

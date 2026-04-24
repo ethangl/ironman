@@ -70,6 +70,14 @@ export interface RoomChatMessageEvent extends RoomActivityEventBase {
   body: string;
 }
 
+export interface RoomUserEnteredEvent extends RoomActivityEventBase {
+  kind: "user_entered";
+}
+
+export interface RoomUserLeftEvent extends RoomActivityEventBase {
+  kind: "user_left";
+}
+
 export interface RoomQueueAddedEvent extends RoomActivityEventBase {
   kind: "queue_added";
   track: RoomActivityTrack;
@@ -82,6 +90,8 @@ export interface RoomTrackStartedEvent extends RoomActivityEventBase {
 
 export type RoomActivityEvent =
   | RoomChatMessageEvent
+  | RoomUserEnteredEvent
+  | RoomUserLeftEvent
   | RoomQueueAddedEvent
   | RoomTrackStartedEvent;
 

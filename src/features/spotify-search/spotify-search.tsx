@@ -1,4 +1,6 @@
-import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+
 import {
   Command,
   CommandDialog,
@@ -11,17 +13,14 @@ import {
 } from "@/components/ui/command";
 import { Spinner } from "@/components/ui/spinner";
 import { useWebPlayerActions } from "@/features/spotify-player";
-import { SearchIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 import { useSearch } from "./search-provider";
 
 export function SpotifySearch() {
-  const [open, setOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { playTrack } = useWebPlayerActions();
-  const { error, loading, query, results, setQuery } = useSearch();
+  const { error, loading, open, query, results, setOpen, setQuery } =
+    useSearch();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -40,93 +39,83 @@ export function SpotifySearch() {
   const hasResults = results.tracks.length > 0 || results.artists.length > 0;
 
   return (
-    <>
-      <Button
-        aria-label="Search Spotify"
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => setOpen(true)}
-      >
-        <SearchIcon className="-translate-x-px" />
-      </Button>
-      <CommandDialog open={open} onOpenChange={setOpen}>
-        <Command shouldFilter={false}>
-          <CommandInput
-            value={query}
-            onValueChange={setQuery}
-            placeholder="Search Spotify for songs or artists..."
-          />
-          <CommandList className="max-h-[60vh]">
-            {loading && (
-              <CommandGroup heading="Searching">
-                <CommandItem disabled>
-                  <Spinner />
-                  Searching Spotify...
-                </CommandItem>
-              </CommandGroup>
-            )}
+    <CommandDialog open={open} onOpenChange={setOpen}>
+      <Command shouldFilter={false}>
+        <CommandInput
+          value={query}
+          onValueChange={setQuery}
+          placeholder="Search Spotify for songs or artists..."
+        />
+        <CommandList className="max-h-[60vh]">
+          {loading && (
+            <CommandGroup>
+              <CommandItem disabled>
+                <Spinner />
+                Searching Spotify...
+              </CommandItem>
+            </CommandGroup>
+          )}
 
-            {error && (
-              <CommandGroup heading="Error">
-                <CommandItem disabled>{error}</CommandItem>
-              </CommandGroup>
-            )}
+          {error && (
+            <CommandGroup heading="Error">
+              <CommandItem disabled>{error}</CommandItem>
+            </CommandGroup>
+          )}
 
-            {!loading && !error && hasResults && (
-              <>
-                {results.tracks.length > 0 && (
-                  <CommandGroup heading="Songs">
-                    {results.tracks.map((track) => (
-                      <CommandItem
-                        key={track.id}
-                        value={`${track.name} ${track.artist}`}
-                        onSelect={() => {
-                          void playTrack(track);
-                          setOpen(false);
-                        }}
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate">{track.name}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {track.artist}
-                          </p>
-                        </div>
-                        <CommandShortcut>Play</CommandShortcut>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                )}
+          {!loading && !error && hasResults && (
+            <>
+              {results.tracks.length > 0 && (
+                <CommandGroup heading="Songs">
+                  {results.tracks.map((track) => (
+                    <CommandItem
+                      key={track.id}
+                      value={`${track.name} ${track.artist}`}
+                      onSelect={() => {
+                        void playTrack(track);
+                        setOpen(false);
+                      }}
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate">{track.name}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {track.artist}
+                        </p>
+                      </div>
+                      <CommandShortcut>Play</CommandShortcut>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
 
-                {results.artists.length > 0 && (
-                  <CommandGroup heading="Artists">
-                    {results.artists.map((artist) => (
-                      <CommandItem
-                        key={artist.id}
-                        value={artist.id}
-                        keywords={[artist.name]}
-                        onSelect={() => {
-                          navigate({
-                            pathname: `/artist/${artist.id}`,
-                            search: location.search,
-                          });
-                          setOpen(false);
-                        }}
-                        className="truncate"
-                      >
-                        {artist.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                )}
+              {results.artists.length > 0 && (
+                <CommandGroup heading="Artists">
+                  {results.artists.map((artist) => (
+                    <CommandItem
+                      key={artist.id}
+                      value={artist.id}
+                      keywords={[artist.name]}
+                      onSelect={() => {
+                        navigate({
+                          pathname: `/artist/${artist.id}`,
+                          search: location.search,
+                        });
+                        setOpen(false);
+                      }}
+                      className="truncate"
+                    >
+                      {artist.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
 
-                {!loading && !hasResults && (
-                  <CommandEmpty>No results for "${trimmedQuery}"</CommandEmpty>
-                )}
-              </>
-            )}
-          </CommandList>
-        </Command>
-      </CommandDialog>
-    </>
+              {!loading && !hasResults && (
+                <CommandEmpty>No results for "${trimmedQuery}"</CommandEmpty>
+              )}
+            </>
+          )}
+        </CommandList>
+      </Command>
+    </CommandDialog>
   );
 }

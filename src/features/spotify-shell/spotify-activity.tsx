@@ -1,11 +1,7 @@
-import { LibraryIcon, PanelLeftCloseIcon, RefreshCwIcon } from "lucide-react";
+import { RefreshCwIcon } from "lucide-react";
 
 import { LoadMoreButton } from "@/components/load-more-button";
-import {
-  SidebarContent,
-  SidebarHeader,
-  SidebarToggle,
-} from "@/components/sidebar";
+import { SidebarContent } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Artists } from "@/features/artist";
 import {
@@ -15,7 +11,7 @@ import {
 } from "@/features/spotify-library";
 import { Playlists } from "@/features/spotify-playlists";
 import { Tracks } from "@/features/spotify-tracks";
-import { SpotifySearch } from "../spotify-search/spotify-search";
+import { SpotifyHeader } from "./spotify-header";
 
 export function SpotifyActivity() {
   const {
@@ -47,13 +43,7 @@ export function SpotifyActivity() {
 
   return (
     <>
-      <SidebarHeader title="Spotify">
-        <SpotifySearch />
-        <SidebarToggle
-          collapseIcon={<PanelLeftCloseIcon />}
-          expandIcon={<LibraryIcon />}
-        />
-      </SidebarHeader>
+      <SpotifyHeader title="Spotify" />
       <SidebarContent>
         <Playlists
           title="Your Playlists"

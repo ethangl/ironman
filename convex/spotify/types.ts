@@ -24,6 +24,22 @@ export interface SpotifyAlbumRelease {
   albumType: string | null;
 }
 
+export interface SpotifyAlbumArtist {
+  id: string;
+  name: string;
+}
+
+export interface SpotifyAlbumDetails {
+  id: string;
+  name: string;
+  image: string | null;
+  releaseDate: string | null;
+  totalTracks: number;
+  albumType: string | null;
+  artists: SpotifyAlbumArtist[];
+  tracks: SpotifyTrack[];
+}
+
 export type SpotifyArtistReleaseGroup = "album" | "single";
 
 export interface SpotifyPageInfo {

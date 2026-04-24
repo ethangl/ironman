@@ -44,7 +44,7 @@ export const SectionDescription: FC<ComponentProps<"h4">> = ({
 export const SectionContent: FC<ComponentProps<"div">> = ({
   className,
   ...props
-}) => <div className={cn("p-6 text-foreground", className)} {...props} />;
+}) => <div className={cn("p-6", className)} {...props} />;
 
 export const SectionFooter: FC<ComponentProps<"header">> = ({
   className,

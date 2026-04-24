@@ -1,32 +1,25 @@
 import { SkipForwardIcon } from "lucide-react";
 
-import { useAuthenticatedSession } from "@/app/require-authenticated-session";
 import { Button } from "@/components/ui/button";
 import { useRooms } from "../runtime/rooms-provider";
-import { getVisibleRoomQueue } from "../runtime/room-sync";
 import { RoomLink } from "./room-link";
-import { RoomQueueList } from "./room-queue-list";
+import { RoomQueue } from "./room-queue";
 
 export function RoomPlayerPanel() {
   const {
     activeRoom,
     closeRoom,
-    moveQueueItem,
-    removeQueueItem,
     repairSync,
     resolvedPlayback,
     skipRoom,
   } = useRooms();
-  const session = useAuthenticatedSession();
 
   if (!activeRoom) {
     return null;
   }
 
   const canControlPlayback = activeRoom.playback.canControlPlayback;
-  const canManageOwnQueueItems = !!activeRoom.viewerMembership;
   const currentQueueItem = resolvedPlayback?.currentQueueItem ?? null;
-  const visibleQueue = getVisibleRoomQueue(activeRoom, resolvedPlayback);
 
   return (
     <section className="mt-5 rounded-[2rem] bg-white/5 p-4 text-left">
@@ -70,23 +63,10 @@ export function RoomPlayerPanel() {
       </div>
 
       <div className="mt-4">
-        <RoomQueueList
-          roomId={activeRoom.room._id}
-          queue={visibleQueue}
+        <RoomQueue
+          room={activeRoom}
+          resolvedPlayback={resolvedPlayback}
           limit={4}
-          currentQueueItemId={resolvedPlayback?.currentQueueItemId ?? null}
-          canManageQueue={activeRoom.playback.canManageQueue}
-          canRemoveQueueItem={(queueItem) =>
-            canManageOwnQueueItems &&
-            (activeRoom.playback.canManageQueue ||
-              queueItem.addedByUserId === session.user.id)
-          }
-          onMove={(roomId, queueItemId, targetIndex) =>
-            void moveQueueItem(roomId, queueItemId, targetIndex)
-          }
-          onRemove={(roomId, queueItemId) =>
-            void removeQueueItem(roomId, queueItemId)
-          }
         />
       </div>
     </section>

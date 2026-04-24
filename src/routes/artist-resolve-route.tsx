@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { Spinner } from "@/components/ui/spinner";
-import { ArtistError } from "@/features/artist/artist-error";
-import { ArtistHeader } from "@/features/artist/artist-header";
 import { getSpotifyArtistIdByMusicBrainzArtistId } from "@/features/artist/musicbrainz-client";
 import {
   cacheSpotifyArtistIdForMusicBrainzArtist,
   getCachedSpotifyArtistIdForMusicBrainzArtist,
   normalizeLastFmUrl,
 } from "@/features/artist/similar-artist-links";
+import { SpotifyError } from "@/features/spotify-shell/spotify-error";
+import { SpotifyHeader } from "@/features/spotify-shell/spotify-header";
 
 export function ArtistResolveRoute() {
   const navigate = useNavigate();
@@ -74,8 +74,8 @@ export function ArtistResolveRoute() {
   }, [fallbackUrl, musicBrainzArtistId, navigate]);
 
   if (error) {
-    return <ArtistError />;
+    return <SpotifyError href="/home" />;
   }
 
-  return <ArtistHeader href="/home" title={<Spinner />} />;
+  return <SpotifyHeader href="/home" title={<Spinner />} />;
 }

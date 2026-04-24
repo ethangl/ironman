@@ -10,15 +10,15 @@ import { RoomCreateForm } from "@/features/rooms/ui/room-create-form";
 import { RoomHeader } from "@/features/rooms/ui/room-header";
 import { Rooms } from "@/features/rooms/ui/rooms";
 import { RoomsHeader } from "@/features/rooms/ui/rooms-header";
-import { SpotifyFooter } from "@/features/spotify-shell";
+import { Player } from "@/features/spotify-player/player";
 
 export const AuthedLayout: FC = () => (
   <div className="absolute gap-3 grid grid-cols-[auto_1fr_auto] inset-0 items-stretch p-3 overflow-x-auto scrollbar-none">
     <Sidebar style={{ "--section-color": "var(--color-emerald-400)" }}>
       <Outlet />
-      <SpotifyFooter />
     </Sidebar>
     <RoomsLayout />
+    <Player />
   </div>
 );
 

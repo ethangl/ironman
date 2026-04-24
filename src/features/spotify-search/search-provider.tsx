@@ -9,10 +9,10 @@ import {
 } from "react";
 import { useLocation } from "react-router-dom";
 
-import { useDebounce } from "@/hooks/use-debounce";
-import { api } from "@api";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 import type { SpotifySearchResults } from "@/features/spotify-client/types";
+import { useDebounce } from "@/hooks/use-debounce";
+import { api } from "@api";
 
 const EMPTY_RESULTS: SpotifySearchResults = {
   tracks: [],
@@ -32,6 +32,8 @@ const IDLE_SEARCH_STATE: SearchState = {
 };
 
 interface SearchContextValue {
+  open: boolean;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   query: string;
   setQuery: (query: string) => void;
   results: SpotifySearchResults;
@@ -49,6 +51,7 @@ export function useSearch() {
 
 export function SearchProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [searchState, setSearchState] = useState(IDLE_SEARCH_STATE);
   const debouncedQuery = useDebounce(query, 300);
@@ -121,13 +124,15 @@ export function SearchProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
+      open,
       error: canSearch ? searchState.error : null,
       loading: canSearch ? searchState.loading : false,
       query,
       results: canSearch ? searchState.results : EMPTY_RESULTS,
+      setOpen,
       setQuery,
     }),
-    [canSearch, query, searchState],
+    [canSearch, open, query, searchState],
   );
 
   return (

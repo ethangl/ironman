@@ -28,7 +28,7 @@ export const Main: FC<MainProps> = ({ children, style }) => {
 export type MainhHeaderProps = PropsWithChildren & { title?: ReactNode };
 
 export const MainHeader: FC<MainhHeaderProps> = ({ children, title }) => (
-  <header className="flex flex-none gap-2 h-16 items-center justify-between px-4 relative shadow-[0_1px_0_--alpha(var(--color-background)/33%)]">
+  <header className="flex flex-none gap-2 h-16 items-center justify-between px-4 relative shadow-[0_1px_0_--alpha(var(--color-background)/33%)] top-0">
     {title && (
       <span
         className={cn(

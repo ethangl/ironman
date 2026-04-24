@@ -1,5 +1,5 @@
-import { SidebarContent } from "@/components/sidebar";
 import { LoadMoreButton } from "@/components/load-more-button";
+import { SidebarContent } from "@/components/sidebar";
 import {
   ArtistExternalLinks,
   ArtistLastFmOverview,
@@ -9,7 +9,7 @@ import {
 } from "@/features/artist";
 import { Tracks } from "@/features/spotify-tracks";
 import { FC } from "react";
-import { ArtistHeader } from "./artist-header";
+import { SpotifyHeader } from "../spotify-shell/spotify-header";
 import { useArtist } from "./artist-provider";
 import { ArtistSimilar } from "./artist-similar";
 
@@ -29,7 +29,7 @@ export const Artist: FC = () => {
 
   return (
     <>
-      <ArtistHeader href="/home" title={artist.name} />
+      <SpotifyHeader href="/home" title={artist.name} />
       <SidebarContent>
         <Tracks title="Top Tracks" tracks={topTracks} />
         <Releases

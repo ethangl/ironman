@@ -3,7 +3,11 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { action } from "./_generated/server";
 import { requireAuthUser } from "./betterAuth";
-import { clearAlbumsCaches, spotifyAlbumTracksCache } from "./spotify/albums";
+import {
+  clearAlbumsCaches,
+  spotifyAlbumCache,
+  spotifyAlbumTracksCache,
+} from "./spotify/albums";
 import {
   clearArtistsCaches,
   spotifyArtistPageCache,
@@ -36,6 +40,7 @@ import {
   spotifyRecentlyPlayedCache,
 } from "./spotify/tracks";
 import {
+  spotifyAlbumDetailsValidator,
   spotifyAlbumReleasePageValidator,
   spotifyArtistPageDataValidator,
   spotifyArtistValidator,
@@ -107,6 +112,17 @@ export const artistReleasesPage = action({
       offset: args.offset ?? DEFAULT_OFFSET,
       cacheScope: String(user._id),
     });
+  },
+});
+
+export const album = action({
+  args: {
+    albumId: v.string(),
+  },
+  returns: v.union(spotifyAlbumDetailsValidator, v.null()),
+  handler: async (ctx, args) => {
+    await requireAuthUser(ctx);
+    return spotifyAlbumCache.fetch(ctx, { albumId: args.albumId });
   },
 });
 

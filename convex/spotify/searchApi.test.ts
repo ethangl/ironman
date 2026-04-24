@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getAlbumTracks } from "./albums";
+import { getAlbum, getAlbumTracks } from "./albums";
 import {
   getArtistPageData,
   getArtistPageDataResult,
@@ -472,6 +472,74 @@ describe("getAlbumTracks", () => {
     vi.restoreAllMocks();
   });
 
+  it("maps album details into a dedicated album payload", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: "album-1",
+          name: "Oceanic",
+          images: [{ url: "album.jpg" }],
+          album_type: "album",
+          release_date: "2002-09-28",
+          total_tracks: 8,
+          artists: [
+            { id: "artist-1", name: "ISIS" },
+            { id: "artist-2", name: "Aereogramme" },
+          ],
+          tracks: {
+            items: [
+              {
+                id: "track-1",
+                name: "The Beginning and the End",
+                artists: [{ id: "artist-1", name: "ISIS" }],
+                duration_ms: 467000,
+              },
+            ],
+            offset: 0,
+            total: 1,
+            next: null,
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await getAlbum("spotify-token", "album-1");
+
+    expect(result).toEqual({
+      id: "album-1",
+      name: "Oceanic",
+      image: "album.jpg",
+      releaseDate: "2002-09-28",
+      totalTracks: 8,
+      albumType: "album",
+      artists: [
+        { id: "artist-1", name: "ISIS" },
+        { id: "artist-2", name: "Aereogramme" },
+      ],
+      tracks: [
+        {
+          id: "track-1",
+          name: "The Beginning and the End",
+          artist: "ISIS",
+          albumName: "Oceanic",
+          albumImage: "album.jpg",
+          durationMs: 467000,
+        },
+      ],
+    });
+  });
+
+  it("returns null when Spotify does not find the album", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: { status: 404, message: "nope" } }), {
+        status: 404,
+      }),
+    );
+
+    await expect(getAlbum("spotify-token", "missing")).resolves.toBeNull();
+  });
+
   it("maps album track items using the parent album metadata", async () => {
     vi.spyOn(global, "fetch").mockResolvedValue(
       new Response(
@@ -510,5 +578,96 @@ describe("getAlbumTracks", () => {
         durationMs: 640000,
       },
     ]);
+  });
+
+  it("loads remaining album track pages when the album response is incomplete", async () => {
+    const fetchMock = vi.spyOn(global, "fetch");
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: "album-1",
+            name: "Oceanic",
+            images: [{ url: "album.jpg" }],
+            album_type: "album",
+            release_date: "2002-09-28",
+            total_tracks: 3,
+            artists: [{ id: "artist-1", name: "ISIS" }],
+            tracks: {
+              items: [
+                {
+                  id: "track-1",
+                  name: "Weight",
+                  artists: [{ id: "artist-1", name: "ISIS" }],
+                  duration_ms: 640000,
+                },
+              ],
+              limit: 1,
+              offset: 0,
+              total: 3,
+              next: "https://api.spotify.com/v1/albums/album-1/tracks?limit=1&offset=1",
+            },
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: "track-2",
+                name: "From Sinking",
+                artists: [{ id: "artist-1", name: "ISIS" }],
+                duration_ms: 460000,
+              },
+              {
+                id: "track-3",
+                name: "Hym",
+                artists: [{ id: "artist-1", name: "ISIS" }],
+                duration_ms: 587000,
+              },
+            ],
+            limit: 50,
+            offset: 1,
+            total: 3,
+            next: null,
+          }),
+          { status: 200 },
+        ),
+      );
+
+    const result = await getAlbum("spotify-token", "album-1");
+
+    expect(result?.tracks).toEqual([
+      {
+        id: "track-1",
+        name: "Weight",
+        artist: "ISIS",
+        albumName: "Oceanic",
+        albumImage: "album.jpg",
+        durationMs: 640000,
+      },
+      {
+        id: "track-2",
+        name: "From Sinking",
+        artist: "ISIS",
+        albumName: "Oceanic",
+        albumImage: "album.jpg",
+        durationMs: 460000,
+      },
+      {
+        id: "track-3",
+        name: "Hym",
+        artist: "ISIS",
+        albumName: "Oceanic",
+        albumImage: "album.jpg",
+        durationMs: 587000,
+      },
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1]?.[0]).toContain(
+      "https://api.spotify.com/v1/albums/album-1/tracks?limit=50&offset=1",
+    );
   });
 });

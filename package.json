@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "portless rooms vite",
     "dev:convex": "convex dev",
     "build": "vite build",
-    "preview": "vite preview --host 127.0.0.1",
+    "preview": "portless rooms vite preview",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest"

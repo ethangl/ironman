@@ -49,6 +49,22 @@ export const spotifyAlbumReleaseValidator = v.object({
   albumType: v.union(v.string(), v.null()),
 });
 
+export const spotifyAlbumArtistValidator = v.object({
+  id: v.string(),
+  name: v.string(),
+});
+
+export const spotifyAlbumDetailsValidator = v.object({
+  id: v.string(),
+  name: v.string(),
+  image: v.union(v.string(), v.null()),
+  releaseDate: v.union(v.string(), v.null()),
+  totalTracks: v.number(),
+  albumType: v.union(v.string(), v.null()),
+  artists: v.array(spotifyAlbumArtistValidator),
+  tracks: v.array(spotifyTrackValidator),
+});
+
 export const spotifyPageInfoValidator = v.object({
   offset: v.number(),
   limit: v.number(),

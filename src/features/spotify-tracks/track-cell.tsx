@@ -1,7 +1,8 @@
 import { FC, PropsWithChildren } from "react";
 
 import { AlbumArt } from "@/components/album-art";
-import { ListItemAction } from "@/components/list";
+import { ListItem, ListItemAction } from "@/components/list";
+import { Square } from "@/components/square";
 import type { Track } from "@/features/spotify-client/types";
 import type { TrackSnapshot } from "./types";
 
@@ -31,26 +32,22 @@ export type TrackCellProps = PropsWithChildren & {
 };
 
 export const TrackCell: FC<TrackCellProps> = ({ children, count, track }) => {
-  const normalizedTrack = toDisplayTrack(track);
+  const { albumImage, artist, name } = toDisplayTrack(track);
   return (
-    <>
-      <div className="flex gap-3 items-center">
+    <ListItem>
+      <div className="flex items-center -space-x-2">
         {count && (
-          <div className="bg-black/25 font-bold flex items-center justify-center rounded-3xl text-xs size-8">
+          <Square className="bg-section-color/10 font-bold rounded-l-2xl h-10 pr-2 text-xs tracking-tight w-12">
             {count}
-          </div>
+          </Square>
         )}
-        {normalizedTrack.albumImage && (
-          <AlbumArt src={normalizedTrack.albumImage} className="size-10" />
-        )}
+        {albumImage && <AlbumArt src={albumImage} className="size-10" />}
       </div>
       <div className="space-y-0.5">
-        <h3 className="font-medium text-sm truncate">{normalizedTrack.name}</h3>
-        <h5 className="text-muted-foreground text-xs truncate">
-          {normalizedTrack.artist}
-        </h5>
+        <h3 className="font-medium text-sm truncate">{name}</h3>
+        <h5 className="text-muted-foreground text-xs truncate">{artist}</h5>
       </div>
       <ListItemAction>{children}</ListItemAction>
-    </>
+    </ListItem>
   );
 };

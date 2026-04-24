@@ -9,11 +9,13 @@ import {
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarHeader,
   SidebarToggle,
 } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { UserMenu } from "@/features/chat/user-menu";
 import { MessageSquareIcon, PanelRightCloseIcon } from "lucide-react";
 import { useRooms } from "../runtime/rooms-provider";
 
@@ -86,6 +88,9 @@ export function RoomCreateForm() {
           </SectionContent>
         </Section>
       </SidebarContent>
+      <SidebarFooter>
+        <UserMenu />
+      </SidebarFooter>
     </Sidebar>
   );
 }

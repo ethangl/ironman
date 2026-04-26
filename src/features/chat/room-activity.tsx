@@ -1,7 +1,8 @@
 import { api } from "@api";
-import { useQuery } from "convex/react";
 
+import { SidebarContent } from "@/components/sidebar";
 import { Spinner } from "@/components/ui/spinner";
+import { useStableQuery } from "@/hooks/use-stable-query";
 import type { RoomActivityEvent, RoomId } from "../rooms/client/room-types";
 import { RoomActivityItem } from "./room-activity-item";
 
@@ -12,27 +13,26 @@ export function RoomActivity({
   joinedAt: number;
   roomId: RoomId;
 }) {
-  const events = useQuery(api.rooms.listActivity, {
+  const events = useStableQuery(api.rooms.listActivity, {
     roomId,
     since: joinedAt,
     limit: 100,
   }) as RoomActivityEvent[] | undefined;
+  const activityScrollKey = events?.map((event) => event._id).join(":");
 
   return (
-    <div className="flex min-h-full flex-col">
-      {events === undefined ? (
-        <div className="flex items-center justify-center p-6">
-          <Spinner />
-        </div>
-      ) : events.length === 0 ? (
-        <div className="p-4 text-sm text-muted-foreground">No new activity</div>
-      ) : (
-        <ol className="space-y-2 p-3">
-          {events.map((event) => (
-            <RoomActivityItem event={event} key={event._id} />
-          ))}
-        </ol>
-      )}
-    </div>
+    <SidebarContent scrollToBottomKey={activityScrollKey}>
+      <ol className="flex gap-2 min-h-full flex-col justify-end">
+        {events === undefined ? (
+          <li className="flex items-center justify-center p-6">
+            <Spinner />
+          </li>
+        ) : (
+          events.map((event) => (
+            <RoomActivityItem key={event._id} event={event} />
+          ))
+        )}
+      </ol>
+    </SidebarContent>
   );
 }

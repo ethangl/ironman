@@ -1,11 +1,14 @@
 import {
   ComponentProps,
+  ComponentPropsWithoutRef,
   createContext,
   CSSProperties,
   FC,
   PropsWithChildren,
   ReactNode,
   useContext,
+  useLayoutEffect,
+  useRef,
   useState,
   type Dispatch,
   type SetStateAction,
@@ -137,16 +140,49 @@ const SidebarToggle: FC<SidebarToggleProps> = ({
   );
 };
 
-const SidebarContent: FC<PropsWithChildren> = ({ ...props }) => {
+type SidebarContentProps = ComponentPropsWithoutRef<"div"> & {
+  scrollToBottomKey?: string | number | null;
+};
+
+const SidebarContent: FC<SidebarContentProps> = ({
+  className,
+  scrollToBottomKey,
+  ...props
+}) => {
   const [expanded] = useSidebarState();
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (scrollToBottomKey === undefined) {
+      return;
+    }
+
+    const content = contentRef.current;
+    if (!content) {
+      return;
+    }
+
+    if (typeof content.scrollTo === "function") {
+      content.scrollTo({
+        top: content.scrollHeight,
+        behavior: "smooth",
+      });
+      return;
+    }
+
+    content.scrollTop = content.scrollHeight;
+  }, [scrollToBottomKey]);
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden w-full">
       <div
+        ref={contentRef}
         className={cn(
           "flex-1 overflow-y-auto transition-margin w-sm",
           expanded
             ? "duration-111 ease-out"
             : "duration-111 ease-out ml-16 pointer-events-none",
+          className,
         )}
         {...props}
       />
@@ -164,4 +200,4 @@ export {
   useState,
 };
 
-export type { SidebarToggleProps, SidebarWrapperProps };
+export type { SidebarHeaderProps, SidebarToggleProps, SidebarWrapperProps };

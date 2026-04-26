@@ -137,6 +137,61 @@ describe("Chat room activity", () => {
     expect(screen.getByText("left the room")).toBeInTheDocument();
   });
 
+  it("scrolls room activity to the bottom when activity changes", () => {
+    mocks.events = [
+      {
+        _id: "activity-1",
+        roomId,
+        kind: "chat_message",
+        createdAt: 1_100,
+        actor: {
+          userId: "user-1",
+          name: "Ethan",
+          image: null,
+        },
+        body: "first",
+      } as RoomActivityEvent,
+    ];
+
+    const { rerender } = render(<Chat roomId={roomId} />);
+    const activityScroller = screen.getByRole("list")
+      .parentElement as HTMLElement;
+    const scrollTo = vi.fn();
+
+    Object.defineProperty(activityScroller, "scrollHeight", {
+      configurable: true,
+      value: 480,
+    });
+    Object.defineProperty(activityScroller, "scrollTo", {
+      configurable: true,
+      value: scrollTo,
+    });
+    activityScroller.scrollTop = 0;
+
+    mocks.events = [
+      ...mocks.events,
+      {
+        _id: "activity-2",
+        roomId,
+        kind: "chat_message",
+        createdAt: 1_200,
+        actor: {
+          userId: "user-2",
+          name: "Maya",
+          image: null,
+        },
+        body: "second",
+      } as RoomActivityEvent,
+    ];
+
+    rerender(<Chat roomId={roomId} />);
+
+    expect(scrollTo).toHaveBeenCalledWith({
+      top: 480,
+      behavior: "smooth",
+    });
+  });
+
   it("sends trimmed chat messages from the sidebar child", async () => {
     render(<Chat roomId={roomId} />);
 

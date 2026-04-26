@@ -35,7 +35,7 @@ export const SpotifySearchTracks: FC = () => {
             void enqueueTrack(track, activeRoom.room._id);
             setOpen(false);
           }}
-          className="group/searchResult gap-3"
+          className="group gap-3"
         >
           <AlbumArt src={track.albumImage} className="size-10" />
           <div className="min-w-0 space-y-1">
@@ -45,8 +45,8 @@ export const SpotifySearchTracks: FC = () => {
             </div>
           </div>
           <CommandShortcut>
-            <Square className="bg-foreground/5 opacity-0 group-hover/searchResult:opacity-100">
-              <PlusIcon size="12" />
+            <Square className="bg-foreground/5 opacity-0 group-data-selected:opacity-100">
+              <PlusIcon className="size-6" />
             </Square>
           </CommandShortcut>
         </CommandItem>

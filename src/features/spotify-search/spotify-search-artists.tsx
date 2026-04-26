@@ -31,13 +31,13 @@ export const SpotifySearchArtists: FC = () => {
             });
             setOpen(false);
           }}
-          className="group/searchResult gap-3"
+          className="group gap-3"
         >
           <AlbumArt src={artist.image} className="size-8" />
           <p className="text-lg truncate">{artist.name}</p>
           <CommandShortcut>
-            <Square className="bg-foreground/5 opacity-0 group-hover/searchResult:opacity-100 size-8">
-              <ArrowRightIcon size="12" />
+            <Square className="bg-foreground/5 opacity-0 group-data-selected:opacity-100 size-8">
+              <ArrowRightIcon className="size-4" />
             </Square>
           </CommandShortcut>
         </CommandItem>

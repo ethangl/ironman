@@ -2,11 +2,14 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { RoomsContext } from "@/features/rooms/runtime/rooms-context";
 import type { SpotifySearchResults } from "@/features/spotify-client/types";
 import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/spotify-convex-client";
 import { getFunctionName } from "convex/server";
 import { SearchProvider } from "./search-provider";
 import { SpotifySearch } from "./spotify-search";
+
+type RoomsValue = NonNullable<React.ContextType<typeof RoomsContext>>;
 
 const mockPlayTrack = vi.fn();
 const mockScrollTo = vi.fn();
@@ -67,7 +70,7 @@ function renderSearch(
   overrides: {
     search?: SearchOverrides;
   } = {},
-  options?: { extraUi?: React.ReactNode },
+  options?: { extraUi?: React.ReactNode; rooms?: RoomsValue },
 ) {
   const searchResults =
     overrides.search?.searchResults ??
@@ -90,14 +93,91 @@ function renderSearch(
     action,
   } as never);
 
+  const searchUi = (
+    <SearchProvider>
+      <SpotifySearch />
+      {options?.extraUi}
+    </SearchProvider>
+  );
+
   return render(
     <MemoryRouter initialEntries={["/home"]}>
-      <SearchProvider>
-        <SpotifySearch />
-        {options?.extraUi}
-      </SearchProvider>
+      {options?.rooms ? (
+        <RoomsContext.Provider value={options.rooms}>
+          {searchUi}
+        </RoomsContext.Provider>
+      ) : (
+        searchUi
+      )}
     </MemoryRouter>,
   );
+}
+
+function createRoomsValue(overrides: Partial<RoomsValue> = {}): RoomsValue {
+  const now = Date.now();
+
+  return {
+    activeRoom: {
+      room: {
+        _id: "room-1" as never,
+        slug: "room-1",
+        name: "Room 1",
+        description: null,
+        visibility: "public",
+        ownerUserId: "user-1",
+        createdAt: now,
+        archivedAt: null,
+      },
+      viewerFollowsRoom: true,
+      viewerMembership: {
+        _id: "membership-1",
+        role: "member",
+        active: true,
+        joinedAt: now,
+        leftAt: null,
+      },
+      memberCount: 1,
+      presentCount: 1,
+      presentUsers: [],
+      roleHolders: [],
+      queueLength: 0,
+      queue: [],
+      playback: {
+        currentQueueItemId: null,
+        currentQueueItem: null,
+        startedAt: null,
+        startOffsetMs: 0,
+        paused: true,
+        pausedAt: null,
+        updatedAt: now,
+        canEnqueue: true,
+        canManageQueue: false,
+        canControlPlayback: false,
+      },
+    },
+    activeRoomLoading: false,
+    clearQueue: vi.fn().mockResolvedValue(undefined),
+    closeRoom: vi.fn().mockResolvedValue(undefined),
+    createRoom: vi.fn().mockResolvedValue("room-1" as never),
+    enqueueTrack: vi.fn().mockResolvedValue(undefined),
+    enqueueTracks: vi.fn().mockResolvedValue(undefined),
+    followRoom: vi.fn().mockResolvedValue(undefined),
+    moveQueueItem: vi.fn().mockResolvedValue(undefined),
+    openRoom: vi.fn().mockResolvedValue(undefined),
+    removeQueueItem: vi.fn().mockResolvedValue(undefined),
+    repairSync: vi.fn(),
+    resolvedPlayback: null,
+    rooms: [],
+    roomsLoading: false,
+    skipRoom: vi.fn().mockResolvedValue(undefined),
+    syncState: {
+      code: "idle",
+      label: "Idle",
+      driftMs: null,
+    },
+    unfollowRoom: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
 }
 
 function NavigateButton() {
@@ -132,7 +212,7 @@ function getCommandItem(label: string) {
 }
 
 async function searchFor(query: string) {
-  fireEvent.click(screen.getByRole("button", { name: "Search Spotify" }));
+  fireEvent.keyDown(document, { key: "k", metaKey: true });
   fireEvent.change(getSearchInput(), { target: { value: query } });
 }
 
@@ -185,24 +265,30 @@ describe("search", () => {
     expect(screen.getAllByText("ISIS")).toHaveLength(2);
   });
 
-  it("plays a selected track from spotify search", async () => {
-    renderSearch({
-      search: {
-        searchResults: vi.fn().mockResolvedValue({
-          tracks: [
-            {
-              id: "track-1",
-              name: "Panopticon",
-              artist: "ISIS",
-              albumName: "Oceanic",
-              albumImage: "track.jpg",
-              durationMs: 320000,
-            },
-          ],
-          artists: [],
-        }),
+  it("queues a selected track from spotify search", async () => {
+    const track = {
+      id: "track-1",
+      name: "Panopticon",
+      artist: "ISIS",
+      albumName: "Oceanic",
+      albumImage: "track.jpg",
+      durationMs: 320000,
+    };
+    const enqueueTrack = vi.fn().mockResolvedValue(undefined);
+
+    renderSearch(
+      {
+        search: {
+          searchResults: vi.fn().mockResolvedValue({
+            tracks: [track],
+            artists: [],
+          }),
+        },
       },
-    });
+      {
+        rooms: createRoomsValue({ enqueueTrack }),
+      },
+    );
     await searchFor("isis");
 
     await waitFor(() => {
@@ -211,14 +297,8 @@ describe("search", () => {
 
     fireEvent.click(getCommandItem("Panopticon"));
 
-    expect(mockPlayTrack).toHaveBeenCalledWith({
-      id: "track-1",
-      name: "Panopticon",
-      artist: "ISIS",
-      albumName: "Oceanic",
-      albumImage: "track.jpg",
-      durationMs: 320000,
-    });
+    expect(enqueueTrack).toHaveBeenCalledWith(track, "room-1");
+    expect(mockPlayTrack).not.toHaveBeenCalled();
 
     await waitFor(() => {
       expect(

@@ -15,11 +15,11 @@ import { BackgroundOverlay } from "@/components/background-overlay";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 
-export type SidebarState = [boolean, Dispatch<SetStateAction<boolean>>];
+type SidebarState = [boolean, Dispatch<SetStateAction<boolean>>];
 
 const SidebarStateContext = createContext<SidebarState | null>(null);
 
-export function useSidebarState() {
+function useSidebarState() {
   const sidebarState = useContext(SidebarStateContext);
   if (!sidebarState) {
     throw new Error("useSidebarState must be used within a Sidebar.");
@@ -28,7 +28,7 @@ export function useSidebarState() {
   return sidebarState;
 }
 
-export const Sidebar: FC<ComponentProps<"div">> = ({ className, ...props }) => {
+const Sidebar: FC<ComponentProps<"div">> = ({ className, ...props }) => {
   const [expanded, setExpanded] = useState(true);
   return (
     <SidebarStateContext.Provider value={[expanded, setExpanded]}>
@@ -44,7 +44,7 @@ export const Sidebar: FC<ComponentProps<"div">> = ({ className, ...props }) => {
   );
 };
 
-export type SidebarWrapperProps = PropsWithChildren & {
+type SidebarWrapperProps = PropsWithChildren & {
   className?: string;
   style?: StyleWithCssVariables;
 };
@@ -53,7 +53,7 @@ type StyleWithCssVariables = CSSProperties & {
   [key: `--${string}`]: string | number | undefined;
 };
 
-export const SidebarWrapper: FC<SidebarWrapperProps> = ({
+const SidebarWrapper: FC<SidebarWrapperProps> = ({
   children,
   className,
   style,
@@ -70,12 +70,12 @@ export const SidebarWrapper: FC<SidebarWrapperProps> = ({
   </aside>
 );
 
-export type SidebarHeaderProps = PropsWithChildren & {
+type SidebarHeaderProps = PropsWithChildren & {
   title?: ReactNode;
   subtitle?: string;
 };
 
-export const SidebarHeader: FC<SidebarHeaderProps> = ({
+const SidebarHeader: FC<SidebarHeaderProps> = ({
   children,
   title,
   subtitle,
@@ -105,7 +105,7 @@ export const SidebarHeader: FC<SidebarHeaderProps> = ({
   );
 };
 
-export const SidebarFooter: FC<PropsWithChildren> = ({ ...props }) => {
+const SidebarFooter: FC<PropsWithChildren> = ({ ...props }) => {
   return (
     <footer className="flex flex-none group-first/sidebar:justify-end overflow-hidden shadow-[0_-1px_0_--alpha(var(--color-background)/33%)] w-full">
       <div
@@ -116,12 +116,12 @@ export const SidebarFooter: FC<PropsWithChildren> = ({ ...props }) => {
   );
 };
 
-export type SidebarToggleProps = {
+type SidebarToggleProps = {
   collapseIcon: ReactNode;
   expandIcon: ReactNode;
 };
 
-export const SidebarToggle: FC<SidebarToggleProps> = ({
+const SidebarToggle: FC<SidebarToggleProps> = ({
   collapseIcon,
   expandIcon,
 }) => {
@@ -137,13 +137,13 @@ export const SidebarToggle: FC<SidebarToggleProps> = ({
   );
 };
 
-export const SidebarContent: FC<PropsWithChildren> = ({ ...props }) => {
+const SidebarContent: FC<PropsWithChildren> = ({ ...props }) => {
   const [expanded] = useSidebarState();
   return (
     <div className="flex flex-col flex-1 overflow-hidden w-full">
       <div
         className={cn(
-          "flex-1 overflow-y-auto scrollbar-none transition-margin w-sm",
+          "flex-1 overflow-y-auto transition-margin w-sm",
           expanded
             ? "duration-111 ease-out"
             : "duration-111 ease-out ml-16 pointer-events-none",
@@ -153,3 +153,15 @@ export const SidebarContent: FC<PropsWithChildren> = ({ ...props }) => {
     </div>
   );
 };
+
+export {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarToggle,
+  SidebarWrapper,
+  useState,
+};
+
+export type { SidebarToggleProps, SidebarWrapperProps };

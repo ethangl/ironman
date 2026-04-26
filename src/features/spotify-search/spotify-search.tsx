@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 
 import {
   Command,
@@ -9,16 +8,13 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-  CommandShortcut,
 } from "@/components/ui/command";
 import { Spinner } from "@/components/ui/spinner";
-import { useWebPlayerActions } from "@/features/spotify-player";
 import { useSearch } from "./search-provider";
+import { SpotifySearchArtists } from "./spotify-search-artists";
+import { SpotifySearchTracks } from "./spotify-search-tracks";
 
 export function SpotifySearch() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { playTrack } = useWebPlayerActions();
   const { error, loading, open, query, results, setOpen, setQuery } =
     useSearch();
 
@@ -35,7 +31,6 @@ export function SpotifySearch() {
   }, []);
 
   const trimmedQuery = query.trim();
-
   const hasResults = results.tracks.length > 0 || results.artists.length > 0;
 
   return (
@@ -64,51 +59,8 @@ export function SpotifySearch() {
 
           {!loading && !error && hasResults && (
             <>
-              {results.tracks.length > 0 && (
-                <CommandGroup heading="Songs">
-                  {results.tracks.map((track) => (
-                    <CommandItem
-                      key={track.id}
-                      value={`${track.name} ${track.artist}`}
-                      onSelect={() => {
-                        void playTrack(track);
-                        setOpen(false);
-                      }}
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate">{track.name}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {track.artist}
-                        </p>
-                      </div>
-                      <CommandShortcut>Play</CommandShortcut>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-
-              {results.artists.length > 0 && (
-                <CommandGroup heading="Artists">
-                  {results.artists.map((artist) => (
-                    <CommandItem
-                      key={artist.id}
-                      value={artist.id}
-                      keywords={[artist.name]}
-                      onSelect={() => {
-                        navigate({
-                          pathname: `/artist/${artist.id}`,
-                          search: location.search,
-                        });
-                        setOpen(false);
-                      }}
-                      className="truncate"
-                    >
-                      {artist.name}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-
+              {results.tracks.length > 0 && <SpotifySearchTracks />}
+              {results.artists.length > 0 && <SpotifySearchArtists />}
               {!loading && !hasResults && (
                 <CommandEmpty>No results for "${trimmedQuery}"</CommandEmpty>
               )}

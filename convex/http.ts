@@ -2,7 +2,7 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 
 import { internal } from "./_generated/api";
-import { authComponent, createAuth } from "./betterAuth";
+import { authComponent, createAuth } from "../auth/betterAuth";
 
 const http = httpRouter();
 const SPOTIFY_AUTH_COOLDOWN_KEY = "spotify-auth-cooldown";

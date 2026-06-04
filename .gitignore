@@ -51,3 +51,8 @@ certificates
 *.db
 
 .vscode
+
+# confect source, vendored as a read-only reference for the confect migration
+.confect-ref/
+# preserved vanilla convex backend, reference during confect migration
+.migration-ref/

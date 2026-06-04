@@ -10,6 +10,7 @@ export default tseslint.config(
       "dist/**",
       "node_modules/**",
       "tsconfig.tsbuildinfo",
+      ".confect-ref/**",
     ],
   },
   js.configs.recommended,

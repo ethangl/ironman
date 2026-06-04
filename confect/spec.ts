@@ -1,17 +1,21 @@
 import { Spec } from "@confect/core";
 
+import { lastfm } from "./lastfm.spec";
+import { musicbrainz } from "./musicbrainz.spec";
+import { profile } from "./profile.spec";
 import { roomPresence } from "./roomPresence.spec";
 import { rooms } from "./rooms.spec";
 import { spotify } from "./spotify.spec";
 import { spotifyAuthCooldown } from "./spotifyAuthCooldown.spec";
+import { users } from "./users.spec";
 
-/**
- * Master spec — `confect codegen` reads this default export. Groups are added
- * here as they are ported. (Remaining: userProfiles, users, profile, lastfm,
- * musicbrainz.)
- */
+/** Master spec — `confect codegen` reads this default export. All groups ported. */
 export default Spec.make()
   .add(spotifyAuthCooldown)
   .add(spotify)
   .add(rooms)
-  .add(roomPresence);
+  .add(roomPresence)
+  .add(lastfm)
+  .add(musicbrainz)
+  .add(users)
+  .add(profile);

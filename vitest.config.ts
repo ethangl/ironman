@@ -16,5 +16,16 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
+    // Only `*.test.*` files are tests. confect uses the `*.spec.ts` suffix for
+    // its (non-test) function specs, so the default glob would mis-collect them.
+    include: ["**/*.test.{ts,tsx}"],
+    // Vendored confect source and the preserved pre-migration backend are
+    // reference-only — never run their tests.
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      ".confect-ref/**",
+      ".migration-ref/**",
+    ],
   },
 });

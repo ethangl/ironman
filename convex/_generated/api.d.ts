@@ -9,10 +9,14 @@
  */
 
 import type * as http from "../http.js";
+import type * as lastfm from "../lastfm.js";
+import type * as musicbrainz from "../musicbrainz.js";
+import type * as profile from "../profile.js";
 import type * as roomPresence from "../roomPresence.js";
 import type * as rooms from "../rooms.js";
 import type * as spotify from "../spotify.js";
 import type * as spotifyAuthCooldown from "../spotifyAuthCooldown.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -22,10 +26,14 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   http: typeof http;
+  lastfm: typeof lastfm;
+  musicbrainz: typeof musicbrainz;
+  profile: typeof profile;
   roomPresence: typeof roomPresence;
   rooms: typeof rooms;
   spotify: typeof spotify;
   spotifyAuthCooldown: typeof spotifyAuthCooldown;
+  users: typeof users;
 }>;
 
 /**

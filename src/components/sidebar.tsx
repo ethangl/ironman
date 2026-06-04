@@ -197,7 +197,6 @@ export {
   SidebarHeader,
   SidebarToggle,
   SidebarWrapper,
-  useState,
 };
 
 export type { SidebarHeaderProps, SidebarToggleProps, SidebarWrapperProps };

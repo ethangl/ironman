@@ -8,32 +8,8 @@
  * @module
  */
 
-import type * as betterAuth from "../betterAuth.js";
-import type * as betterAuthCrossDomain from "../betterAuthCrossDomain.js";
 import type * as http from "../http.js";
-import type * as lastfm from "../lastfm.js";
-import type * as musicbrainz from "../musicbrainz.js";
-import type * as profile from "../profile.js";
-import type * as roomPresence from "../roomPresence.js";
-import type * as rooms from "../rooms.js";
-import type * as spotify from "../spotify.js";
-import type * as spotify_albums from "../spotify/albums.js";
-import type * as spotify_artists from "../spotify/artists.js";
-import type * as spotify_client from "../spotify/client.js";
-import type * as spotify_constants from "../spotify/constants.js";
-import type * as spotify_errors from "../spotify/errors.js";
-import type * as spotify_mappers from "../spotify/mappers.js";
-import type * as spotify_pagination from "../spotify/pagination.js";
-import type * as spotify_playback from "../spotify/playback.js";
-import type * as spotify_playlists from "../spotify/playlists.js";
-import type * as spotify_search from "../spotify/search.js";
-import type * as spotify_tracks from "../spotify/tracks.js";
-import type * as spotify_types from "../spotify/types.js";
-import type * as spotify_validators from "../spotify/validators.js";
 import type * as spotifyAuthCooldown from "../spotifyAuthCooldown.js";
-import type * as spotifySession from "../spotifySession.js";
-import type * as userProfiles from "../userProfiles.js";
-import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -42,32 +18,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  betterAuth: typeof betterAuth;
-  betterAuthCrossDomain: typeof betterAuthCrossDomain;
   http: typeof http;
-  lastfm: typeof lastfm;
-  musicbrainz: typeof musicbrainz;
-  profile: typeof profile;
-  roomPresence: typeof roomPresence;
-  rooms: typeof rooms;
-  spotify: typeof spotify;
-  "spotify/albums": typeof spotify_albums;
-  "spotify/artists": typeof spotify_artists;
-  "spotify/client": typeof spotify_client;
-  "spotify/constants": typeof spotify_constants;
-  "spotify/errors": typeof spotify_errors;
-  "spotify/mappers": typeof spotify_mappers;
-  "spotify/pagination": typeof spotify_pagination;
-  "spotify/playback": typeof spotify_playback;
-  "spotify/playlists": typeof spotify_playlists;
-  "spotify/search": typeof spotify_search;
-  "spotify/tracks": typeof spotify_tracks;
-  "spotify/types": typeof spotify_types;
-  "spotify/validators": typeof spotify_validators;
   spotifyAuthCooldown: typeof spotifyAuthCooldown;
-  spotifySession: typeof spotifySession;
-  userProfiles: typeof userProfiles;
-  users: typeof users;
 }>;
 
 /**

@@ -61,10 +61,11 @@ export function SpotifySearch() {
             <>
               {results.tracks.length > 0 && <SpotifySearchTracks />}
               {results.artists.length > 0 && <SpotifySearchArtists />}
-              {!loading && !hasResults && (
-                <CommandEmpty>No results for "${trimmedQuery}"</CommandEmpty>
-              )}
             </>
+          )}
+
+          {!loading && !error && !hasResults && trimmedQuery.length > 0 && (
+            <CommandEmpty>No results for "{trimmedQuery}"</CommandEmpty>
           )}
         </CommandList>
       </Command>

@@ -66,9 +66,6 @@ const fetchRemainingTracks = (
   acc: SpotifyTrack[],
 ): Effect.Effect<SpotifyTrack[], LoopError, LoopServices> =>
   Effect.gen(function* () {
-    const hasMore = offset < total;
-    if (!hasMore) return acc;
-
     const page = yield* spotifyRequest<AlbumTracksPageResponse>(
       `/albums/${albumId}/tracks?limit=${SPOTIFY_ALBUM_TRACKS_PAGE_LIMIT}&offset=${offset}`,
     );
@@ -76,7 +73,10 @@ const fetchRemainingTracks = (
     const next = [...acc, ...mapAlbumTrackItems(pageItems, album)];
 
     const nextOffset = (page?.offset ?? offset) + pageItems.length;
-    if (nextOffset <= offset && !page?.next) {
+    // Stop if the cursor didn't advance (no items / stuck offset). This guards
+    // against a non-terminating loop while still honoring `next` below — the
+    // caller only recurses here when there's more to fetch.
+    if (nextOffset <= offset) {
       return next;
     }
     const nextTotal = page?.total ?? total;

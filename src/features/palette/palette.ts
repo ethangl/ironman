@@ -16,8 +16,11 @@ const PALETTE_QUANTIZATION_STEP = 4;
 const PALETTE_LIGHTNESS_STOPS = [0.25, 0.375, 0.5, 0.625, 0.75] as const;
 const PALETTE_HERO_HUE_STEP = 24;
 const PALETTE_HERO_MIN_CHROMA = 0.05;
-const PALETTE_MIDDLE_LIGHTNESS = 0.72;
-const PALETTE_MIDDLE_CHROMA = 0.14;
+// Hand-tuned by eye — the middle/hero swatch's lightness & chroma. Exported so
+// tests assert against these rather than hardcoding (so eyeball tweaks here
+// don't break the suite).
+export const PALETTE_MIDDLE_LIGHTNESS = 0.72;
+export const PALETTE_MIDDLE_CHROMA = 0.14;
 
 export function extractPaletteFromRawPixels(
   data: ArrayLike<number>,

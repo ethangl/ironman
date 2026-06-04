@@ -1,6 +1,25 @@
 import { describe, expect, it } from "vitest";
 
-import { extractPaletteFromRawPixels, PALETTE_STOP_COUNT } from "./palette";
+import {
+  extractPaletteFromRawPixels,
+  PALETTE_MIDDLE_CHROMA,
+  PALETTE_MIDDLE_LIGHTNESS,
+  PALETTE_STOP_COUNT,
+} from "./palette";
+
+function parseOklch(value: string | undefined) {
+  const match = value?.match(/^oklch\(([\d.]+)% ([\d.]+) ([\d.]+)\)$/);
+  if (!match) {
+    throw new Error(`Not an oklch() string: ${value}`);
+  }
+  return {
+    lightness: Number(match[1]),
+    chroma: Number(match[2]),
+    hue: Number(match[3]),
+  };
+}
+
+const expectedLightness = PALETTE_MIDDLE_LIGHTNESS * 100;
 
 describe("extractPaletteFromRawPixels", () => {
   it("builds five oklch stops from rgba pixels", () => {
@@ -19,18 +38,22 @@ describe("extractPaletteFromRawPixels", () => {
     });
   });
 
-  it("still returns five stops for monochrome art", () => {
+  it("desaturates the middle stop for monochrome art", () => {
     const pixels = new Uint8ClampedArray(
       Array.from({ length: 16 }, () => [84, 84, 84, 255]).flat(),
     );
 
     const palette = extractPaletteFromRawPixels(pixels, 4);
+    const middle = parseOklch(palette[2]);
 
     expect(palette).toHaveLength(PALETTE_STOP_COUNT);
-    expect(palette[2]).toMatch(/^oklch\(70\.4% 0\.0000 /);
+    // Monochrome art has no hero chroma, so the middle stop stays desaturated...
+    expect(middle.chroma).toBeCloseTo(0, 3);
+    // ...while still sitting at the configured middle lightness.
+    expect(middle.lightness).toBeCloseTo(expectedLightness, 1);
   });
 
-  it("uses Tailwind red-400 lightness and chroma for the middle stop", () => {
+  it("normalizes the middle stop to the configured lightness and chroma", () => {
     const pixels = new Uint8ClampedArray([
       255, 0, 0, 255,
       255, 32, 32, 255,
@@ -39,8 +62,10 @@ describe("extractPaletteFromRawPixels", () => {
     ]);
 
     const palette = extractPaletteFromRawPixels(pixels, 4);
+    const middle = parseOklch(palette[2]);
 
-    expect(palette[2]).toMatch(/^oklch\(70\.4% 0\.1910 /);
+    expect(middle.lightness).toBeCloseTo(expectedLightness, 1);
+    expect(middle.chroma).toBeCloseTo(PALETTE_MIDDLE_CHROMA, 4);
   });
 
   it("keeps a small saturated accent as the middle hue", () => {
@@ -51,11 +76,12 @@ describe("extractPaletteFromRawPixels", () => {
     );
 
     const palette = extractPaletteFromRawPixels(pixels, 4);
-    const hue = Number.parseFloat(
-      palette[2]?.match(/^oklch\(70\.4% 0\.1910 ([\d.]+)\)$/)?.[1] ?? "NaN",
-    );
+    const middle = parseOklch(palette[2]);
 
-    expect(hue).toBeGreaterThanOrEqual(0);
-    expect(hue).toBeLessThan(40);
+    // The hue comes from the red accent; the lightness/chroma stay configured.
+    expect(middle.lightness).toBeCloseTo(expectedLightness, 1);
+    expect(middle.chroma).toBeCloseTo(PALETTE_MIDDLE_CHROMA, 4);
+    expect(middle.hue).toBeGreaterThanOrEqual(0);
+    expect(middle.hue).toBeLessThan(40);
   });
 });

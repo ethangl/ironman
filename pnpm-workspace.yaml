@@ -1,27 +1,5 @@
 allowBuilds:
-  '3': true
-  ' ': true
-  '"': true
-  ',': true
-  '-': true
-  /: true
-  '@': true
-  '[': true
-  ']': true
-  a: true
-  b: true
-  e: true
-  g: true
-  h: true
-  i: true
-  l: true
-  m: true
-  n: true
-  o: true
-  p: true
-  q: true
-  r: true
-  s: true
-  t: true
-  u: true
-  v: true
+  '@parcel/watcher': true
+  esbuild: true
+  msgpackr-extract: true
+  unrs-resolver: true

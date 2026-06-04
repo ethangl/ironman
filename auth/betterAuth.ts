@@ -3,11 +3,11 @@ import { createClient } from "@convex-dev/better-auth";
 import { isRunMutationCtx } from "@convex-dev/better-auth/utils";
 import { convex } from "@convex-dev/better-auth/plugins";
 
-import authConfig from "./auth.config";
-import { components, internal } from "./_generated/api";
+import authConfig from "../convex/auth.config";
+import { components, internal } from "../convex/_generated/api";
 import { crossDomain } from "./betterAuthCrossDomain";
 
-type GeneratedComponents = typeof import("./_generated/api").components;
+type GeneratedComponents = typeof import("../convex/_generated/api").components;
 const SPOTIFY_AUTH_COOLDOWN_KEY = "spotify-auth-cooldown";
 
 function requireEnv(name: string) {

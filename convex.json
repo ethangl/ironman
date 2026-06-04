@@ -1,1 +1,6 @@
-{}
+{
+  "codegen": {
+    "staticApi": false,
+    "staticDataModel": false
+  }
+}

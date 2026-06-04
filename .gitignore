@@ -51,3 +51,6 @@ certificates
 *.db
 
 .vscode
+
+# confect source, vendored as a read-only reference for the confect migration
+.confect-ref/

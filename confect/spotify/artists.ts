@@ -244,6 +244,10 @@ export const getArtistPageDataResult = (
     };
   });
 
+/** Ported from `getArtistPageData` — the `.page` of the result. */
+export const getArtistPageData = (artistId: string, market?: string | null) =>
+  getArtistPageDataResult(artistId, market).pipe(Effect.map((r) => r.page));
+
 /** Ported from `getArtistPageMarket`. Soft errors → null market. */
 export const getArtistPageMarket = () =>
   getSpotifyProfileMarket().pipe(

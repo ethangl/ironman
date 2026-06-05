@@ -7,7 +7,6 @@ import {
 } from "convex/server";
 import { Effect, Layer } from "effect";
 
-import { requireAuthUser } from "../auth/betterAuth";
 import { components } from "../convex/_generated/api";
 import api from "./_generated/api";
 import { ActionCtx } from "./_generated/services";
@@ -345,13 +344,26 @@ const loadPlaylistTracks = FunctionImpl.make(
 
 // ── Public actions ───────────────────────────────────────────────────────────
 // Auth-gate, then delegate to the read-through cache. User-scoped reads pass
-// `cacheScope = user._id` so the cache key is per-user.
+// `cacheScope = identity.subject` so the cache key is per-user.
+//
+// Auth uses the verified JWT identity (`ctx.auth.getUserIdentity()` — no DB
+// round-trip) rather than `requireAuthUser` (a ~50ms betterAuth component
+// query). A cached read only needs proof of auth + a stable per-user partition
+// key, both of which the JWT already carries; `subject` is the stable
+// better-auth user id.
+const requireIdentity = async (ctx: ActionCtx) => {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Unauthorized");
+  }
+  return identity;
+};
 
 const search = FunctionImpl.make(api, "spotify", "search", ({ query }) =>
   Effect.gen(function* () {
     const ctx = yield* ActionCtx;
     return yield* Effect.tryPromise(async () => {
-      await requireAuthUser(ctx);
+      await requireIdentity(ctx);
       return spotifySearchResultsCache.fetch(ctx, { query });
     });
   }).pipe(Effect.orDie),
@@ -364,7 +376,7 @@ const searchTracks = FunctionImpl.make(
     Effect.gen(function* () {
       const ctx = yield* ActionCtx;
       return yield* Effect.tryPromise(async () => {
-        await requireAuthUser(ctx);
+        await requireIdentity(ctx);
         return spotifySearchTracksCache.fetch(ctx, { query });
       });
     }).pipe(Effect.orDie),
@@ -377,10 +389,10 @@ const artistPage = FunctionImpl.make(
     Effect.gen(function* () {
       const ctx = yield* ActionCtx;
       return yield* Effect.tryPromise(async () => {
-        const user = await requireAuthUser(ctx);
+        const { subject } = await requireIdentity(ctx);
         return spotifyArtistPageCache.fetch(ctx, {
           artistId,
-          cacheScope: String(user._id),
+          cacheScope: subject,
         });
       });
     }).pipe(Effect.orDie),
@@ -393,13 +405,13 @@ const artistReleasesPage = FunctionImpl.make(
     Effect.gen(function* () {
       const ctx = yield* ActionCtx;
       return yield* Effect.tryPromise(async () => {
-        const user = await requireAuthUser(ctx);
+        const { subject } = await requireIdentity(ctx);
         return spotifyArtistReleasesPageCache.fetch(ctx, {
           artistId,
           includeGroups,
           limit: limit ?? DEFAULT_LIMIT,
           offset: offset ?? DEFAULT_OFFSET,
-          cacheScope: String(user._id),
+          cacheScope: subject,
         });
       });
     }).pipe(Effect.orDie),
@@ -408,10 +420,10 @@ const topArtists = FunctionImpl.make(api, "spotify", "topArtists", ({ limit }) =
   Effect.gen(function* () {
     const ctx = yield* ActionCtx;
     return yield* Effect.tryPromise(async () => {
-      const user = await requireAuthUser(ctx);
+      const { subject } = await requireIdentity(ctx);
       return spotifyTopArtistsCache.fetch(ctx, {
         limit: limit ?? DEFAULT_LIMIT,
-        cacheScope: String(user._id),
+        cacheScope: subject,
       });
     });
   }).pipe(Effect.orDie),
@@ -424,13 +436,13 @@ const favoriteArtists = FunctionImpl.make(
     Effect.gen(function* () {
       const ctx = yield* ActionCtx;
       return yield* Effect.tryPromise(async () => {
-        const user = await requireAuthUser(ctx);
+        const { subject } = await requireIdentity(ctx);
         return spotifyFavoriteArtistsCache.fetch(
           ctx,
           {
             after: after ?? null,
             limit: limit ?? DEFAULT_LIMIT,
-            cacheScope: String(user._id),
+            cacheScope: subject,
           },
           forceRefresh ? { force: true } : undefined,
         );
@@ -441,7 +453,7 @@ const album = FunctionImpl.make(api, "spotify", "album", ({ albumId }) =>
   Effect.gen(function* () {
     const ctx = yield* ActionCtx;
     return yield* Effect.tryPromise(async () => {
-      await requireAuthUser(ctx);
+      await requireIdentity(ctx);
       return spotifyAlbumCache.fetch(ctx, { albumId });
     });
   }).pipe(Effect.orDie),
@@ -454,7 +466,7 @@ const albumTracks = FunctionImpl.make(
     Effect.gen(function* () {
       const ctx = yield* ActionCtx;
       return yield* Effect.tryPromise(async () => {
-        await requireAuthUser(ctx);
+        await requireIdentity(ctx);
         return spotifyAlbumTracksCache.fetch(ctx, { albumId });
       });
     }).pipe(Effect.orDie),
@@ -467,13 +479,13 @@ const recentlyPlayed = FunctionImpl.make(
     Effect.gen(function* () {
       const ctx = yield* ActionCtx;
       return yield* Effect.tryPromise(async () => {
-        const user = await requireAuthUser(ctx);
+        const { subject } = await requireIdentity(ctx);
         return spotifyRecentlyPlayedCache.fetch(
           ctx,
           {
             before: before ?? null,
             limit: limit ?? DEFAULT_LIMIT,
-            cacheScope: String(user._id),
+            cacheScope: subject,
           },
           forceRefresh ? { force: true } : undefined,
         );
@@ -488,13 +500,13 @@ const playlistsPage = FunctionImpl.make(
     Effect.gen(function* () {
       const ctx = yield* ActionCtx;
       return yield* Effect.tryPromise(async () => {
-        const user = await requireAuthUser(ctx);
+        const { subject } = await requireIdentity(ctx);
         return spotifyPlaylistsPageCache.fetch(
           ctx,
           {
             limit: limit ?? DEFAULT_LIMIT,
             offset: offset ?? DEFAULT_OFFSET,
-            cacheScope: String(user._id),
+            cacheScope: subject,
           },
           forceRefresh ? { force: true } : undefined,
         );
@@ -509,10 +521,10 @@ const playlist = FunctionImpl.make(
     Effect.gen(function* () {
       const ctx = yield* ActionCtx;
       return yield* Effect.tryPromise(async () => {
-        const user = await requireAuthUser(ctx);
+        const { subject } = await requireIdentity(ctx);
         return spotifyPlaylistCache.fetch(ctx, {
           playlistId,
-          cacheScope: String(user._id),
+          cacheScope: subject,
         });
       });
     }).pipe(Effect.orDie),
@@ -525,10 +537,10 @@ const playlistTracks = FunctionImpl.make(
     Effect.gen(function* () {
       const ctx = yield* ActionCtx;
       return yield* Effect.tryPromise(async () => {
-        const user = await requireAuthUser(ctx);
+        const { subject } = await requireIdentity(ctx);
         return spotifyPlaylistTracksCache.fetch(ctx, {
           playlistId,
-          cacheScope: String(user._id),
+          cacheScope: subject,
         });
       });
     }).pipe(Effect.orDie),
@@ -587,7 +599,7 @@ const clearCache = FunctionImpl.make(api, "spotify", "clearCache", () =>
   Effect.gen(function* () {
     const ctx = yield* ActionCtx;
     return yield* Effect.tryPromise(async () => {
-      await requireAuthUser(ctx);
+      await requireIdentity(ctx);
       await Promise.all([
         spotifySearchResultsCache.removeAllForName(ctx),
         spotifySearchTracksCache.removeAllForName(ctx),

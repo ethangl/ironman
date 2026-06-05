@@ -627,6 +627,7 @@ type RoomActivityTrackInput = {
 };
 type NormalizedTrack = {
   trackId: string;
+  isrc?: string;
   trackName: string;
   trackArtists: string[];
   trackImageUrl?: string;
@@ -650,6 +651,7 @@ function slugifyRoomName(value: string) {
 
 const normalizeQueuedTrack = (input: {
   trackId: string;
+  isrc?: string | undefined;
   trackName: string;
   trackArtists: string[];
   trackImageUrl?: string | undefined;
@@ -670,12 +672,14 @@ const normalizeQueuedTrack = (input: {
         }),
       );
     }
+    const isrc = input.isrc?.trim().toUpperCase();
     return {
       trackArtists: input.trackArtists,
       trackDurationMs: input.trackDurationMs,
       trackId,
       // Conditional so the field is absent (not `undefined`) when missing —
       // required under exactOptionalPropertyTypes.
+      ...(isrc ? { isrc } : {}),
       ...(input.trackImageUrl ? { trackImageUrl: input.trackImageUrl } : {}),
       trackName,
     };
@@ -868,6 +872,7 @@ const insertQueuedTracks = (
         roomId,
         position: startPosition + index,
         trackId: track.trackId,
+        ...(track.isrc ? { isrc: track.isrc } : {}),
         trackName: track.trackName,
         trackArtists: track.trackArtists,
         ...(track.trackImageUrl ? { trackImageUrl: track.trackImageUrl } : {}),
@@ -1183,6 +1188,7 @@ export const enqueueTrack = (
   args: {
     roomId: Id<"rooms">;
     trackId: string;
+    isrc?: string | undefined;
     trackName: string;
     trackArtists: string[];
     trackImageUrl?: string | undefined;
@@ -1238,6 +1244,7 @@ export const enqueueTracks = (
     roomId: Id<"rooms">;
     tracks: ReadonlyArray<{
       trackId: string;
+      isrc?: string | undefined;
       trackName: string;
       trackArtists: string[];
       trackImageUrl?: string | undefined;

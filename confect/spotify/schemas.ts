@@ -25,6 +25,7 @@ export const SpotifyTrackSchema = Schema.Struct({
   albumName: Schema.String,
   albumImage: Schema.NullOr(Schema.String),
   durationMs: Schema.Number,
+  isrc: Schema.optional(Schema.String),
 });
 
 export const SpotifyArtistSchema = Schema.Struct({

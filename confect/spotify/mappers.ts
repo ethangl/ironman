@@ -36,6 +36,9 @@ export interface SpotifyApiTrack {
   album?: SpotifyAlbum;
   duration_ms: number;
   popularity?: number;
+  // Full track objects (search, /tracks, playlists, recently-played) carry the
+  // ISRC here. Simplified objects from /albums/{id}/tracks omit it.
+  external_ids?: { isrc?: string };
 }
 
 export interface SpotifyApiPlaylist {
@@ -50,6 +53,7 @@ export interface SpotifyApiPlaylist {
 }
 
 export function mapTrack(track: SpotifyApiTrack): SpotifyTrack {
+  const isrc = track.external_ids?.isrc?.trim().toUpperCase();
   return {
     id: track.id,
     name: track.name,
@@ -57,6 +61,8 @@ export function mapTrack(track: SpotifyApiTrack): SpotifyTrack {
     albumName: track.album?.name ?? "",
     albumImage: track.album?.images?.[0]?.url ?? null,
     durationMs: track.duration_ms,
+    // Omit (not `undefined`) when absent — exactOptionalPropertyTypes.
+    ...(isrc ? { isrc } : {}),
   };
 }
 

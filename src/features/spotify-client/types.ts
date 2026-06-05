@@ -4,6 +4,8 @@ export interface Track {
   artist: string;
   albumImage: string | null;
   durationMs: number;
+  /** Cross-service recording id; absent for simplified album-track objects. */
+  isrc?: string;
 }
 
 export interface SpotifyTrack extends Track {

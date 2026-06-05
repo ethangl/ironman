@@ -36,6 +36,7 @@ const QueueItemId = GenericId.GenericId("roomQueueItems");
 
 const QueuedTrackInput = Schema.Struct({
   trackId: Schema.String,
+  isrc: Schema.optional(Schema.String),
   trackName: Schema.String,
   trackArtists: mutArray(Schema.String),
   trackImageUrl: Schema.optional(Schema.String),
@@ -131,6 +132,7 @@ export const rooms = GroupSpec.make("rooms")
       args: Schema.Struct({
         roomId: RoomId,
         trackId: Schema.String,
+        isrc: Schema.optional(Schema.String),
         trackName: Schema.String,
         trackArtists: mutArray(Schema.String),
         trackImageUrl: Schema.optional(Schema.String),

@@ -13,9 +13,9 @@ import { useAppCapabilities } from "./app-runtime";
 export function ReconnectDialog() {
   const { spotifyConnection } = useAppCapabilities();
 
-  // if (spotifyConnection === "connected") {
-  //   return null;
-  // }
+  if (spotifyConnection === "connected") {
+    return null;
+  }
 
   if (spotifyConnection === "unknown") {
     return (
@@ -26,7 +26,7 @@ export function ReconnectDialog() {
   }
 
   return (
-    <AlertDialog open={spotifyConnection !== "disconnected"}>
+    <AlertDialog open={spotifyConnection === "disconnected"}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Reconnect Spotify</AlertDialogTitle>

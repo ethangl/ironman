@@ -1,7 +1,7 @@
 import { LastFmApiError } from "./errors";
 
 const LASTFM_API = "https://ws.audioscrobbler.com/2.0/";
-const LASTFM_USER_AGENT = "rooms/0.1.0 (Last.fm artist enrichment lookup)";
+const LASTFM_USER_AGENT = "viibes/0.1.0 (Last.fm artist enrichment lookup)";
 const LASTFM_TAG_LIMIT = 8;
 const LASTFM_SIMILAR_ARTIST_LIMIT = 8;
 
@@ -170,8 +170,12 @@ function mapLastFmArtistMatch(
     resolvedVia,
     lastFmUrl: getNullableString(artist, "url"),
     stats: {
-      listeners: statsRecord ? getNullableNumber(statsRecord, "listeners") : null,
-      playcount: statsRecord ? getNullableNumber(statsRecord, "playcount") : null,
+      listeners: statsRecord
+        ? getNullableNumber(statsRecord, "listeners")
+        : null,
+      playcount: statsRecord
+        ? getNullableNumber(statsRecord, "playcount")
+        : null,
     },
     bio: {
       summary: bioRecord
@@ -270,8 +274,7 @@ async function fetchLastFmJson(
     );
   }
 
-  const errorCode =
-    typeof payload.error === "number" ? payload.error : null;
+  const errorCode = typeof payload.error === "number" ? payload.error : null;
   const errorMessage =
     typeof payload.message === "string" ? payload.message : null;
 

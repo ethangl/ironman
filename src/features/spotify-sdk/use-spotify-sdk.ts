@@ -84,7 +84,7 @@ export function useSpotifySdk({
 
     console.log("[web-player] creating player");
     const player = new window.Spotify.Player({
-      name: "rooms.fm",
+      name: "viibes.xyz",
       getOAuthToken: (cb: (token: string) => void) => {
         void getAccessToken()
           .then((token) => {

@@ -6,7 +6,7 @@
     "dev": "vite --port ${PORT:-5173} --strictPort",
     "dev:convex": "convex dev",
     "build": "vite build",
-    "preview": "portless rooms vite preview",
+    "preview": "portless vite preview",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest"

@@ -23,6 +23,7 @@ function getRequiredRoomId(roomId: RoomId | null | undefined) {
 function toQueuedTrack(track: SpotifyTrack) {
   return {
     trackId: track.id,
+    isrc: track.isrc ?? undefined,
     trackName: track.name,
     trackArtists: [track.artist],
     trackImageUrl: track.albumImage ?? undefined,

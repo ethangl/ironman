@@ -8,6 +8,9 @@ export const RoomQueueItems = Table.make(
     roomId: GenericId.GenericId("rooms"),
     position: Schema.Number,
     trackId: Schema.String,
+    // Canonical cross-service recording id. Optional: absent on pre-existing
+    // rows and on tracks added from album context (simplified Spotify objects).
+    isrc: Schema.optional(Schema.String),
     trackName: Schema.String,
     trackArtists: Schema.Array(Schema.String),
     trackImageUrl: Schema.optional(Schema.String),

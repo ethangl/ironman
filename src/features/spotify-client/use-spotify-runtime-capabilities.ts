@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import {
   clearCachedSpotifyAccessToken,
@@ -8,6 +14,11 @@ import {
   clearCachedSpotifyAccountLink,
   hasCachedSpotifyAccountLink,
 } from "./spotify-account-link";
+import {
+  clearSpotifyAuthFailure,
+  getSpotifyAuthFailed,
+  subscribeSpotifyAuthFailure,
+} from "./spotify-auth-status";
 
 type SpotifyConnection = "unknown" | "connected" | "disconnected";
 
@@ -92,16 +103,32 @@ export function useSpotifyRuntimeCapabilities(sessionUserId: string | null) {
   const { getSpotifyAccessToken, spotifyTokenUnavailable } =
     useSpotifyPlaybackAccess(sessionUserId);
 
+  // A spotify action that failed with SpotifyAuthRequired (dead token the
+  // request loop couldn't refresh) flips this on — account linkage alone can't
+  // see a server-side-revoked token. Cleared by a session change here and by a
+  // successful spotify action in the convex client.
+  const spotifyAuthFailed = useSyncExternalStore(
+    subscribeSpotifyAuthFailure,
+    getSpotifyAuthFailed,
+    getSpotifyAuthFailed,
+  );
+
+  useEffect(() => {
+    clearSpotifyAuthFailure();
+  }, [sessionUserId]);
+
   const hasLinkedSpotifyAccount =
-    !!sessionUserId && spotifyAccountLink === "linked";
+    !!sessionUserId && spotifyAccountLink === "linked" && !spotifyAuthFailed;
 
   const spotifyConnection: SpotifyConnection = !sessionUserId
     ? "disconnected"
-    : spotifyAccountLink === "unknown"
-      ? "unknown"
-      : spotifyAccountLink === "linked"
-        ? "connected"
-        : "disconnected";
+    : spotifyAuthFailed
+      ? "disconnected"
+      : spotifyAccountLink === "unknown"
+        ? "unknown"
+        : spotifyAccountLink === "linked"
+          ? "connected"
+          : "disconnected";
 
   return {
     canControlPlayback: hasLinkedSpotifyAccount && !spotifyTokenUnavailable,

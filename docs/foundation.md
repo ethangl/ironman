@@ -61,8 +61,8 @@ creating rooms and claiming a username.
   Apple catalog client (`confect/applemusic/catalog.ts`). Token generator at
   `scripts/generate-apple-token.mjs`.
 - **MusicKit JS integration** (3-2): `src/features/apple-music/use-musickit.ts`
-  + `playback.appleDeveloperToken`; verified end-to-end via the dev probe at
-  `/dev/apple-music` (subscriber playback confirmed working).
+  + `playback.appleDeveloperToken`; verified end-to-end with a subscriber (via a
+  since-removed `/dev/apple-music` probe), then wired into room playback (3-3).
 - **Auth providers** (step 1, just landed): anonymous sessions + Google +
   email/password added to Better Auth (server `auth/betterAuth.ts`, client
   `src/lib/convex-auth-client.ts`). **Additive and inert** — existing Spotify

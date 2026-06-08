@@ -11,6 +11,7 @@ import { useLocation } from "react-router-dom";
 import { useAction } from "convex/react";
 
 import type {
+  SpotifyArtist,
   SpotifySearchResults,
   SpotifyTrack,
 } from "@/features/spotify-client/types";
@@ -32,6 +33,12 @@ interface CatalogTrack {
   isrc: string | null;
 }
 
+interface CatalogArtist {
+  id: string;
+  name: string;
+  image: string | null;
+}
+
 /** Map an Apple catalog song onto the track shape the queue/UI consume. */
 function toTrack(song: CatalogTrack): SpotifyTrack {
   return {
@@ -43,6 +50,19 @@ function toTrack(song: CatalogTrack): SpotifyTrack {
     durationMs: song.durationMs,
     // exactOptionalPropertyTypes: omit `isrc` entirely rather than set undefined.
     ...(song.isrc ? { isrc: song.isrc } : {}),
+  };
+}
+
+/** Map an Apple catalog artist onto the artist shape the search row consumes.
+ * Apple has no follower count and search rows don't show genres, so both are
+ * placeholders. */
+function toArtist(artist: CatalogArtist): SpotifyArtist {
+  return {
+    id: artist.id,
+    name: artist.name,
+    image: artist.image,
+    followerCount: 0,
+    genres: [],
   };
 }
 
@@ -119,12 +139,13 @@ export function SearchProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Apple catalog search returns songs only; the artist row stays empty
-        // until/if we add Apple artist search.
         setSearchState({
           error: null,
           loading: false,
-          results: { tracks: nextResults.tracks.map(toTrack), artists: [] },
+          results: {
+            tracks: nextResults.tracks.map(toTrack),
+            artists: nextResults.artists.map(toArtist),
+          },
         });
       })
       .catch((nextError) => {

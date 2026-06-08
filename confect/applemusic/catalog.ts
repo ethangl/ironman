@@ -125,6 +125,25 @@ export function lookupAppleSongIdByIsrc(
   );
 }
 
+/** A catalog artist, mapped for the search row + artist page header. */
+export interface CatalogArtist {
+  id: string;
+  name: string;
+  image: string | null;
+}
+
+/** Combined song+artist search results (one catalog round-trip). */
+export interface CatalogSearchResults {
+  tracks: CatalogTrack[];
+  artists: CatalogArtist[];
+}
+
+/** An artist plus their top songs, for the catalog artist page. */
+export interface CatalogArtistDetail {
+  artist: CatalogArtist;
+  topSongs: CatalogTrack[];
+}
+
 /** A catalog song mapped to the provider-neutral track shape the queue uses. */
 export interface CatalogTrack {
   /** Apple catalog song id — the id playback resolves/plays directly. */
@@ -153,6 +172,22 @@ interface CatalogSongResource {
   };
 }
 
+interface CatalogArtistResource {
+  id: string;
+  attributes?: {
+    name?: string;
+    artwork?: { url?: string };
+  };
+}
+
+function mapCatalogArtist(artist: CatalogArtistResource): CatalogArtist {
+  return {
+    id: artist.id,
+    name: artist.attributes?.name ?? "(unknown)",
+    image: artworkUrl(artist.attributes?.artwork?.url),
+  };
+}
+
 /** Resolve Apple's `{w}x{h}` artwork URL template to a concrete size. */
 function artworkUrl(template: string | undefined): string | null {
   if (!template) return null;
@@ -174,40 +209,95 @@ function mapCatalogSong(song: CatalogSongResource): CatalogTrack {
   };
 }
 
+const EMPTY_SEARCH_RESULTS: CatalogSearchResults = { tracks: [], artists: [] };
+
 /**
- * Search the Apple Music catalog for songs by free text. Catalog search needs
- * only the app-level developer token, so it works for any listener (no Music
- * User Token / connection required). Yields `[]` when unconfigured or on
- * failure — search is best-effort and uncached, so there's no negative cache to
- * poison.
+ * Search the Apple Music catalog for songs and artists by free text, in one
+ * round-trip. Catalog search needs only the app-level developer token, so it
+ * works for any listener (no Music User Token / connection required). Yields
+ * empty results when unconfigured or on failure — search is best-effort and
+ * uncached, so there's no negative cache to poison.
  */
 export function searchAppleCatalog(
   query: string,
   config: AppleCatalogConfig = readAppleCatalogConfig(),
-): Effect.Effect<CatalogTrack[]> {
+): Effect.Effect<CatalogSearchResults> {
   const { developerToken, storefront, fetchImpl } = config;
   if (!developerToken) {
-    return Effect.succeed([]);
+    return Effect.succeed(EMPTY_SEARCH_RESULTS);
   }
 
   const params = new URLSearchParams({
     term: query,
-    types: "songs",
+    types: "songs,artists",
     limit: String(SEARCH_LIMIT),
   });
   const path = `/catalog/${storefront}/search?${params.toString()}`;
 
   return appleRequest<{
-    results?: { songs?: { data?: CatalogSongResource[] } };
+    results?: {
+      songs?: { data?: CatalogSongResource[] };
+      artists?: { data?: CatalogArtistResource[] };
+    };
   }>(path, developerToken, fetchImpl).pipe(
-    Effect.map((body) =>
-      (body.results?.songs?.data ?? []).map(mapCatalogSong),
+    Effect.map(
+      (body): CatalogSearchResults => ({
+        tracks: (body.results?.songs?.data ?? []).map(mapCatalogSong),
+        artists: (body.results?.artists?.data ?? []).map(mapCatalogArtist),
+      }),
     ),
     Effect.tapError((error) =>
       Effect.sync(() =>
         console.error("[apple-catalog] search failed", { query, error }),
       ),
     ),
-    Effect.catchAll(() => Effect.succeed<CatalogTrack[]>([])),
+    Effect.catchAll(() => Effect.succeed(EMPTY_SEARCH_RESULTS)),
+  );
+}
+
+/**
+ * Fetch a catalog artist plus their top songs (for the artist page). Yields
+ * `null` when unconfigured, not found, or on failure — the caller renders a
+ * not-found state. Dev-token only.
+ */
+export function getAppleArtist(
+  artistId: string,
+  config: AppleCatalogConfig = readAppleCatalogConfig(),
+): Effect.Effect<CatalogArtistDetail | null> {
+  const { developerToken, storefront, fetchImpl } = config;
+  if (!developerToken) {
+    return Effect.succeed(null);
+  }
+
+  const path = `/catalog/${storefront}/artists/${encodeURIComponent(
+    artistId,
+  )}?views=top-songs`;
+
+  return appleRequest<{
+    data?: Array<
+      CatalogArtistResource & {
+        views?: { "top-songs"?: { data?: CatalogSongResource[] } };
+      }
+    >;
+  }>(path, developerToken, fetchImpl).pipe(
+    Effect.map((body): CatalogArtistDetail | null => {
+      const resource = body.data?.[0];
+      if (!resource) return null;
+      return {
+        artist: mapCatalogArtist(resource),
+        topSongs: (resource.views?.["top-songs"]?.data ?? []).map(
+          mapCatalogSong,
+        ),
+      };
+    }),
+    Effect.tapError((error) =>
+      Effect.sync(() =>
+        console.error("[apple-catalog] artist fetch failed", {
+          artistId,
+          error,
+        }),
+      ),
+    ),
+    Effect.catchAll(() => Effect.succeed(null)),
   );
 }

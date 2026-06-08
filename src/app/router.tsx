@@ -1,5 +1,6 @@
 import { createBrowserRouter, Outlet } from "react-router-dom";
 
+import { AppleArtist } from "@/features/apple-music/apple-artist";
 import { ArtistProvider } from "@/features/artist";
 import { Artist } from "@/features/artist/artist";
 import { Release } from "@/features/release/release";
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
             element: <AuthedLayout />,
             children: [
               { path: "home", element: <SpotifyActivity /> },
+              { path: "apple-artist/:artistId", element: <AppleArtist /> },
               {
                 path: "artist/resolve/:musicBrainzArtistId",
                 element: <ArtistResolveRoute />,

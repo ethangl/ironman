@@ -8,7 +8,11 @@ import { Effect, Layer, Option } from "effect";
 import type { Id } from "../convex/_generated/dataModel";
 import api from "./_generated/api";
 import { ActionCtx, DatabaseReader, DatabaseWriter } from "./_generated/services";
-import { lookupAppleSongIdByIsrc, searchAppleCatalog } from "./applemusic/catalog";
+import {
+  getAppleArtist,
+  lookupAppleSongIdByIsrc,
+  searchAppleCatalog,
+} from "./applemusic/catalog";
 import {
   chooseResolution,
   type PlaybackProviderId,
@@ -184,9 +188,20 @@ const searchCatalog = FunctionImpl.make(
       const ctx = yield* ActionCtx;
       yield* Effect.tryPromise(() => requireIdentity(ctx));
       const trimmed = query.trim();
-      if (!trimmed) return { tracks: [] };
-      const tracks = yield* searchAppleCatalog(trimmed);
-      return { tracks };
+      if (!trimmed) return { tracks: [], artists: [] };
+      return yield* searchAppleCatalog(trimmed);
+    }).pipe(Effect.orDie),
+);
+
+const artist = FunctionImpl.make(
+  api,
+  "playback",
+  "artist",
+  ({ artistId }) =>
+    Effect.gen(function* () {
+      const ctx = yield* ActionCtx;
+      yield* Effect.tryPromise(() => requireIdentity(ctx));
+      return yield* getAppleArtist(artistId);
     }).pipe(Effect.orDie),
 );
 
@@ -196,4 +211,5 @@ export const playback = GroupImpl.make(api, "playback").pipe(
   Layer.provide(resolveTrack),
   Layer.provide(appleDeveloperToken),
   Layer.provide(searchCatalog),
+  Layer.provide(artist),
 );

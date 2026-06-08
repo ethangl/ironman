@@ -30,6 +30,19 @@ const CatalogTrack = Schema.Struct({
   isrc: Schema.NullOr(Schema.String),
 });
 
+/** An Apple catalog artist (search row + artist page header). */
+const CatalogArtist = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  image: Schema.NullOr(Schema.String),
+});
+
+/** An artist plus their top songs, for the catalog artist page. */
+const CatalogArtistDetail = Schema.Struct({
+  artist: CatalogArtist,
+  topSongs: Schema.Array(CatalogTrack),
+});
+
 /**
  * Server-side track resolution. `resolveTrack` turns a queue item + a provider
  * into that provider's track id (or null when unavailable), caching the result
@@ -76,11 +89,22 @@ export const playback = GroupSpec.make("playback")
     }),
   )
   .addFunction(
-    // Free-text Apple catalog song search (developer token only — no per-user
-    // connection needed), used to add tracks to a room queue.
+    // Free-text Apple catalog search (developer token only — no per-user
+    // connection needed): songs to enqueue + artists to browse.
     FunctionSpec.publicAction({
       name: "searchCatalog",
       args: Schema.Struct({ query: Schema.String }),
-      returns: Schema.Struct({ tracks: Schema.Array(CatalogTrack) }),
+      returns: Schema.Struct({
+        tracks: Schema.Array(CatalogTrack),
+        artists: Schema.Array(CatalogArtist),
+      }),
+    }),
+  )
+  .addFunction(
+    // A catalog artist + their top songs, for the catalog artist page.
+    FunctionSpec.publicAction({
+      name: "artist",
+      args: Schema.Struct({ artistId: Schema.String }),
+      returns: Schema.NullOr(CatalogArtistDetail),
     }),
   );

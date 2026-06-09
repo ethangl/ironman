@@ -53,13 +53,13 @@ describe("AppleActivity", () => {
 
     // Playlist (browse cell) + its link target.
     const playlistLink = await screen.findByRole("link", { name: /Road Trip/ });
-    expect(playlistLink).toHaveAttribute("href", "/apple-playlist/p.1");
+    expect(playlistLink).toHaveAttribute("href", "/playlist/p.1");
 
     // Recently-played track.
     expect(screen.getByText("Get Lucky")).toBeInTheDocument();
 
     // Library artist links to the catalog artist page.
     const artistLink = screen.getByRole("link", { name: /Daft Punk/ });
-    expect(artistLink).toHaveAttribute("href", "/apple-artist/5468295");
+    expect(artistLink).toHaveAttribute("href", "/artist/5468295");
   });
 });

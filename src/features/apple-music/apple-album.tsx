@@ -15,7 +15,7 @@ export function AppleAlbum() {
   if (state.status === "loading") {
     return (
       <>
-        <SpotifyHeader href="/apple-home" title={<Spinner />} />
+        <SpotifyHeader href="/home" title={<Spinner />} />
         <SidebarContent />
       </>
     );
@@ -24,7 +24,7 @@ export function AppleAlbum() {
   if (state.status === "not_found" || state.status === "error") {
     return (
       <>
-        <SpotifyHeader href="/apple-home" title={<CircleQuestionMarkIcon />} />
+        <SpotifyHeader href="/home" title={<CircleQuestionMarkIcon />} />
         <SidebarContent>
           <p className="py-32 text-center text-muted-foreground">
             {state.status === "not_found"
@@ -37,7 +37,7 @@ export function AppleAlbum() {
   }
 
   const { album, tracks } = state.detail;
-  const backHref = album.artistId ? `/apple-artist/${album.artistId}` : "/apple-home";
+  const backHref = album.artistId ? `/artist/${album.artistId}` : "/home";
 
   return (
     <>

@@ -26,7 +26,7 @@ export const SpotifySearchArtists: FC = () => {
           keywords={[artist.name]}
           onSelect={() => {
             navigate({
-              pathname: `/apple-artist/${artist.id}`,
+              pathname: `/artist/${artist.id}`,
               search: location.search,
             });
             setOpen(false);

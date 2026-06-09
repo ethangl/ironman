@@ -37,7 +37,7 @@ export function AppleArtistSimilar({
       const { artists } = await search({ query: name });
       const match = artists[0];
       if (match) {
-        navigate(`/apple-artist/${match.id}`);
+        navigate(`/artist/${match.id}`);
       }
     } finally {
       setResolvingName(null);

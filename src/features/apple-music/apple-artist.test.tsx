@@ -77,9 +77,9 @@ vi.mock("@/features/artist/use-lastfm-artist", () => ({
 
 function renderArtist() {
   return render(
-    <MemoryRouter initialEntries={["/apple-artist/apple-artist-1"]}>
+    <MemoryRouter initialEntries={["/artist/apple-artist-1"]}>
       <Routes>
-        <Route path="/apple-artist/:artistId" element={<AppleArtist />} />
+        <Route path="/artist/:artistId" element={<AppleArtist />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -115,9 +115,9 @@ describe("AppleArtist", () => {
     const albumLink = await screen.findByRole("link", {
       name: /Random Access Memories/,
     });
-    expect(albumLink).toHaveAttribute("href", "/apple-album/apple-album-1");
+    expect(albumLink).toHaveAttribute("href", "/album/apple-album-1");
 
     const singleLink = screen.getByRole("link", { name: /Instant Crush/ });
-    expect(singleLink).toHaveAttribute("href", "/apple-album/apple-single-1");
+    expect(singleLink).toHaveAttribute("href", "/album/apple-single-1");
   });
 });

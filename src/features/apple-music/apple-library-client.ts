@@ -197,7 +197,7 @@ export async function getAppleRecentlyPlayed(): Promise<SpotifyTrack[]> {
 }
 
 export interface AppleArtistSummary {
-  /** Catalog artist id — links to the existing /apple-artist/:id page. */
+  /** Catalog artist id — links to the existing /artist/:id page. */
   id: string;
   name: string;
   image: string | null;
@@ -217,7 +217,7 @@ interface LibraryArtistResource {
 /**
  * The listener's library artists. Library artist ids are library ids (and carry
  * no artwork), so we `include=catalog` to get each one's catalog match — its
- * catalog id (for the /apple-artist/:id link) and artwork. Library-only artists
+ * catalog id (for the /artist/:id link) and artwork. Library-only artists
  * with no catalog match are dropped (nowhere to link, no art).
  */
 export async function getAppleLibraryArtists(): Promise<AppleArtistSummary[]> {

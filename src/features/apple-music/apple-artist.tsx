@@ -48,7 +48,7 @@ export function AppleArtist() {
   if (state.status === "loading") {
     return (
       <>
-        <SpotifyHeader href="/apple-home" title={<Spinner />} />
+        <SpotifyHeader href="/home" title={<Spinner />} />
         <SidebarContent />
       </>
     );
@@ -57,7 +57,7 @@ export function AppleArtist() {
   if (state.status === "not_found" || state.status === "error") {
     return (
       <>
-        <SpotifyHeader href="/apple-home" title={<CircleQuestionMarkIcon />} />
+        <SpotifyHeader href="/home" title={<CircleQuestionMarkIcon />} />
         <SidebarContent>
           <p className="py-32 text-center text-muted-foreground">
             {state.status === "not_found"
@@ -73,18 +73,18 @@ export function AppleArtist() {
 
   return (
     <>
-      <SpotifyHeader href="/apple-home" title={artist.name} />
+      <SpotifyHeader href="/home" title={artist.name} />
       <SidebarContent>
         <Tracks title="Top Tracks" tracks={toSpotifyTracks(topSongs)} />
         <Releases
           title="Singles"
           page={toReleasePage(singles)}
-          hrefFor={(release) => `/apple-album/${release.id}`}
+          hrefFor={(release) => `/album/${release.id}`}
         />
         <Releases
           title="Albums"
           page={toReleasePage(albums)}
-          hrefFor={(release) => `/apple-album/${release.id}`}
+          hrefFor={(release) => `/album/${release.id}`}
         />
         <ArtistLastFmOverview artist={lastFmArtist} />
         <AppleArtistSimilar

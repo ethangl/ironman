@@ -61,7 +61,7 @@ export function AppleActivity() {
             {(playlists ?? []).map((playlist) => (
               <PlaylistCell
                 key={playlist.id}
-                href={`/apple-playlist/${playlist.id}`}
+                href={`/playlist/${playlist.id}`}
                 image={playlist.image}
                 name={playlist.name}
                 subtitle={playlist.description ?? undefined}
@@ -84,7 +84,7 @@ export function AppleActivity() {
             {(artists ?? []).map((artist) => (
               <ArtistCell
                 key={artist.id}
-                href={`/apple-artist/${artist.id}`}
+                href={`/artist/${artist.id}`}
                 artist={{
                   id: artist.id,
                   name: artist.name,

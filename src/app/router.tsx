@@ -22,10 +22,10 @@ export const router = createBrowserRouter([
           {
             element: <AuthedLayout />,
             children: [
-              { path: "apple-home", element: <AppleActivity /> },
-              { path: "apple-artist/:artistId", element: <AppleArtist /> },
-              { path: "apple-album/:albumId", element: <AppleAlbum /> },
-              { path: "apple-playlist/:playlistId", element: <ApplePlaylist /> },
+              { path: "home", element: <AppleActivity /> },
+              { path: "artist/:artistId", element: <AppleArtist /> },
+              { path: "album/:albumId", element: <AppleAlbum /> },
+              { path: "playlist/:playlistId", element: <ApplePlaylist /> },
             ],
           },
         ],

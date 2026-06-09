@@ -38,9 +38,9 @@ vi.mock("@/components/sidebar", () => ({
 describe("ApplePlaylist", () => {
   it("renders the playlist's tracks and an enqueue-all action", async () => {
     render(
-      <MemoryRouter initialEntries={["/apple-playlist/p.1"]}>
+      <MemoryRouter initialEntries={["/playlist/p.1"]}>
         <Routes>
-          <Route path="/apple-playlist/:playlistId" element={<ApplePlaylist />} />
+          <Route path="/playlist/:playlistId" element={<ApplePlaylist />} />
         </Routes>
       </MemoryRouter>,
     );

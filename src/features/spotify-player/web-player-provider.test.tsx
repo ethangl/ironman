@@ -35,6 +35,7 @@ vi.mock("@/lib/convex-auth-client", () => ({
   },
   convexSignIn: {
     social: vi.fn(),
+    anonymous: () => Promise.resolve(),
   },
   convexSignOut: (...args: unknown[]) => ({ data: mockSignOut(...args) }),
 }));

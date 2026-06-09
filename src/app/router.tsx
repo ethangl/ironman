@@ -9,7 +9,7 @@ import { Artist } from "@/features/artist/artist";
 import { Release } from "@/features/release/release";
 import { ReleaseProvider } from "@/features/release/release-provider";
 import { Playlist } from "@/features/spotify-playlists/playlist";
-import { SpotifyActivity } from "@/features/spotify-shell";
+import { SpotifyActivity, SpotifyActivityProvider } from "@/features/spotify-shell";
 import { ArtistResolveRoute, HomeRoute, NotFoundRoute } from "@/routes";
 import { AppShell } from "./app-shell";
 import { AuthedLayout } from "./authed-layout";
@@ -26,7 +26,14 @@ export const router = createBrowserRouter([
           {
             element: <AuthedLayout />,
             children: [
-              { path: "home", element: <SpotifyActivity /> },
+              {
+                path: "home",
+                element: (
+                  <SpotifyActivityProvider>
+                    <SpotifyActivity />
+                  </SpotifyActivityProvider>
+                ),
+              },
               { path: "apple-home", element: <AppleActivity /> },
               { path: "apple-artist/:artistId", element: <AppleArtist /> },
               { path: "apple-album/:albumId", element: <AppleAlbum /> },

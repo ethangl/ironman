@@ -15,6 +15,7 @@ const mockUseSession = vi.fn();
 const mockGetAccessToken = vi.fn();
 const mockAuthFetch = vi.fn();
 const mockSignInSocial = vi.fn();
+const mockSignInAnonymous = vi.fn(async () => {});
 const mockSignOut = vi.fn();
 
 vi.mock("@/lib/convex-auth-client", () => ({
@@ -24,6 +25,7 @@ vi.mock("@/lib/convex-auth-client", () => ({
   },
   convexSignIn: {
     social: (...args: unknown[]) => mockSignInSocial(...args),
+    anonymous: () => mockSignInAnonymous(),
   },
   convexSignOut: (...args: unknown[]) => mockSignOut(...args),
   useConvexSession: () => mockUseSession(),
@@ -81,6 +83,35 @@ describe("AppRuntimeProvider", () => {
     expect(mockAuthFetch).not.toHaveBeenCalled();
     expect(mockGetAccessToken).not.toHaveBeenCalled();
     vi.useRealTimers();
+  });
+
+  it("silently creates an anonymous guest session once the session settles to none", async () => {
+    vi.useFakeTimers();
+    mockUseSession.mockReturnValue({ data: null, isPending: false });
+
+    renderHook(() => useRuntimeProbe(), { wrapper });
+
+    // Not while still settling/pending.
+    expect(mockSignInAnonymous).not.toHaveBeenCalled();
+
+    await act(async () => {
+      vi.advanceTimersByTime(400);
+    });
+
+    expect(mockSignInAnonymous).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it("does not create an anonymous session when one already exists", () => {
+    mockUseSession.mockReturnValue({
+      data: { user: { id: "user-1" } },
+      isPending: false,
+    });
+    mockAuthFetch.mockReturnValue(new Promise(() => {}));
+
+    renderHook(() => useRuntimeProbe(), { wrapper });
+
+    expect(mockSignInAnonymous).not.toHaveBeenCalled();
   });
 
   it("stays in a checking state while spotify account linkage is still being verified", () => {

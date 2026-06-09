@@ -6,12 +6,10 @@ import { playback } from "./playback.spec";
 import { profile } from "./profile.spec";
 import { roomPresence } from "./roomPresence.spec";
 import { rooms } from "./rooms.spec";
-import { spotifyAuthCooldown } from "./spotifyAuthCooldown.spec";
 import { users } from "./users.spec";
 
 /** Master spec — `confect codegen` reads this default export. */
 export default Spec.make()
-  .add(spotifyAuthCooldown)
   .add(rooms)
   .add(roomPresence)
   .add(playback)

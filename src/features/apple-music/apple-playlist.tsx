@@ -40,7 +40,7 @@ export const ApplePlaylist: FC = () => {
 
   return (
     <>
-      <SpotifyHeader href="/apple-playlists" title="Playlist" />
+      <SpotifyHeader href="/apple-home" title="Playlist" />
       <SidebarContent>
         <Tracks
           title={playlist.name}

@@ -2,9 +2,8 @@ import { createBrowserRouter, Outlet } from "react-router-dom";
 
 import { AppleAlbum } from "@/features/apple-music/apple-album";
 import { AppleArtist } from "@/features/apple-music/apple-artist";
+import { AppleActivity } from "@/features/apple-music/apple-home";
 import { ApplePlaylist } from "@/features/apple-music/apple-playlist";
-import { ApplePlaylists } from "@/features/apple-music/apple-playlists";
-import { AppleRecent } from "@/features/apple-music/apple-recent";
 import { ArtistProvider } from "@/features/artist";
 import { Artist } from "@/features/artist/artist";
 import { Release } from "@/features/release/release";
@@ -28,11 +27,10 @@ export const router = createBrowserRouter([
             element: <AuthedLayout />,
             children: [
               { path: "home", element: <SpotifyActivity /> },
+              { path: "apple-home", element: <AppleActivity /> },
               { path: "apple-artist/:artistId", element: <AppleArtist /> },
               { path: "apple-album/:albumId", element: <AppleAlbum /> },
-              { path: "apple-playlists", element: <ApplePlaylists /> },
               { path: "apple-playlist/:playlistId", element: <ApplePlaylist /> },
-              { path: "apple-recent", element: <AppleRecent /> },
               {
                 path: "artist/resolve/:musicBrainzArtistId",
                 element: <ArtistResolveRoute />,

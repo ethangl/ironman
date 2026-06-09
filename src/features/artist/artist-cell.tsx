@@ -4,10 +4,10 @@ import { FC } from "react";
 import { AlbumArt } from "@/components/album-art";
 import { ListItemAction, ListLink } from "@/components/list";
 import { Square } from "@/components/square";
-import type { SpotifyArtist } from "@/features/spotify-client/types";
+import type { Artist } from "@/features/catalog/types";
 
 export type ArtistCellProps = {
-  artist: SpotifyArtist;
+  artist: Artist;
   count?: number;
   href: string;
 };

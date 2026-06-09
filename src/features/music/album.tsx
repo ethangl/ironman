@@ -1,0 +1,58 @@
+import { CircleQuestionMarkIcon } from "lucide-react";
+import { useParams } from "react-router-dom";
+
+import { SidebarContent } from "@/components/sidebar";
+import { Spinner } from "@/components/ui/spinner";
+import { AppHeader } from "@/features/shell/app-header";
+import { Tracks } from "@/features/tracks";
+import { toTracks } from "./track";
+import { useAlbum } from "./use-album";
+
+export function Album() {
+  const { albumId = "" } = useParams();
+  const state = useAlbum(albumId);
+
+  if (state.status === "loading") {
+    return (
+      <>
+        <AppHeader href="/home" title={<Spinner />} />
+        <SidebarContent />
+      </>
+    );
+  }
+
+  if (state.status === "not_found" || state.status === "error") {
+    return (
+      <>
+        <AppHeader href="/home" title={<CircleQuestionMarkIcon />} />
+        <SidebarContent>
+          <p className="py-32 text-center text-muted-foreground">
+            {state.status === "not_found"
+              ? "That album could not be found on Apple Music."
+              : "Couldn’t load this album. Try again."}
+          </p>
+        </SidebarContent>
+      </>
+    );
+  }
+
+  const { album, tracks } = state.detail;
+  const backHref = album.artistId ? `/artist/${album.artistId}` : "/home";
+
+  return (
+    <>
+      <AppHeader
+        href={backHref}
+        title={album.name}
+        subtitle={album.artistName}
+      />
+      <SidebarContent>
+        <Tracks
+          title={album.name}
+          description={album.artistName}
+          tracks={toTracks(tracks)}
+        />
+      </SidebarContent>
+    </>
+  );
+}

@@ -1,12 +1,7 @@
-import type { Track } from "@/features/spotify-client/types";
+// The provider-neutral track identity the playback layer drives sync off.
+import type { CanonicalTrack } from "@/features/catalog/types";
 
-/**
- * Provider-neutral track identity. Today this is the existing `Track` (which now
- * carries `isrc` from step 1); `id` is the *provider* track id. When a second
- * provider lands (step 3), resolution from the canonical `isrc` to a
- * provider-specific id happens server-side before a track reaches the provider.
- */
-export type CanonicalTrack = Track;
+export type { CanonicalTrack };
 
 export type PlaybackProviderId = "spotify" | "apple";
 

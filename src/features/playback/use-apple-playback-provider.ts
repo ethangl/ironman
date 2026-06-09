@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 
-import { useMusicKit, type MusicKitStatus } from "@/features/apple-music/use-musickit";
+import { useMusicKit, type MusicKitStatus } from "@/features/music/use-musickit";
 import type { CanonicalTrack, PlaybackProvider } from "./types";
 
 export interface ApplePlaybackProvider extends PlaybackProvider {

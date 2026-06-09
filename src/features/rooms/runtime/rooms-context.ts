@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 
 import type { PlaybackConnection } from "@/features/playback";
-import type { SpotifyTrack } from "@/features/spotify-client/types";
+import type { Track } from "@/features/catalog/types";
 import type {
   RoomDetails,
   RoomId,
@@ -32,9 +32,9 @@ export interface RoomsContextValue {
   openRoom: (roomId: RoomId) => Promise<void>;
   closeRoom: () => Promise<void>;
   unfollowRoom: (roomId: RoomId) => Promise<void>;
-  enqueueTrack: (track: SpotifyTrack, roomId?: RoomId | null) => Promise<void>;
+  enqueueTrack: (track: Track, roomId?: RoomId | null) => Promise<void>;
   enqueueTracks: (
-    tracks: SpotifyTrack[],
+    tracks: Track[],
     roomId?: RoomId | null,
   ) => Promise<void>;
   removeQueueItem: (

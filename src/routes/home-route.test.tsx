@@ -14,14 +14,14 @@ function renderHome() {
     <MemoryRouter initialEntries={["/"]}>
       <Routes>
         <Route path="/" element={<HomeRoute />} />
-        <Route path="/apple-home" element={<div>apple home</div>} />
+        <Route path="/home" element={<div>home</div>} />
       </Routes>
     </MemoryRouter>,
   );
 }
 
 describe("HomeRoute", () => {
-  it("redirects an existing session to the Apple home", () => {
+  it("redirects an existing session to home", () => {
     mockUseAppAuth.mockReturnValue({
       session: { user: { id: "guest-1" } },
       isPending: false,
@@ -29,7 +29,7 @@ describe("HomeRoute", () => {
 
     renderHome();
 
-    expect(screen.getByText("apple home")).toBeInTheDocument();
+    expect(screen.getByText("home")).toBeInTheDocument();
   });
 
   it("shows a transient pending state (no login wall) while the guest session is created", () => {
@@ -37,7 +37,7 @@ describe("HomeRoute", () => {
 
     renderHome();
 
-    expect(screen.queryByText("apple home")).not.toBeInTheDocument();
+    expect(screen.queryByText("home")).not.toBeInTheDocument();
     // No Spotify sign-in affordance.
     expect(
       screen.queryByRole("button", { name: /spotify/i }),

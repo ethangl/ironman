@@ -1,0 +1,55 @@
+import { FC, PropsWithChildren } from "react";
+
+import { AlbumArt } from "@/components/album-art";
+import { ListItem, ListItemAction } from "@/components/list";
+import { Square } from "@/components/square";
+import type { CanonicalTrack } from "@/features/catalog/types";
+import type { TrackSnapshot } from "./types";
+
+function isTrackSnapshot(
+  track: CanonicalTrack | TrackSnapshot,
+): track is TrackSnapshot {
+  return "trackId" in track;
+}
+
+function toDisplayTrack(track: CanonicalTrack | TrackSnapshot): CanonicalTrack {
+  if (!isTrackSnapshot(track)) {
+    return track;
+  }
+
+  return {
+    id: track.trackId,
+    name: track.trackName,
+    artist: track.trackArtist,
+    albumImage: track.trackImage,
+    durationMs: track.trackDuration,
+  };
+}
+
+export type TrackCellProps = PropsWithChildren & {
+  count?: number;
+  onPlay?: (track: CanonicalTrack) => void;
+  playable?: boolean;
+  track: CanonicalTrack | TrackSnapshot;
+};
+
+export const TrackCell: FC<TrackCellProps> = ({ children, count, track }) => {
+  const { albumImage, artist, name } = toDisplayTrack(track);
+  return (
+    <ListItem>
+      <div className="flex items-center -space-x-2">
+        {count && (
+          <Square className="bg-section-color/10 font-bold rounded-l-2xl h-10 pr-2 text-xs tracking-tight w-12">
+            {count}
+          </Square>
+        )}
+        {albumImage && <AlbumArt src={albumImage} className="size-10" />}
+      </div>
+      <div className="space-y-0.5">
+        <h3 className="font-medium text-sm truncate">{name}</h3>
+        <h5 className="text-muted-foreground text-xs truncate">{artist}</h5>
+      </div>
+      <ListItemAction>{children}</ListItemAction>
+    </ListItem>
+  );
+};

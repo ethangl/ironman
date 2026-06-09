@@ -1,0 +1,96 @@
+import { CircleQuestionMarkIcon } from "lucide-react";
+import { useParams } from "react-router-dom";
+
+import { SidebarContent } from "@/components/sidebar";
+import { Spinner } from "@/components/ui/spinner";
+import { ArtistLastFmOverview, Releases } from "@/features/artist";
+import { useLastFmArtist } from "@/features/artist/use-lastfm-artist";
+import type {
+  AlbumRelease,
+  Page,
+} from "@/features/catalog/types";
+import { AppHeader } from "@/features/shell/app-header";
+import { Tracks } from "@/features/tracks";
+import { ArtistSimilar } from "./artist-similar";
+import { toTracks } from "./track";
+import { useArtist, type Release } from "./use-artist";
+
+/** Adapt Apple releases to the `Releases` component's (paginated) Spotify shape. */
+function toReleasePage(
+  releases: readonly Release[],
+): Page<AlbumRelease> {
+  return {
+    items: releases.map((release) => ({
+      id: release.id,
+      name: release.name,
+      image: release.image,
+      releaseDate: release.releaseDate,
+      totalTracks: release.trackCount,
+      albumType: null,
+    })),
+    offset: 0,
+    limit: releases.length,
+    total: releases.length,
+    nextOffset: null,
+    hasMore: false,
+  };
+}
+
+export function Artist() {
+  const { artistId = "" } = useParams();
+  const state = useArtist(artistId);
+
+  // Last.fm enrichment (bio + similar artists) is keyed on the artist's name, so
+  // it ports straight from the Spotify page; only meaningful once the artist loads.
+  const artistName = state.status === "ready" ? state.detail.artist.name : "";
+  const lastFmArtist = useLastFmArtist({ artistName, musicBrainzId: null });
+
+  if (state.status === "loading") {
+    return (
+      <>
+        <AppHeader href="/home" title={<Spinner />} />
+        <SidebarContent />
+      </>
+    );
+  }
+
+  if (state.status === "not_found" || state.status === "error") {
+    return (
+      <>
+        <AppHeader href="/home" title={<CircleQuestionMarkIcon />} />
+        <SidebarContent>
+          <p className="py-32 text-center text-muted-foreground">
+            {state.status === "not_found"
+              ? "That artist could not be found on Apple Music."
+              : "Couldn’t load this artist. Try again."}
+          </p>
+        </SidebarContent>
+      </>
+    );
+  }
+
+  const { artist, topSongs, albums, singles } = state.detail;
+
+  return (
+    <>
+      <AppHeader href="/home" title={artist.name} />
+      <SidebarContent>
+        <Tracks title="Top Tracks" tracks={toTracks(topSongs)} />
+        <Releases
+          title="Singles"
+          page={toReleasePage(singles)}
+          hrefFor={(release) => `/album/${release.id}`}
+        />
+        <Releases
+          title="Albums"
+          page={toReleasePage(albums)}
+          hrefFor={(release) => `/album/${release.id}`}
+        />
+        <ArtistLastFmOverview artist={lastFmArtist} />
+        <ArtistSimilar
+          similarArtists={lastFmArtist?.similarArtists ?? []}
+        />
+      </SidebarContent>
+    </>
+  );
+}

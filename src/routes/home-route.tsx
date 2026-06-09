@@ -11,7 +11,7 @@ export function HomeRoute() {
     return (
       <Navigate
         to={{
-          pathname: "/apple-home",
+          pathname: "/home",
           search: location.search,
         }}
         replace

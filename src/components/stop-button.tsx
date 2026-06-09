@@ -2,7 +2,7 @@ import { PlayIcon, SquareIcon } from "lucide-react";
 import { FC } from "react";
 
 import { Button, ButtonProps } from "@/components/ui/button";
-import { useNowPlaying } from "@/features/spotify-player/use-now-playing";
+import { useNowPlaying } from "@/features/player/use-now-playing";
 
 export const StopButton: FC<ButtonProps> = ({ ...props }) => {
   const { isRoomMode, roomPlayback } = useNowPlaying();

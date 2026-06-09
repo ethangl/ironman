@@ -1,9 +1,9 @@
 import { createBrowserRouter } from "react-router-dom";
 
-import { AppleAlbum } from "@/features/apple-music/apple-album";
-import { AppleArtist } from "@/features/apple-music/apple-artist";
-import { AppleActivity } from "@/features/apple-music/apple-home";
-import { ApplePlaylist } from "@/features/apple-music/apple-playlist";
+import { Album } from "@/features/music/album";
+import { Artist } from "@/features/music/artist";
+import { Home } from "@/features/music/home";
+import { Playlist } from "@/features/music/playlist";
 import { HomeRoute, NotFoundRoute } from "@/routes";
 import { AppShell } from "./app-shell";
 import { AuthedLayout } from "./authed-layout";
@@ -22,10 +22,10 @@ export const router = createBrowserRouter([
           {
             element: <AuthedLayout />,
             children: [
-              { path: "apple-home", element: <AppleActivity /> },
-              { path: "apple-artist/:artistId", element: <AppleArtist /> },
-              { path: "apple-album/:albumId", element: <AppleAlbum /> },
-              { path: "apple-playlist/:playlistId", element: <ApplePlaylist /> },
+              { path: "home", element: <Home /> },
+              { path: "artist/:artistId", element: <Artist /> },
+              { path: "album/:albumId", element: <Album /> },
+              { path: "playlist/:playlistId", element: <Playlist /> },
             ],
           },
         ],

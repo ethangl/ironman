@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 
-import type { SpotifyPage } from "@/features/spotify-client/types";
+import type { Page } from "@/features/catalog/types";
 
 export type PaginatedLoadingState<TKey extends string> = Record<TKey, boolean>;
 
@@ -47,10 +47,10 @@ function createLoadingState<TKey extends string>(
   }, {} as PaginatedLoadingState<TKey>);
 }
 
-export function appendSpotifyPage<TItem>(
-  currentPage: SpotifyPage<TItem>,
-  nextPage: SpotifyPage<TItem>,
-): SpotifyPage<TItem> {
+export function appendPage<TItem>(
+  currentPage: Page<TItem>,
+  nextPage: Page<TItem>,
+): Page<TItem> {
   return {
     ...nextPage,
     items: [...currentPage.items, ...nextPage.items],

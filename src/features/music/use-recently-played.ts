@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 
-import type { SpotifyTrack } from "@/features/spotify-client/types";
+import type { Track } from "@/features/catalog/types";
 import { useStableAction } from "@/hooks/use-stable-action";
 import { getRecentlyPlayed } from "./library-client";
 
@@ -10,7 +10,7 @@ import { getRecentlyPlayed } from "./library-client";
  * authorized flag from `playbackConnection.status`.
  */
 export function useRecentlyPlayed(enabled: boolean) {
-  return useStableAction<SpotifyTrack[]>({
+  return useStableAction<Track[]>({
     enabled,
     load: useCallback(async () => getRecentlyPlayed(), []),
   });

@@ -11,14 +11,14 @@ import { useLocation } from "react-router-dom";
 import { useAction } from "convex/react";
 
 import type {
-  SpotifyArtist,
-  SpotifySearchResults,
-  SpotifyTrack,
-} from "@/features/spotify-client/types";
+  Artist,
+  SearchResults,
+  Track,
+} from "@/features/catalog/types";
 import { useDebounce } from "@/hooks/use-debounce";
 import { api } from "@api";
 
-const EMPTY_RESULTS: SpotifySearchResults = {
+const EMPTY_RESULTS: SearchResults = {
   tracks: [],
   artists: [],
 };
@@ -40,7 +40,7 @@ interface CatalogArtist {
 }
 
 /** Map an Apple catalog song onto the track shape the queue/UI consume. */
-function toTrack(song: CatalogTrack): SpotifyTrack {
+function toTrack(song: CatalogTrack): Track {
   return {
     id: song.id,
     name: song.name,
@@ -56,7 +56,7 @@ function toTrack(song: CatalogTrack): SpotifyTrack {
 /** Map an Apple catalog artist onto the artist shape the search row consumes.
  * Apple has no follower count and search rows don't show genres, so both are
  * placeholders. */
-function toArtist(artist: CatalogArtist): SpotifyArtist {
+function toArtist(artist: CatalogArtist): Artist {
   return {
     id: artist.id,
     name: artist.name,
@@ -69,7 +69,7 @@ function toArtist(artist: CatalogArtist): SpotifyArtist {
 type SearchState = {
   error: string | null;
   loading: boolean;
-  results: SpotifySearchResults;
+  results: SearchResults;
 };
 
 const IDLE_SEARCH_STATE: SearchState = {
@@ -83,7 +83,7 @@ interface SearchContextValue {
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   query: string;
   setQuery: (query: string) => void;
-  results: SpotifySearchResults;
+  results: SearchResults;
   loading: boolean;
   error: string | null;
 }

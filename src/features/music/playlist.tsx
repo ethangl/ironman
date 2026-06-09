@@ -2,9 +2,9 @@ import { FC, useCallback } from "react";
 import { useParams } from "react-router-dom";
 
 import { SidebarContent } from "@/components/sidebar";
-import type { SpotifyTrack } from "@/features/spotify-client/types";
-import { SpotifyHeader } from "@/features/spotify-shell/spotify-header";
-import { Tracks } from "@/features/spotify-tracks";
+import type { Track } from "@/features/catalog/types";
+import { AppHeader } from "@/features/shell/app-header";
+import { Tracks } from "@/features/tracks";
 import { useStableAction } from "@/hooks/use-stable-action";
 import { EnqueuePlaylistButton } from "./enqueue-playlist-button";
 import {
@@ -25,7 +25,7 @@ export const Playlist: FC = () => {
     ),
   });
 
-  const { data: tracks } = useStableAction<SpotifyTrack[]>({
+  const { data: tracks } = useStableAction<Track[]>({
     enabled: Boolean(playlistId),
     keepDataOnLoad: false,
     load: useCallback(
@@ -40,7 +40,7 @@ export const Playlist: FC = () => {
 
   return (
     <>
-      <SpotifyHeader href="/home" title="Playlist" />
+      <AppHeader href="/home" title="Playlist" />
       <SidebarContent>
         <Tracks
           title={playlist.name}

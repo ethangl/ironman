@@ -9,8 +9,8 @@ import {
 import { listItemClassName } from "@/components/list";
 import { Square } from "@/components/square";
 import { Button } from "@/components/ui/button";
-import { useSearch } from "@/features/spotify-search/search-provider";
-import { TrackCell } from "@/features/spotify-tracks/track-cell";
+import { useSearch } from "@/features/search/search-provider";
+import { TrackCell } from "@/features/tracks/track-cell";
 import { useAuthenticatedSession } from "@/hooks/use-authenticated-session";
 import { cn } from "@/lib/utils";
 import type { RoomDetails } from "../client/room-types";

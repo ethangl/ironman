@@ -3,11 +3,11 @@ import type { ReactNode } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
-import type { SpotifyTrack } from "@/features/spotify-client/types";
+import type { Track } from "@/features/catalog/types";
 import { Playlist } from "./playlist";
 
 const playlist = { id: "p.1", name: "Road Trip", image: null, description: null };
-const tracks: SpotifyTrack[] = [
+const tracks: Track[] = [
   {
     id: "100",
     name: "Get Lucky",
@@ -26,8 +26,8 @@ vi.mock("./library-client", () => ({
 
 // The sidebar shell needs a SidebarStateContext provider it can't get in a unit
 // render; stub it to plain passthroughs so the track list stays real.
-vi.mock("@/features/spotify-shell/spotify-header", () => ({
-  SpotifyHeader: ({ title }: { title: ReactNode }) => <h1>{title}</h1>,
+vi.mock("@/features/shell/app-header", () => ({
+  AppHeader: ({ title }: { title: ReactNode }) => <h1>{title}</h1>,
 }));
 vi.mock("@/components/sidebar", () => ({
   SidebarContent: ({ children }: { children?: ReactNode }) => (

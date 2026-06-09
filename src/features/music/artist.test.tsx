@@ -51,8 +51,8 @@ vi.mock("convex/react", () => ({ useAction: () => mockAction }));
 
 // The sidebar shell needs a SidebarStateContext provider it can't get in a unit
 // render; stub it to plain passthroughs so the data-driven sections stay real.
-vi.mock("@/features/spotify-shell/spotify-header", () => ({
-  SpotifyHeader: ({ title }: { title: ReactNode }) => <h1>{title}</h1>,
+vi.mock("@/features/shell/app-header", () => ({
+  AppHeader: ({ title }: { title: ReactNode }) => <h1>{title}</h1>,
 }));
 vi.mock("@/components/sidebar", () => ({
   SidebarContent: ({ children }: { children?: ReactNode }) => (

@@ -11,7 +11,7 @@ import {
 import { ArrowRightIcon } from "lucide-react";
 import { useSearch } from "./search-provider";
 
-export const SpotifySearchArtists: FC = () => {
+export const SearchArtists: FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 

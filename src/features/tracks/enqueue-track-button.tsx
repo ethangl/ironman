@@ -6,10 +6,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { SpotifyTrack } from "@/features/spotify-client/types";
+import type { Track } from "@/features/catalog/types";
 import { useOptionalRooms } from "../rooms/runtime/rooms-provider";
 
-export function EnqueueTrackButton({ track }: { track: SpotifyTrack }) {
+export function EnqueueTrackButton({ track }: { track: Track }) {
   const rooms = useOptionalRooms();
   const activeRoom = rooms?.activeRoom ?? null;
   const enqueueTrack = rooms?.enqueueTrack;

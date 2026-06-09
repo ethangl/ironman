@@ -11,7 +11,7 @@ import { useOptionalRooms } from "@/features/rooms";
 import { PlusIcon } from "lucide-react";
 import { useSearch } from "./search-provider";
 
-export const SpotifySearchTracks: FC = () => {
+export const SearchTracks: FC = () => {
   const rooms = useOptionalRooms();
   const activeRoom = rooms?.activeRoom ?? null;
   const enqueueTrack = rooms?.enqueueTrack;

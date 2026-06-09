@@ -3,7 +3,7 @@ import { FC } from "react";
 
 import { SidebarToggle } from "@/components/sidebar";
 
-export const SpotfiySidebarToggle: FC = () => (
+export const AppSidebarToggle: FC = () => (
   <SidebarToggle
     collapseIcon={<PanelLeftCloseIcon />}
     expandIcon={<LibraryIcon />}

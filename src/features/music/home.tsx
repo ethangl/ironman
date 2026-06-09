@@ -6,9 +6,9 @@ import { SidebarContent } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { ArtistCell } from "@/features/artist/artist-cell";
 import { useOptionalRooms } from "@/features/rooms";
-import { PlaylistCell } from "@/features/spotify-playlists/playlist-cell";
-import { SpotifyHeader } from "@/features/spotify-shell/spotify-header";
-import { Tracks } from "@/features/spotify-tracks";
+import { PlaylistCell } from "@/features/playlists/playlist-cell";
+import { AppHeader } from "@/features/shell/app-header";
+import { Tracks } from "@/features/tracks";
 import { useLibraryArtists } from "./use-library-artists";
 import { useLibraryPlaylists } from "./use-library-playlists";
 import { useRecentlyPlayed } from "./use-recently-played";
@@ -26,7 +26,7 @@ export function Home() {
   if (!authorized) {
     return (
       <>
-        <SpotifyHeader title="Apple Music" />
+        <AppHeader title="Apple Music" />
         <SidebarContent>
           <div className="flex flex-col items-start gap-3 px-4 py-8">
             <p className="text-sm text-muted-foreground">
@@ -51,7 +51,7 @@ export function Home() {
 
   return (
     <>
-      <SpotifyHeader title="Apple Music" />
+      <AppHeader title="Apple Music" />
       <SidebarContent>
         <Section>
           <SectionHeader>

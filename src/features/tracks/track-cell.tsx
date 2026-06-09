@@ -3,14 +3,16 @@ import { FC, PropsWithChildren } from "react";
 import { AlbumArt } from "@/components/album-art";
 import { ListItem, ListItemAction } from "@/components/list";
 import { Square } from "@/components/square";
-import type { Track } from "@/features/spotify-client/types";
+import type { CanonicalTrack } from "@/features/catalog/types";
 import type { TrackSnapshot } from "./types";
 
-function isTrackSnapshot(track: Track | TrackSnapshot): track is TrackSnapshot {
+function isTrackSnapshot(
+  track: CanonicalTrack | TrackSnapshot,
+): track is TrackSnapshot {
   return "trackId" in track;
 }
 
-function toDisplayTrack(track: Track | TrackSnapshot): Track {
+function toDisplayTrack(track: CanonicalTrack | TrackSnapshot): CanonicalTrack {
   if (!isTrackSnapshot(track)) {
     return track;
   }
@@ -26,9 +28,9 @@ function toDisplayTrack(track: Track | TrackSnapshot): Track {
 
 export type TrackCellProps = PropsWithChildren & {
   count?: number;
-  onPlay?: (track: Track) => void;
+  onPlay?: (track: CanonicalTrack) => void;
   playable?: boolean;
-  track: Track | TrackSnapshot;
+  track: CanonicalTrack | TrackSnapshot;
 };
 
 export const TrackCell: FC<TrackCellProps> = ({ children, count, track }) => {

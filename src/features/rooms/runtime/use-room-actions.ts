@@ -3,7 +3,7 @@ import { useMutation } from "convex/react";
 import { useCallback } from "react";
 import { toast } from "sonner";
 
-import type { SpotifyTrack } from "@/features/spotify-client/types";
+import type { Track } from "@/features/catalog/types";
 import { getConvexErrorMessage } from "@/lib/convex-error";
 import type { RoomId, RoomQueueItemId } from "../client/room-types";
 
@@ -20,7 +20,7 @@ function getRequiredRoomId(roomId: RoomId | null | undefined) {
   return null;
 }
 
-function toQueuedTrack(track: SpotifyTrack) {
+function toQueuedTrack(track: Track) {
   return {
     trackId: track.id,
     isrc: track.isrc ?? undefined,
@@ -93,7 +93,7 @@ export function useRoomActions({
   );
 
   const enqueueTrack = useCallback(
-    async (track: SpotifyTrack, nextRoomId?: RoomId | null) => {
+    async (track: Track, nextRoomId?: RoomId | null) => {
       const targetRoomId = getRequiredRoomId(nextRoomId ?? roomId);
       if (!targetRoomId) {
         return;
@@ -112,7 +112,7 @@ export function useRoomActions({
   );
 
   const enqueueTracks = useCallback(
-    async (tracks: SpotifyTrack[], nextRoomId?: RoomId | null) => {
+    async (tracks: Track[], nextRoomId?: RoomId | null) => {
       const targetRoomId = getRequiredRoomId(nextRoomId ?? roomId);
       if (!targetRoomId) {
         return;

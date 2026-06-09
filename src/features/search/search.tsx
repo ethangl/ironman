@@ -11,10 +11,10 @@ import {
 } from "@/components/ui/command";
 import { Spinner } from "@/components/ui/spinner";
 import { useSearch } from "./search-provider";
-import { SpotifySearchArtists } from "./spotify-search-artists";
-import { SpotifySearchTracks } from "./spotify-search-tracks";
+import { SearchArtists } from "./search-artists";
+import { SearchTracks } from "./search-tracks";
 
-export function SpotifySearch() {
+export function Search() {
   const { error, loading, open, query, results, setOpen, setQuery } =
     useSearch();
 
@@ -59,8 +59,8 @@ export function SpotifySearch() {
 
           {!loading && !error && hasResults && (
             <>
-              {results.tracks.length > 0 && <SpotifySearchTracks />}
-              {results.artists.length > 0 && <SpotifySearchArtists />}
+              {results.tracks.length > 0 && <SearchTracks />}
+              {results.artists.length > 0 && <SearchArtists />}
             </>
           )}
 

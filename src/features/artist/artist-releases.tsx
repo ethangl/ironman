@@ -3,10 +3,10 @@ import { FC, ReactNode } from "react";
 import { List } from "@/components/list";
 import { Section, SectionHeader, SectionTitle } from "@/components/section";
 import type {
-  SpotifyAlbumRelease,
-  SpotifyPage,
-} from "@/features/spotify-client/types";
-import { PlaylistCell } from "@/features/spotify-playlists/playlist-cell";
+  AlbumRelease,
+  Page,
+} from "@/features/catalog/types";
+import { PlaylistCell } from "@/features/playlists/playlist-cell";
 
 function formatReleaseDate(value: string | null) {
   if (!value) return "Unknown release date";
@@ -19,7 +19,7 @@ function formatReleaseDate(value: string | null) {
   });
 }
 
-function formatReleaseMeta(release: SpotifyAlbumRelease) {
+function formatReleaseMeta(release: AlbumRelease) {
   return [
     formatReleaseDate(release.releaseDate),
     `${release.totalTracks} tracks`,
@@ -27,11 +27,11 @@ function formatReleaseMeta(release: SpotifyAlbumRelease) {
 }
 
 export type ReleasesProps = {
-  page: SpotifyPage<SpotifyAlbumRelease>;
+  page: Page<AlbumRelease>;
   paginate?: ReactNode;
   title: string;
   /** Link target for a release cell. Defaults to the nested Spotify route. */
-  hrefFor?: (release: SpotifyAlbumRelease) => string;
+  hrefFor?: (release: AlbumRelease) => string;
 };
 
 export const Releases: FC<ReleasesProps> = ({

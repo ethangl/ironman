@@ -3,9 +3,9 @@ import { useParams } from "react-router-dom";
 
 import { SidebarContent } from "@/components/sidebar";
 import { Spinner } from "@/components/ui/spinner";
-import { SpotifyHeader } from "@/features/spotify-shell/spotify-header";
-import { Tracks } from "@/features/spotify-tracks";
-import { toSpotifyTracks } from "./track";
+import { AppHeader } from "@/features/shell/app-header";
+import { Tracks } from "@/features/tracks";
+import { toTracks } from "./track";
 import { useAlbum } from "./use-album";
 
 export function Album() {
@@ -15,7 +15,7 @@ export function Album() {
   if (state.status === "loading") {
     return (
       <>
-        <SpotifyHeader href="/home" title={<Spinner />} />
+        <AppHeader href="/home" title={<Spinner />} />
         <SidebarContent />
       </>
     );
@@ -24,7 +24,7 @@ export function Album() {
   if (state.status === "not_found" || state.status === "error") {
     return (
       <>
-        <SpotifyHeader href="/home" title={<CircleQuestionMarkIcon />} />
+        <AppHeader href="/home" title={<CircleQuestionMarkIcon />} />
         <SidebarContent>
           <p className="py-32 text-center text-muted-foreground">
             {state.status === "not_found"
@@ -41,7 +41,7 @@ export function Album() {
 
   return (
     <>
-      <SpotifyHeader
+      <AppHeader
         href={backHref}
         title={album.name}
         subtitle={album.artistName}
@@ -50,7 +50,7 @@ export function Album() {
         <Tracks
           title={album.name}
           description={album.artistName}
-          tracks={toSpotifyTracks(tracks)}
+          tracks={toTracks(tracks)}
         />
       </SidebarContent>
     </>

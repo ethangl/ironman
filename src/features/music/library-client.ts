@@ -14,7 +14,7 @@
  * that enqueue/play through the same path as search-added Apple tracks.
  */
 
-import type { SpotifyTrack } from "@/features/spotify-client/types";
+import type { Track } from "@/features/catalog/types";
 import type { MusicKitInstance } from "./musickit-types";
 
 const ARTWORK_SIZE = 200;
@@ -118,7 +118,7 @@ interface CatalogSongResource {
   };
 }
 
-function mapCatalogSong(song: CatalogSongResource): SpotifyTrack {
+function mapCatalogSong(song: CatalogSongResource): Track {
   const attributes = song.attributes ?? {};
   return {
     id: song.id,
@@ -133,7 +133,7 @@ function mapCatalogSong(song: CatalogSongResource): SpotifyTrack {
 
 export async function getLibraryPlaylistTracks(
   id: string,
-): Promise<SpotifyTrack[]> {
+): Promise<Track[]> {
   const music = getInstance();
   if (!music) return [];
 
@@ -162,7 +162,7 @@ export async function getLibraryPlaylistTracks(
 
   // 2. Batch-fetch the catalog songs by id (≤100/req) to recover ISRC.
   const storefront = music.storefrontId ?? "us";
-  const byId = new Map<string, SpotifyTrack>();
+  const byId = new Map<string, Track>();
   for (let i = 0; i < catalogIds.length; i += CATALOG_BATCH) {
     const chunk = catalogIds.slice(i, i + CATALOG_BATCH);
     const response = await music.api.music<
@@ -176,7 +176,7 @@ export async function getLibraryPlaylistTracks(
   // 3. Re-project in playlist order, dropping ids the catalog didn't return.
   return catalogIds
     .map((catalogId) => byId.get(catalogId))
-    .filter((track): track is SpotifyTrack => track !== undefined);
+    .filter((track): track is Track => track !== undefined);
 }
 
 /**
@@ -185,7 +185,7 @@ export async function getLibraryPlaylistTracks(
  * metadata, so no catalog batch is needed. `types: "songs"` filters out
  * music-videos; we re-check `type` defensively before mapping.
  */
-export async function getRecentlyPlayed(): Promise<SpotifyTrack[]> {
+export async function getRecentlyPlayed(): Promise<Track[]> {
   const music = getInstance();
   if (!music) return [];
   const response = await music.api.music<

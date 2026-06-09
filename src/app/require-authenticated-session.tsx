@@ -2,8 +2,8 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { RoomsProvider } from "@/features/rooms";
 
-import { SearchProvider } from "@/features/spotify-search/search-provider";
-import { SpotifySearch } from "@/features/spotify-search/spotify-search";
+import { SearchProvider } from "@/features/search/search-provider";
+import { Search } from "@/features/search/search";
 import { useAppAuth } from "./app-runtime";
 import { AuthPendingState } from "./auth-pending-state";
 
@@ -40,7 +40,7 @@ export function RequireAuthenticatedSession() {
     <RoomsProvider>
       <SearchProvider>
         <Outlet />
-        <SpotifySearch />
+        <Search />
       </SearchProvider>
     </RoomsProvider>
   );

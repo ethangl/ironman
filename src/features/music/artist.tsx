@@ -6,19 +6,19 @@ import { Spinner } from "@/components/ui/spinner";
 import { ArtistLastFmOverview, Releases } from "@/features/artist";
 import { useLastFmArtist } from "@/features/artist/use-lastfm-artist";
 import type {
-  SpotifyAlbumRelease,
-  SpotifyPage,
-} from "@/features/spotify-client/types";
-import { SpotifyHeader } from "@/features/spotify-shell/spotify-header";
-import { Tracks } from "@/features/spotify-tracks";
+  AlbumRelease,
+  Page,
+} from "@/features/catalog/types";
+import { AppHeader } from "@/features/shell/app-header";
+import { Tracks } from "@/features/tracks";
 import { ArtistSimilar } from "./artist-similar";
-import { toSpotifyTracks } from "./track";
+import { toTracks } from "./track";
 import { useArtist, type Release } from "./use-artist";
 
 /** Adapt Apple releases to the `Releases` component's (paginated) Spotify shape. */
 function toReleasePage(
   releases: readonly Release[],
-): SpotifyPage<SpotifyAlbumRelease> {
+): Page<AlbumRelease> {
   return {
     items: releases.map((release) => ({
       id: release.id,
@@ -48,7 +48,7 @@ export function Artist() {
   if (state.status === "loading") {
     return (
       <>
-        <SpotifyHeader href="/home" title={<Spinner />} />
+        <AppHeader href="/home" title={<Spinner />} />
         <SidebarContent />
       </>
     );
@@ -57,7 +57,7 @@ export function Artist() {
   if (state.status === "not_found" || state.status === "error") {
     return (
       <>
-        <SpotifyHeader href="/home" title={<CircleQuestionMarkIcon />} />
+        <AppHeader href="/home" title={<CircleQuestionMarkIcon />} />
         <SidebarContent>
           <p className="py-32 text-center text-muted-foreground">
             {state.status === "not_found"
@@ -73,9 +73,9 @@ export function Artist() {
 
   return (
     <>
-      <SpotifyHeader href="/home" title={artist.name} />
+      <AppHeader href="/home" title={artist.name} />
       <SidebarContent>
-        <Tracks title="Top Tracks" tracks={toSpotifyTracks(topSongs)} />
+        <Tracks title="Top Tracks" tracks={toTracks(topSongs)} />
         <Releases
           title="Singles"
           page={toReleasePage(singles)}

@@ -4,7 +4,7 @@ import { FC } from "react";
 import { Button } from "@/components/ui/button";
 import { useSearch } from "./search-provider";
 
-export const SpotifySearchButton: FC = () => {
+export const SearchButton: FC = () => {
   const { setOpen } = useSearch();
   return (
     <Button

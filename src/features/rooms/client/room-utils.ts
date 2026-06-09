@@ -1,7 +1,9 @@
-import type { Track } from "@/features/spotify-client/types";
+import type { CanonicalTrack } from "@/features/catalog/types";
 import type { RoomQueueItem, RoomSyncState } from "./room-types";
 
-export function toRoomTrack(queueItem: RoomQueueItem | null): Track | null {
+export function toRoomTrack(
+  queueItem: RoomQueueItem | null,
+): CanonicalTrack | null {
   if (!queueItem) {
     return null;
   }

@@ -3,9 +3,9 @@ import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RoomsContext } from "@/features/rooms/runtime/rooms-context";
-import type { SpotifySearchResults } from "@/features/spotify-client/types";
+import type { SearchResults } from "@/features/catalog/types";
 import { SearchProvider } from "./search-provider";
-import { SpotifySearch } from "./spotify-search";
+import { Search } from "./search";
 
 type RoomsValue = NonNullable<React.ContextType<typeof RoomsContext>>;
 
@@ -35,7 +35,7 @@ vi.mock("@/hooks/use-debounce", () => ({
 }));
 
 interface SearchOverrides {
-  searchResults?: (query: string) => Promise<SpotifySearchResults>;
+  searchResults?: (query: string) => Promise<SearchResults>;
 }
 
 function renderSearch(
@@ -55,7 +55,7 @@ function renderSearch(
 
   const searchUi = (
     <SearchProvider>
-      <SpotifySearch />
+      <Search />
       {options?.extraUi}
     </SearchProvider>
   );
@@ -339,7 +339,7 @@ describe("search", () => {
     render(
       <MemoryRouter initialEntries={["/home?roomId=room-1"]}>
         <SearchProvider>
-          <SpotifySearch />
+          <Search />
           <LocationDisplay />
         </SearchProvider>
       </MemoryRouter>,

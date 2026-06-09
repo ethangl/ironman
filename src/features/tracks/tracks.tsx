@@ -7,17 +7,17 @@ import {
   SectionHeader,
   SectionTitle,
 } from "@/components/section";
-import type { SpotifyTrack } from "@/features/spotify-client/types";
+import type { Track } from "@/features/catalog/types";
 import { EnqueueTrackButton } from "./enqueue-track-button";
 import { TrackCell } from "./track-cell";
 
 export type TracksProps = {
   action?: ReactNode;
   description?: string | null;
-  getTrackKey?: (track: SpotifyTrack, index: number) => React.Key;
+  getTrackKey?: (track: Track, index: number) => React.Key;
   paginate?: ReactNode;
-  renderTrackAction?: (track: SpotifyTrack) => ReactNode;
-  tracks: SpotifyTrack[];
+  renderTrackAction?: (track: Track) => ReactNode;
+  tracks: Track[];
   title?: string;
 };
 

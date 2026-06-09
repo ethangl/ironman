@@ -10,11 +10,11 @@ import { RoomCreateForm } from "@/features/rooms/ui/room-create-form";
 import { RoomHeader } from "@/features/rooms/ui/room-header";
 import { Rooms } from "@/features/rooms/ui/rooms";
 import { RoomsHeader } from "@/features/rooms/ui/rooms-header";
-import { MiniPlayer } from "@/features/spotify-player/mini-player";
-import { Player } from "@/features/spotify-player/player";
-import { PlayerExpandedProvider } from "@/features/spotify-player/player-expanded-context";
-import { PlayerWrapper } from "@/features/spotify-player/player-wrapper2";
-import { useNowPlaying } from "@/features/spotify-player/use-now-playing";
+import { MiniPlayer } from "@/features/player/mini-player";
+import { Player } from "@/features/player/player";
+import { PlayerExpandedProvider } from "@/features/player/player-expanded-context";
+import { PlayerWrapper } from "@/features/player/player-wrapper2";
+import { useNowPlaying } from "@/features/player/use-now-playing";
 
 export const AuthedLayout: FC = () => {
   const { isPlaying } = useNowPlaying();

@@ -8,11 +8,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useOptionalRooms } from "@/features/rooms";
-import type { SpotifyTrack } from "@/features/spotify-client/types";
+import type { Track } from "@/features/catalog/types";
 
 export type EnqueuePlaylistButtonProps = {
   /** Tracks the detail page already loaded for display. */
-  tracks: SpotifyTrack[];
+  tracks: Track[];
   name: string;
 };
 

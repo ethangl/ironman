@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import type { LastFmArtistMatch } from "@/features/artist/types";
-import { AppleArtist } from "./apple-artist";
+import { Artist } from "./artist";
 
 const artistDetail = {
   artist: { id: "apple-artist-1", name: "Daft Punk", image: null },
@@ -39,7 +39,7 @@ const artistDetail = {
   ],
 };
 
-// Stable identity across renders — useAppleArtist's effect depends on the action
+// Stable identity across renders — useArtist's effect depends on the action
 // ref; a fresh function each render would loop (see migration-state gotcha).
 const mockAction = (args: { artistId?: string; query?: string }) => {
   if ("artistId" in args) return Promise.resolve(artistDetail);
@@ -79,13 +79,13 @@ function renderArtist() {
   return render(
     <MemoryRouter initialEntries={["/artist/apple-artist-1"]}>
       <Routes>
-        <Route path="/artist/:artistId" element={<AppleArtist />} />
+        <Route path="/artist/:artistId" element={<Artist />} />
       </Routes>
     </MemoryRouter>,
   );
 }
 
-describe("AppleArtist", () => {
+describe("Artist", () => {
   it("renders the artist's top songs, albums, singles, bio, and similar artists", async () => {
     renderArtist();
 

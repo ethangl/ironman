@@ -2,9 +2,9 @@ import { api } from "@api";
 import { useAction } from "convex/react";
 import { useEffect, useState } from "react";
 
-import type { AppleTrack } from "./apple-track";
+import type { CatalogSong } from "./track";
 
-export interface AppleAlbumDetail {
+export interface AlbumDetail {
   album: {
     id: string;
     name: string;
@@ -12,22 +12,22 @@ export interface AppleAlbumDetail {
     artistId: string | null;
     image: string | null;
   };
-  tracks: readonly AppleTrack[];
+  tracks: readonly CatalogSong[];
 }
 
-export type AppleAlbumState =
+export type AlbumState =
   | { status: "loading" }
-  | { status: "ready"; detail: AppleAlbumDetail }
+  | { status: "ready"; detail: AlbumDetail }
   | { status: "not_found" }
   | { status: "error" };
 
 /**
  * Loads an Apple catalog album + its tracks (dev-token only, no connection
- * required). One-shot fetch per `albumId`. Mirrors {@link useAppleArtist}.
+ * required). One-shot fetch per `albumId`. Mirrors {@link useArtist}.
  */
-export function useAppleAlbum(albumId: string): AppleAlbumState {
+export function useAlbum(albumId: string): AlbumState {
   const fetchAlbum = useAction(api.playback.album);
-  const [state, setState] = useState<AppleAlbumState>({ status: "loading" });
+  const [state, setState] = useState<AlbumState>({ status: "loading" });
 
   useEffect(() => {
     let cancelled = false;

@@ -20,7 +20,7 @@ import type { MusicKitInstance } from "./musickit-types";
 const ARTWORK_SIZE = 200;
 const CATALOG_BATCH = 100;
 
-export interface ApplePlaylist {
+export interface Playlist {
   id: string;
   name: string;
   image: string | null;
@@ -69,7 +69,7 @@ interface LibraryPlaylistResource {
   };
 }
 
-function mapPlaylist(resource: LibraryPlaylistResource): ApplePlaylist {
+function mapPlaylist(resource: LibraryPlaylistResource): Playlist {
   return {
     id: resource.id,
     name: resource.attributes?.name ?? "(unknown)",
@@ -78,7 +78,7 @@ function mapPlaylist(resource: LibraryPlaylistResource): ApplePlaylist {
   };
 }
 
-export async function getAppleLibraryPlaylists(): Promise<ApplePlaylist[]> {
+export async function getLibraryPlaylists(): Promise<Playlist[]> {
   const music = getInstance();
   if (!music) return [];
   const response = await music.api.music<
@@ -87,9 +87,9 @@ export async function getAppleLibraryPlaylists(): Promise<ApplePlaylist[]> {
   return (response.data?.data ?? []).map(mapPlaylist);
 }
 
-export async function getAppleLibraryPlaylist(
+export async function getLibraryPlaylist(
   id: string,
-): Promise<ApplePlaylist | null> {
+): Promise<Playlist | null> {
   const music = getInstance();
   if (!music) return null;
   const response = await music.api.music<
@@ -131,7 +131,7 @@ function mapCatalogSong(song: CatalogSongResource): SpotifyTrack {
   };
 }
 
-export async function getAppleLibraryPlaylistTracks(
+export async function getLibraryPlaylistTracks(
   id: string,
 ): Promise<SpotifyTrack[]> {
   const music = getInstance();
@@ -185,7 +185,7 @@ export async function getAppleLibraryPlaylistTracks(
  * metadata, so no catalog batch is needed. `types: "songs"` filters out
  * music-videos; we re-check `type` defensively before mapping.
  */
-export async function getAppleRecentlyPlayed(): Promise<SpotifyTrack[]> {
+export async function getRecentlyPlayed(): Promise<SpotifyTrack[]> {
   const music = getInstance();
   if (!music) return [];
   const response = await music.api.music<
@@ -196,7 +196,7 @@ export async function getAppleRecentlyPlayed(): Promise<SpotifyTrack[]> {
     .map(mapCatalogSong);
 }
 
-export interface AppleArtistSummary {
+export interface ArtistSummary {
   /** Catalog artist id — links to the existing /artist/:id page. */
   id: string;
   name: string;
@@ -220,13 +220,13 @@ interface LibraryArtistResource {
  * catalog id (for the /artist/:id link) and artwork. Library-only artists
  * with no catalog match are dropped (nowhere to link, no art).
  */
-export async function getAppleLibraryArtists(): Promise<AppleArtistSummary[]> {
+export async function getLibraryArtists(): Promise<ArtistSummary[]> {
   const music = getInstance();
   if (!music) return [];
   const response = await music.api.music<
     MusicKitResponse<ResourceList<LibraryArtistResource>>
   >("/v1/me/library/artists", { include: "catalog", limit: 100 });
-  const summaries: AppleArtistSummary[] = [];
+  const summaries: ArtistSummary[] = [];
   for (const artist of response.data?.data ?? []) {
     const catalog = artist.relationships?.catalog?.data?.[0];
     if (!catalog) continue;

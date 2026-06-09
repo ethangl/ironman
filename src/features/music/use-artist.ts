@@ -2,12 +2,12 @@ import { api } from "@api";
 import { useAction } from "convex/react";
 import { useEffect, useState } from "react";
 
-import type { AppleTrack } from "./apple-track";
+import type { CatalogSong } from "./track";
 
-export type AppleArtistTrack = AppleTrack;
+export type ArtistTrack = CatalogSong;
 
 /** An album or single in an artist's discography (the releases sections). */
-export interface AppleRelease {
+export interface Release {
   id: string;
   name: string;
   image: string | null;
@@ -15,16 +15,16 @@ export interface AppleRelease {
   trackCount: number;
 }
 
-export interface AppleArtistDetail {
+export interface ArtistDetail {
   artist: { id: string; name: string; image: string | null };
-  topSongs: readonly AppleArtistTrack[];
-  albums: readonly AppleRelease[];
-  singles: readonly AppleRelease[];
+  topSongs: readonly ArtistTrack[];
+  albums: readonly Release[];
+  singles: readonly Release[];
 }
 
-export type AppleArtistState =
+export type ArtistState =
   | { status: "loading" }
-  | { status: "ready"; detail: AppleArtistDetail }
+  | { status: "ready"; detail: ArtistDetail }
   | { status: "not_found" }
   | { status: "error" };
 
@@ -32,9 +32,9 @@ export type AppleArtistState =
  * Loads an Apple catalog artist + their top songs (dev-token only, no
  * connection required). One-shot fetch per `artistId`.
  */
-export function useAppleArtist(artistId: string): AppleArtistState {
+export function useArtist(artistId: string): ArtistState {
   const fetchArtist = useAction(api.playback.artist);
-  const [state, setState] = useState<AppleArtistState>({ status: "loading" });
+  const [state, setState] = useState<ArtistState>({ status: "loading" });
 
   useEffect(() => {
     let cancelled = false;

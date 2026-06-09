@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  getAppleLibraryArtists,
-  getAppleLibraryPlaylists,
-  getAppleLibraryPlaylistTracks,
-  getAppleRecentlyPlayed,
-} from "./apple-library-client";
+  getLibraryArtists,
+  getLibraryPlaylists,
+  getLibraryPlaylistTracks,
+  getRecentlyPlayed,
+} from "./library-client";
 
 type MusicHandler = (
   path: string,
@@ -29,9 +29,9 @@ afterEach(() => {
   delete (window as unknown as { MusicKit?: unknown }).MusicKit;
 });
 
-describe("getAppleLibraryPlaylists", () => {
+describe("getLibraryPlaylists", () => {
   it("returns [] when MusicKit isn't available", async () => {
-    expect(await getAppleLibraryPlaylists()).toEqual([]);
+    expect(await getLibraryPlaylists()).toEqual([]);
   });
 
   it("maps library playlists", async () => {
@@ -56,7 +56,7 @@ describe("getAppleLibraryPlaylists", () => {
       };
     });
 
-    expect(await getAppleLibraryPlaylists()).toEqual([
+    expect(await getLibraryPlaylists()).toEqual([
       {
         id: "p.1",
         name: "Road Trip",
@@ -68,7 +68,7 @@ describe("getAppleLibraryPlaylists", () => {
   });
 });
 
-describe("getAppleLibraryPlaylistTracks", () => {
+describe("getLibraryPlaylistTracks", () => {
   it("pages library tracks, drops uploads without a catalog id, then resolves catalog songs in order", async () => {
     const music = installMusicKit((path, params) => {
       if (path === "/v1/me/library/playlists/p.1/tracks") {
@@ -113,7 +113,7 @@ describe("getAppleLibraryPlaylistTracks", () => {
       throw new Error(`unexpected path ${path}`);
     });
 
-    const tracks = await getAppleLibraryPlaylistTracks("p.1");
+    const tracks = await getLibraryPlaylistTracks("p.1");
 
     expect(tracks.map((t) => t.id)).toEqual(["100", "200", "300"]);
     expect(tracks[0]).toEqual({
@@ -155,7 +155,7 @@ describe("getAppleLibraryPlaylistTracks", () => {
       throw new Error(`unexpected path ${path}`);
     });
 
-    const tracks = await getAppleLibraryPlaylistTracks("big");
+    const tracks = await getLibraryPlaylistTracks("big");
 
     expect(tracks).toHaveLength(150);
     const catalogCalls = music.api.music.mock.calls.filter(
@@ -167,9 +167,9 @@ describe("getAppleLibraryPlaylistTracks", () => {
   });
 });
 
-describe("getAppleRecentlyPlayed", () => {
+describe("getRecentlyPlayed", () => {
   it("returns [] when MusicKit isn't available", async () => {
-    expect(await getAppleRecentlyPlayed()).toEqual([]);
+    expect(await getRecentlyPlayed()).toEqual([]);
   });
 
   it("maps catalog songs directly (ISRC preserved) and drops non-songs", async () => {
@@ -197,7 +197,7 @@ describe("getAppleRecentlyPlayed", () => {
       };
     });
 
-    const tracks = await getAppleRecentlyPlayed();
+    const tracks = await getRecentlyPlayed();
 
     expect(tracks).toEqual([
       {
@@ -213,9 +213,9 @@ describe("getAppleRecentlyPlayed", () => {
   });
 });
 
-describe("getAppleLibraryArtists", () => {
+describe("getLibraryArtists", () => {
   it("returns [] when MusicKit isn't available", async () => {
-    expect(await getAppleLibraryArtists()).toEqual([]);
+    expect(await getLibraryArtists()).toEqual([]);
   });
 
   it("maps to the catalog artist (id + artwork) and drops library-only artists", async () => {
@@ -249,7 +249,7 @@ describe("getAppleLibraryArtists", () => {
       };
     });
 
-    expect(await getAppleLibraryArtists()).toEqual([
+    expect(await getLibraryArtists()).toEqual([
       { id: "5468295", name: "Daft Punk", image: "https://art/200x200.jpg" },
     ]);
   });

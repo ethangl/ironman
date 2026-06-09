@@ -17,7 +17,7 @@ import type { LastFmSimilarArtist } from "@/features/artist/types";
  * the Apple catalog and navigates to that artist's Apple page — keeping the
  * browse experience entirely on Apple (no Spotify routes / MusicBrainz ids).
  */
-export function AppleArtistSimilar({
+export function ArtistSimilar({
   similarArtists,
 }: {
   similarArtists: LastFmSimilarArtist[];

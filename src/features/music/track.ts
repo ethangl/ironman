@@ -1,7 +1,7 @@
 import type { SpotifyTrack } from "@/features/spotify-client/types";
 
 /** A catalog song, shaped exactly as the queue needs it (mirrors CatalogTrack). */
-export interface AppleTrack {
+export interface CatalogSong {
   id: string;
   name: string;
   artist: string;
@@ -16,7 +16,7 @@ export interface AppleTrack {
  * A null ISRC is dropped (the field is optional on `SpotifyTrack`).
  */
 export function toSpotifyTracks(
-  tracks: readonly AppleTrack[],
+  tracks: readonly CatalogSong[],
 ): SpotifyTrack[] {
   return tracks.map((song) => ({
     id: song.id,

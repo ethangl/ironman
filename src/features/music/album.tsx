@@ -5,12 +5,12 @@ import { SidebarContent } from "@/components/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import { SpotifyHeader } from "@/features/spotify-shell/spotify-header";
 import { Tracks } from "@/features/spotify-tracks";
-import { toSpotifyTracks } from "./apple-track";
-import { useAppleAlbum } from "./use-apple-album";
+import { toSpotifyTracks } from "./track";
+import { useAlbum } from "./use-album";
 
-export function AppleAlbum() {
+export function Album() {
   const { albumId = "" } = useParams();
-  const state = useAppleAlbum(albumId);
+  const state = useAlbum(albumId);
 
   if (state.status === "loading") {
     return (

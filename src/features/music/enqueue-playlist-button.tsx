@@ -10,7 +10,7 @@ import {
 import { useOptionalRooms } from "@/features/rooms";
 import type { SpotifyTrack } from "@/features/spotify-client/types";
 
-export type AppleEnqueuePlaylistButtonProps = {
+export type EnqueuePlaylistButtonProps = {
   /** Tracks the detail page already loaded for display. */
   tracks: SpotifyTrack[];
   name: string;
@@ -22,7 +22,7 @@ export type AppleEnqueuePlaylistButtonProps = {
  * has already fetched + ISRC-resolved the tracks for display, so we enqueue
  * those directly.
  */
-export const AppleEnqueuePlaylistButton: FC<AppleEnqueuePlaylistButtonProps> = ({
+export const EnqueuePlaylistButton: FC<EnqueuePlaylistButtonProps> = ({
   tracks,
   name,
 }) => {

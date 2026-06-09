@@ -11,13 +11,13 @@ import type {
 } from "@/features/spotify-client/types";
 import { SpotifyHeader } from "@/features/spotify-shell/spotify-header";
 import { Tracks } from "@/features/spotify-tracks";
-import { AppleArtistSimilar } from "./apple-artist-similar";
-import { toSpotifyTracks } from "./apple-track";
-import { useAppleArtist, type AppleRelease } from "./use-apple-artist";
+import { ArtistSimilar } from "./artist-similar";
+import { toSpotifyTracks } from "./track";
+import { useArtist, type Release } from "./use-artist";
 
 /** Adapt Apple releases to the `Releases` component's (paginated) Spotify shape. */
 function toReleasePage(
-  releases: readonly AppleRelease[],
+  releases: readonly Release[],
 ): SpotifyPage<SpotifyAlbumRelease> {
   return {
     items: releases.map((release) => ({
@@ -36,9 +36,9 @@ function toReleasePage(
   };
 }
 
-export function AppleArtist() {
+export function Artist() {
   const { artistId = "" } = useParams();
-  const state = useAppleArtist(artistId);
+  const state = useArtist(artistId);
 
   // Last.fm enrichment (bio + similar artists) is keyed on the artist's name, so
   // it ports straight from the Spotify page; only meaningful once the artist loads.
@@ -87,7 +87,7 @@ export function AppleArtist() {
           hrefFor={(release) => `/album/${release.id}`}
         />
         <ArtistLastFmOverview artist={lastFmArtist} />
-        <AppleArtistSimilar
+        <ArtistSimilar
           similarArtists={lastFmArtist?.similarArtists ?? []}
         />
       </SidebarContent>

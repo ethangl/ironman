@@ -6,21 +6,21 @@ import type { SpotifyTrack } from "@/features/spotify-client/types";
 import { SpotifyHeader } from "@/features/spotify-shell/spotify-header";
 import { Tracks } from "@/features/spotify-tracks";
 import { useStableAction } from "@/hooks/use-stable-action";
-import { AppleEnqueuePlaylistButton } from "./apple-enqueue-playlist-button";
+import { EnqueuePlaylistButton } from "./enqueue-playlist-button";
 import {
-  getAppleLibraryPlaylist,
-  getAppleLibraryPlaylistTracks,
-  type ApplePlaylist as ApplePlaylistData,
-} from "./apple-library-client";
+  getLibraryPlaylist,
+  getLibraryPlaylistTracks,
+  type Playlist as PlaylistData,
+} from "./library-client";
 
-export const ApplePlaylist: FC = () => {
+export const Playlist: FC = () => {
   const { playlistId } = useParams();
 
-  const { data: playlist } = useStableAction<ApplePlaylistData | null>({
+  const { data: playlist } = useStableAction<PlaylistData | null>({
     enabled: Boolean(playlistId),
     keepDataOnLoad: false,
     load: useCallback(
-      async () => (playlistId ? getAppleLibraryPlaylist(playlistId) : null),
+      async () => (playlistId ? getLibraryPlaylist(playlistId) : null),
       [playlistId],
     ),
   });
@@ -29,7 +29,7 @@ export const ApplePlaylist: FC = () => {
     enabled: Boolean(playlistId),
     keepDataOnLoad: false,
     load: useCallback(
-      async () => (playlistId ? getAppleLibraryPlaylistTracks(playlistId) : []),
+      async () => (playlistId ? getLibraryPlaylistTracks(playlistId) : []),
       [playlistId],
     ),
   });
@@ -46,7 +46,7 @@ export const ApplePlaylist: FC = () => {
           title={playlist.name}
           description={`${tracks?.length ?? 0} songs`}
           action={
-            <AppleEnqueuePlaylistButton
+            <EnqueuePlaylistButton
               tracks={tracks ?? []}
               name={playlist.name}
             />

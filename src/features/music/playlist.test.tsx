@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import type { SpotifyTrack } from "@/features/spotify-client/types";
-import { ApplePlaylist } from "./apple-playlist";
+import { Playlist } from "./playlist";
 
 const playlist = { id: "p.1", name: "Road Trip", image: null, description: null };
 const tracks: SpotifyTrack[] = [
@@ -19,9 +19,9 @@ const tracks: SpotifyTrack[] = [
   },
 ];
 
-vi.mock("./apple-library-client", () => ({
-  getAppleLibraryPlaylist: () => Promise.resolve(playlist),
-  getAppleLibraryPlaylistTracks: () => Promise.resolve(tracks),
+vi.mock("./library-client", () => ({
+  getLibraryPlaylist: () => Promise.resolve(playlist),
+  getLibraryPlaylistTracks: () => Promise.resolve(tracks),
 }));
 
 // The sidebar shell needs a SidebarStateContext provider it can't get in a unit
@@ -35,12 +35,12 @@ vi.mock("@/components/sidebar", () => ({
   ),
 }));
 
-describe("ApplePlaylist", () => {
+describe("Playlist", () => {
   it("renders the playlist's tracks and an enqueue-all action", async () => {
     render(
       <MemoryRouter initialEntries={["/playlist/p.1"]}>
         <Routes>
-          <Route path="/playlist/:playlistId" element={<ApplePlaylist />} />
+          <Route path="/playlist/:playlistId" element={<Playlist />} />
         </Routes>
       </MemoryRouter>,
     );

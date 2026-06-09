@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import type { SpotifyTrack } from "@/features/spotify-client/types";
-import { AppleActivity } from "./apple-home";
+import { Home } from "./home";
 
 const playlists = [
   { id: "p.1", name: "Road Trip", image: null, description: null },
@@ -22,10 +22,10 @@ const recentTracks: SpotifyTrack[] = [
 ];
 const artists = [{ id: "5468295", name: "Daft Punk", image: null }];
 
-vi.mock("./apple-library-client", () => ({
-  getAppleLibraryPlaylists: () => Promise.resolve(playlists),
-  getAppleRecentlyPlayed: () => Promise.resolve(recentTracks),
-  getAppleLibraryArtists: () => Promise.resolve(artists),
+vi.mock("./library-client", () => ({
+  getLibraryPlaylists: () => Promise.resolve(playlists),
+  getRecentlyPlayed: () => Promise.resolve(recentTracks),
+  getLibraryArtists: () => Promise.resolve(artists),
 }));
 
 vi.mock("@/features/rooms", () => ({
@@ -43,11 +43,11 @@ vi.mock("@/components/sidebar", () => ({
   ),
 }));
 
-describe("AppleActivity", () => {
+describe("Home", () => {
   it("renders playlists, recently-played, and library artists", async () => {
     render(
       <MemoryRouter>
-        <AppleActivity />
+        <Home />
       </MemoryRouter>,
     );
 

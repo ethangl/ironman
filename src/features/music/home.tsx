@@ -9,19 +9,19 @@ import { useOptionalRooms } from "@/features/rooms";
 import { PlaylistCell } from "@/features/spotify-playlists/playlist-cell";
 import { SpotifyHeader } from "@/features/spotify-shell/spotify-header";
 import { Tracks } from "@/features/spotify-tracks";
-import { useAppleLibraryArtists } from "./use-apple-library-artists";
-import { useAppleLibraryPlaylists } from "./use-apple-library-playlists";
-import { useAppleRecentlyPlayed } from "./use-apple-recently-played";
+import { useLibraryArtists } from "./use-library-artists";
+import { useLibraryPlaylists } from "./use-library-playlists";
+import { useRecentlyPlayed } from "./use-recently-played";
 
-export function AppleActivity() {
+export function Home() {
   const rooms = useOptionalRooms();
   const connection = rooms?.playbackConnection ?? null;
   const authorized = connection?.status === "authorized";
   const [connecting, setConnecting] = useState(false);
 
-  const { data: playlists } = useAppleLibraryPlaylists(authorized);
-  const { data: recentTracks } = useAppleRecentlyPlayed(authorized);
-  const { data: artists } = useAppleLibraryArtists(authorized);
+  const { data: playlists } = useLibraryPlaylists(authorized);
+  const { data: recentTracks } = useRecentlyPlayed(authorized);
+  const { data: artists } = useLibraryArtists(authorized);
 
   if (!authorized) {
     return (

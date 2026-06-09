@@ -1,9 +1,9 @@
 import { useCallback } from "react";
 
 import {
-  getAppleLibraryArtists,
-  type AppleArtistSummary,
-} from "./apple-library-client";
+  getLibraryArtists,
+  type ArtistSummary,
+} from "./library-client";
 import { useStableAction } from "@/hooks/use-stable-action";
 
 /**
@@ -11,9 +11,9 @@ import { useStableAction } from "@/hooks/use-stable-action";
  * ids). Disabled until Apple is connected (the Music User Token is required), so
  * callers pass the authorized flag from `playbackConnection.status`.
  */
-export function useAppleLibraryArtists(enabled: boolean) {
-  return useStableAction<AppleArtistSummary[]>({
+export function useLibraryArtists(enabled: boolean) {
+  return useStableAction<ArtistSummary[]>({
     enabled,
-    load: useCallback(async () => getAppleLibraryArtists(), []),
+    load: useCallback(async () => getLibraryArtists(), []),
   });
 }

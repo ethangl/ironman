@@ -4,9 +4,12 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import type { SpotifyTrack } from "@/features/spotify-client/types";
-import { AppleRecent } from "./apple-recent";
+import { AppleActivity } from "./apple-home";
 
-const tracks: SpotifyTrack[] = [
+const playlists = [
+  { id: "p.1", name: "Road Trip", image: null, description: null },
+];
+const recentTracks: SpotifyTrack[] = [
   {
     id: "100",
     name: "Get Lucky",
@@ -17,18 +20,20 @@ const tracks: SpotifyTrack[] = [
     isrc: "ISRC100",
   },
 ];
+const artists = [{ id: "5468295", name: "Daft Punk", image: null }];
 
 vi.mock("./apple-library-client", () => ({
-  getAppleRecentlyPlayed: () => Promise.resolve(tracks),
+  getAppleLibraryPlaylists: () => Promise.resolve(playlists),
+  getAppleRecentlyPlayed: () => Promise.resolve(recentTracks),
+  getAppleLibraryArtists: () => Promise.resolve(artists),
 }));
 
-// Apple is connected for this render.
 vi.mock("@/features/rooms", () => ({
   useOptionalRooms: () => ({ playbackConnection: { status: "authorized" } }),
 }));
 
 // The sidebar shell needs a SidebarStateContext provider it can't get in a unit
-// render; stub it to plain passthroughs so the track list stays real.
+// render; stub it to plain passthroughs so the sections stay real.
 vi.mock("@/features/spotify-shell/spotify-header", () => ({
   SpotifyHeader: ({ title }: { title: ReactNode }) => <h1>{title}</h1>,
 }));
@@ -38,17 +43,23 @@ vi.mock("@/components/sidebar", () => ({
   ),
 }));
 
-describe("AppleRecent", () => {
-  it("renders the listener's recently-played tracks", async () => {
+describe("AppleActivity", () => {
+  it("renders playlists, recently-played, and library artists", async () => {
     render(
       <MemoryRouter>
-        <AppleRecent />
+        <AppleActivity />
       </MemoryRouter>,
     );
 
-    expect(
-      await screen.findByRole("heading", { name: "Recently Played" }),
-    ).toBeInTheDocument();
+    // Playlist (browse cell) + its link target.
+    const playlistLink = await screen.findByRole("link", { name: /Road Trip/ });
+    expect(playlistLink).toHaveAttribute("href", "/apple-playlist/p.1");
+
+    // Recently-played track.
     expect(screen.getByText("Get Lucky")).toBeInTheDocument();
+
+    // Library artist links to the catalog artist page.
+    const artistLink = screen.getByRole("link", { name: /Daft Punk/ });
+    expect(artistLink).toHaveAttribute("href", "/apple-artist/5468295");
   });
 });

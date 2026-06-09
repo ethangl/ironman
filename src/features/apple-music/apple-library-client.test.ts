@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  getAppleLibraryArtists,
   getAppleLibraryPlaylists,
   getAppleLibraryPlaylistTracks,
   getAppleRecentlyPlayed,
@@ -208,6 +209,48 @@ describe("getAppleRecentlyPlayed", () => {
         durationMs: 369_000,
         isrc: "ISRC100",
       },
+    ]);
+  });
+});
+
+describe("getAppleLibraryArtists", () => {
+  it("returns [] when MusicKit isn't available", async () => {
+    expect(await getAppleLibraryArtists()).toEqual([]);
+  });
+
+  it("maps to the catalog artist (id + artwork) and drops library-only artists", async () => {
+    installMusicKit((path, params) => {
+      expect(path).toBe("/v1/me/library/artists");
+      expect(params).toEqual({ include: "catalog", limit: 100 });
+      return {
+        data: {
+          data: [
+            {
+              id: "r.1",
+              attributes: { name: "Daft Punk (library)" },
+              relationships: {
+                catalog: {
+                  data: [
+                    {
+                      id: "5468295",
+                      attributes: {
+                        name: "Daft Punk",
+                        artwork: { url: "https://art/{w}x{h}.jpg" },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+            // library-only artist (no catalog match) → dropped
+            { id: "r.2", attributes: { name: "Home Recordings" } },
+          ],
+        },
+      };
+    });
+
+    expect(await getAppleLibraryArtists()).toEqual([
+      { id: "5468295", name: "Daft Punk", image: "https://art/200x200.jpg" },
     ]);
   });
 });

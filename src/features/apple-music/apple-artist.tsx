@@ -48,7 +48,7 @@ export function AppleArtist() {
   if (state.status === "loading") {
     return (
       <>
-        <SpotifyHeader href="/home" title={<Spinner />} />
+        <SpotifyHeader href="/apple-home" title={<Spinner />} />
         <SidebarContent />
       </>
     );
@@ -57,7 +57,7 @@ export function AppleArtist() {
   if (state.status === "not_found" || state.status === "error") {
     return (
       <>
-        <SpotifyHeader href="/home" title={<CircleQuestionMarkIcon />} />
+        <SpotifyHeader href="/apple-home" title={<CircleQuestionMarkIcon />} />
         <SidebarContent>
           <p className="py-32 text-center text-muted-foreground">
             {state.status === "not_found"
@@ -73,7 +73,7 @@ export function AppleArtist() {
 
   return (
     <>
-      <SpotifyHeader href="/home" title={artist.name} />
+      <SpotifyHeader href="/apple-home" title={artist.name} />
       <SidebarContent>
         <Tracks title="Top Tracks" tracks={toSpotifyTracks(topSongs)} />
         <Releases

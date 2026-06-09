@@ -195,3 +195,46 @@ export async function getAppleRecentlyPlayed(): Promise<SpotifyTrack[]> {
     .filter((resource) => resource.type === undefined || resource.type === "songs")
     .map(mapCatalogSong);
 }
+
+export interface AppleArtistSummary {
+  /** Catalog artist id — links to the existing /apple-artist/:id page. */
+  id: string;
+  name: string;
+  image: string | null;
+}
+
+interface CatalogArtistResource {
+  id: string;
+  attributes?: { name?: string; artwork?: Artwork };
+}
+
+interface LibraryArtistResource {
+  id: string;
+  attributes?: { name?: string };
+  relationships?: { catalog?: { data?: CatalogArtistResource[] } };
+}
+
+/**
+ * The listener's library artists. Library artist ids are library ids (and carry
+ * no artwork), so we `include=catalog` to get each one's catalog match — its
+ * catalog id (for the /apple-artist/:id link) and artwork. Library-only artists
+ * with no catalog match are dropped (nowhere to link, no art).
+ */
+export async function getAppleLibraryArtists(): Promise<AppleArtistSummary[]> {
+  const music = getInstance();
+  if (!music) return [];
+  const response = await music.api.music<
+    MusicKitResponse<ResourceList<LibraryArtistResource>>
+  >("/v1/me/library/artists", { include: "catalog", limit: 100 });
+  const summaries: AppleArtistSummary[] = [];
+  for (const artist of response.data?.data ?? []) {
+    const catalog = artist.relationships?.catalog?.data?.[0];
+    if (!catalog) continue;
+    summaries.push({
+      id: catalog.id,
+      name: catalog.attributes?.name ?? artist.attributes?.name ?? "(unknown)",
+      image: artworkUrl(catalog.attributes?.artwork?.url),
+    });
+  }
+  return summaries;
+}

@@ -14,7 +14,6 @@ import { getAuthenticatedSpotifyConvexClient } from "@/features/spotify-client/s
 import { clearCachedSpotifyAccessToken } from "@/features/spotify-client/spotify-access-token";
 import { clearCachedSpotifyAccountLink } from "@/features/spotify-client/spotify-account-link";
 import type { RecentlyPlayedPageResult } from "@/features/spotify-client/types";
-import { SpotifyActivityProvider } from "@/features/spotify-shell";
 import { getFunctionName } from "convex/server";
 import { usePlayerQueueListing } from "./use-player-queue-listing";
 import { useWebPlayerActions, useWebPlayerState } from "./use-web-player";
@@ -254,9 +253,7 @@ function renderProvider(
 
   return render(
     <AppRuntimeProvider>
-      <SpotifyActivityProvider>
-        <WebPlayerProvider>{children ?? <PlayerProbe />}</WebPlayerProvider>
-      </SpotifyActivityProvider>
+      <WebPlayerProvider>{children ?? <PlayerProbe />}</WebPlayerProvider>
     </AppRuntimeProvider>,
   );
 }
@@ -476,11 +473,9 @@ describe("WebPlayerProvider", () => {
     await act(async () => {
       rerender(
         <AppRuntimeProvider>
-          <SpotifyActivityProvider>
-            <WebPlayerProvider>
-              <PlayerProbe />
-            </WebPlayerProvider>
-          </SpotifyActivityProvider>
+          <WebPlayerProvider>
+            <PlayerProbe />
+          </WebPlayerProvider>
         </AppRuntimeProvider>,
       );
       await Promise.resolve();

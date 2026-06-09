@@ -10,6 +10,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -71,6 +72,20 @@ function useSettledSession() {
 
 function useRuntimeValues() {
   const { effectiveSession, isSessionPending } = useSettledSession();
+
+  // Guest-default: once the session has settled to "none", silently create an
+  // anonymous session so everyone is in without a login wall. Ref-guarded to
+  // fire once; reset on failure so a later mount can retry.
+  const anonymousAttempted = useRef(false);
+  useEffect(() => {
+    if (isSessionPending || effectiveSession) return;
+    if (anonymousAttempted.current) return;
+    anonymousAttempted.current = true;
+    void signIn.anonymous().catch(() => {
+      anonymousAttempted.current = false;
+    });
+  }, [isSessionPending, effectiveSession]);
+
   const sessionUserId = effectiveSession?.user.id ?? null;
   const {
     canControlPlayback,

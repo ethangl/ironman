@@ -5,10 +5,8 @@ import { WebPlayerProvider } from "@/features/spotify-player";
 
 import { SearchProvider } from "@/features/spotify-search/search-provider";
 import { SpotifySearch } from "@/features/spotify-search/spotify-search";
-import { SpotifyActivityProvider } from "@/features/spotify-shell";
 import { useAppAuth } from "./app-runtime";
 import { AuthPendingState } from "./auth-pending-state";
-import { ReconnectDialog } from "./reconnect-dialog";
 
 export function RequireAuthenticatedSession() {
   const location = useLocation();
@@ -18,7 +16,7 @@ export function RequireAuthenticatedSession() {
     return (
       <AuthPendingState
         title="Loading your app session"
-        description="We’re checking whether your Spotify session is ready before we open the signed-in app."
+        description="Getting your session ready before we open the app."
       />
     );
   }
@@ -35,17 +33,18 @@ export function RequireAuthenticatedSession() {
     );
   }
 
+  // Guest-default: no Spotify-specific providers gate the app. The Spotify
+  // library dashboard provider (`SpotifyActivityProvider`) is scoped to the
+  // legacy `/home` route, and the Spotify reconnect nag is gone — Spotify is
+  // now opt-in legacy, not a requirement.
   return (
-    <SpotifyActivityProvider>
-      <WebPlayerProvider>
-        <RoomsProvider>
-          <SearchProvider>
-            <Outlet />
-            <SpotifySearch />
-            <ReconnectDialog />
-          </SearchProvider>
-        </RoomsProvider>
-      </WebPlayerProvider>
-    </SpotifyActivityProvider>
+    <WebPlayerProvider>
+      <RoomsProvider>
+        <SearchProvider>
+          <Outlet />
+          <SpotifySearch />
+        </SearchProvider>
+      </RoomsProvider>
+    </WebPlayerProvider>
   );
 }
